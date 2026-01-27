@@ -53,14 +53,27 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // In real app, this would verify by scraping RSI profile
+      // First, verify the RSI profile contains the code
+      const verifyResponse = await axios.post(`${API}/auth/verify-rsi`, {
+        rsi_handle: formData.rsi_handle,
+        verification_code: verificationCode
+      });
+      
+      if (!verifyResponse.data.verified) {
+        setError('Verification code not found in RSI bio. Please add the code and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Now register with verified status
       await register({
         ...formData,
-        verification_code: verificationCode
+        verification_code: verificationCode,
+        is_verified: true
       });
       navigate('/login?registered=true');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      setError(err.response?.data?.detail || 'Verification failed. Please ensure the code is in your RSI bio.');
     } finally {
       setLoading(false);
     }

@@ -155,14 +155,14 @@ async def register(user_data: UserCreate):
     if existing_handle:
         raise HTTPException(status_code=400, detail="RSI Handle already registered")
     
-    # Create user
+    # Create user - NOT verified until RSI bio check passes
     user = {
         'id': str(uuid.uuid4()),
         'email': user_data.email,
         'password_hash': hash_password(user_data.password),
         'rsi_handle': user_data.rsi_handle,
         'verification_code': user_data.verification_code,
-        'is_verified': True,  # For demo, auto-verify
+        'is_verified': False,  # Must verify via RSI bio
         'is_supporter': False,
         'theme_id': 'default',
         'reputation': 5.0,
@@ -183,6 +183,10 @@ async def login(credentials: UserLogin):
     
     if not user or user.get('password_hash') != hash_password(credentials.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Block login if not verified
+    if not user.get('is_verified', False):
+        raise HTTPException(status_code=403, detail="Account not verified. Please complete RSI bio verification.")
     
     token = create_token(user['id'])
     
