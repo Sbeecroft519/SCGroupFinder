@@ -16,6 +16,8 @@ class NavComAPITester:
         self.api_url = f"{base_url}/api"
         self.token = None
         self.user_id = None
+        self.test_email = None
+        self.test_password = "TestPass123!"
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
