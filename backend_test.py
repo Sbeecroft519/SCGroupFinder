@@ -116,7 +116,7 @@ class NavComAPITester:
 
     def test_user_registration(self):
         """Test user registration"""
-        test_email = f"test_{datetime.now().strftime('%H%M%S')}@navcom.test"
+        test_email = f"test_{datetime.now().strftime('%H%M%S')}@example.com"
         test_handle = f"TestPilot_{datetime.now().strftime('%H%M%S')}"
         
         success, response = self.run_test(
