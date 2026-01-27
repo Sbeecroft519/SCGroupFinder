@@ -103,14 +103,16 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           padding: 24px;
+          width: 100%;
         }
         
         .auth-card {
           width: 100%;
-          max-width: 420px;
+          max-width: 480px;
+          margin: 0 auto;
           background: var(--nc-bg-card);
           border: 1px solid var(--nc-border);
-          padding: 32px;
+          padding: 32px 40px;
         }
         
         .auth-header {
