@@ -405,7 +405,7 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     await db.contracts.insert_one(contract_doc)
     
     # Return without _id
-    del contract_doc['_id'] if '_id' in contract_doc else None
+    contract_doc.pop('_id', None)
     return contract_doc
 
 
