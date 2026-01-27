@@ -145,7 +145,7 @@ class NavComAPITester:
             return False
             
         # Use the same credentials from registration
-        test_email = f"test_{datetime.now().strftime('%H%M%S')}@navcom.test"
+        test_email = f"test_{datetime.now().strftime('%H%M%S')}@example.com"
         
         success, response = self.run_test(
             "User Login",
