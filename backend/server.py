@@ -50,6 +50,11 @@ class UserCreate(BaseModel):
     password: str
     rsi_handle: str
     verification_code: Optional[str] = None
+    is_verified: Optional[bool] = False
+
+class RSIVerifyRequest(BaseModel):
+    rsi_handle: str
+    verification_code: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -143,6 +148,36 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 # ===== Auth Routes =====
 
+@api_router.post("/auth/verify-rsi")
+async def verify_rsi_handle(request: RSIVerifyRequest):
+    """Verify that the user's RSI bio contains the verification code"""
+    try:
+        # Scrape the RSI profile page
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            url = f"https://robertsspaceindustries.com/citizens/{request.rsi_handle}"
+            response = await client.get(url, follow_redirects=True)
+            
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="RSI Handle not found")
+            
+            # Check if verification code exists in page content
+            page_content = response.text
+            if request.verification_code in page_content:
+                # Update user as verified if they exist
+                await db.users.update_one(
+                    {'rsi_handle': request.rsi_handle},
+                    {'$set': {'is_verified': True}}
+                )
+                return {'verified': True, 'message': 'RSI Handle verified successfully'}
+            else:
+                return {'verified': False, 'message': 'Verification code not found in RSI bio'}
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="RSI website timeout. Please try again.")
+    except Exception as e:
+        logger.error(f"RSI verification error: {e}")
+        raise HTTPException(status_code=500, detail="Verification service error")
+
+
 @api_router.post("/auth/register", response_model=dict)
 async def register(user_data: UserCreate):
     # Check if email exists
@@ -155,14 +190,14 @@ async def register(user_data: UserCreate):
     if existing_handle:
         raise HTTPException(status_code=400, detail="RSI Handle already registered")
     
-    # Create user - NOT verified until RSI bio check passes
+    # Create user - verified status comes from frontend after RSI check
     user = {
         'id': str(uuid.uuid4()),
         'email': user_data.email,
         'password_hash': hash_password(user_data.password),
         'rsi_handle': user_data.rsi_handle,
         'verification_code': user_data.verification_code,
-        'is_verified': False,  # Must verify via RSI bio
+        'is_verified': user_data.is_verified or False,
         'is_supporter': False,
         'theme_id': 'default',
         'reputation': 5.0,
