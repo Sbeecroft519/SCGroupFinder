@@ -1,0 +1,382 @@
+import { useState, useEffect } from 'react';
+import { Activity, RefreshCw, CheckCircle, AlertTriangle, XCircle, Wifi, WifiOff, Skull, Bug, Package, Users, Zap, MapPin, TrendingUp } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import axios from 'axios';
+import { API } from '../App';
+
+const REPORT_TYPES = [
+  { id: 'lag', label: 'Lag / Desync', icon: Wifi },
+  { id: 'mission_bug', label: 'Mission Bug', icon: Bug },
+  { id: 'cargo_issue', label: 'Cargo Issue', icon: Package },
+  { id: 'pirates', label: 'Pirates', icon: Skull },
+  { id: 'pvp', label: 'PvP / Griefing', icon: Users },
+  { id: '30k', label: '30k Disconnect', icon: Zap }
+];
+
+const RELIABILITY_METRICS = [
+  { id: 'cargo', label: 'Cargo Reliability', description: 'Cargo hauling mission stability', value: 78 },
+  { id: 'combat', label: 'Combat Reliability', description: 'Combat mission and bounty stability', value: 83 },
+  { id: 'salvage', label: 'Salvage Reliability', description: 'Salvage operation stability', value: 73 },
+  { id: 'fps', label: 'FPS Reliability', description: 'Ground combat and bunker mission stability', value: 78 }
+];
+
+const RISK_INDICATORS = [
+  { id: 'congestion', label: 'Location Congestion', description: 'Current player density in popular areas', value: 70 },
+  { id: 'pvp', label: 'PvP Risk', description: 'Current griefing and PvP activity level', value: 75 }
+];
+
+// Mock trend data
+const generateTrendData = (days) => {
+  const data = [];
+  for (let i = days; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    data.push({
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      reports: Math.floor(Math.random() * 15) + 2,
+      lag: Math.floor(Math.random() * 5),
+      bugs: Math.floor(Math.random() * 3),
+      pirates: Math.floor(Math.random() * 4)
+    });
+  }
+  return data;
+};
+
+export default function Signals() {
+  const [serverStatus, setServerStatus] = useState('operational');
+  const [rsiStatus, setRsiStatus] = useState({ status: 'operational', lastIncident: null });
+  const [reports24h, setReports24h] = useState(5);
+  const [trendRange, setTrendRange] = useState(7);
+  const [trendView, setTrendView] = useState('timeline');
+  const [trendData, setTrendData] = useState(generateTrendData(7));
+  const [recentReports, setRecentReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [myShard, setMyShard] = useState('');
+
+  useEffect(() => {
+    fetchSignalsData();
+  }, []);
+
+  useEffect(() => {
+    setTrendData(generateTrendData(trendRange));
+  }, [trendRange]);
+
+  const fetchSignalsData = async () => {
+    setLoading(true);
+    try {
+      // Fetch server status
+      const statusRes = await axios.get(`${API}/signals/status`);
+      if (statusRes.data) {
+        setServerStatus(statusRes.data.server_status || 'operational');
+        setRsiStatus(statusRes.data.rsi_status || { status: 'operational', lastIncident: null });
+        setReports24h(statusRes.data.reports_24h || 5);
+      }
+
+      // Fetch recent reports
+      const reportsRes = await axios.get(`${API}/signals/reports`);
+      if (reportsRes.data) {
+        setRecentReports(reportsRes.data.slice(0, 10));
+      }
+    } catch (error) {
+      console.error('Failed to fetch signals data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReport = async (type) => {
+    try {
+      await axios.post(`${API}/signals/report`, {
+        type,
+        shard: myShard || null,
+        timestamp: new Date().toISOString()
+      });
+      fetchSignalsData();
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'operational': return 'green';
+      case 'degraded': return 'orange';
+      case 'outage': return 'red';
+      default: return 'green';
+    }
+  };
+
+  const totalReports = trendData.reduce((sum, d) => sum + d.reports, 0);
+  const avgReports = (totalReports / trendData.length).toFixed(1);
+  const peakReports = Math.max(...trendData.map(d => d.reports));
+  const uniqueSystems = 4;
+
+  return (
+    <div className="navcom-page" data-testid="signals-page">
+      {/* Page Header */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div className="page-label">// SERVER_HEALTH</div>
+          <h1 className="page-title">Health & Reporting</h1>
+          <p className="page-subtitle">Real-time server stability and crowd-sourced reports</p>
+        </div>
+        <button 
+          className="nc-btn nc-btn-secondary" 
+          onClick={fetchSignalsData}
+          disabled={loading}
+          data-testid="refresh-btn"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Server Status Card */}
+      <div className="nc-card" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className={`nc-status ${getStatusColor(serverStatus)}`}>
+              <span className="nc-status-dot" />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, color: 'var(--nc-text-primary)', marginBottom: 4 }}>
+                Server Status
+              </h3>
+              <span className={`text-${getStatusColor(serverStatus)}`} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, letterSpacing: 2, textTransform: 'uppercase' }}>
+                {serverStatus === 'operational' ? 'GREEN' : serverStatus === 'degraded' ? 'YELLOW' : 'RED'}
+              </span>
+            </div>
+          </div>
+          <div className="nc-stat-card" style={{ padding: '12px 24px' }}>
+            <div className="nc-stat-value" style={{ fontSize: 28 }}>{reports24h}</div>
+            <div className="nc-stat-label">Reports 24h</div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--nc-border)', marginTop: 20, paddingTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            {rsiStatus.status === 'operational' ? (
+              <CheckCircle size={16} className="text-green" />
+            ) : (
+              <AlertTriangle size={16} className="text-orange" />
+            )}
+            <span className="font-mono text-muted" style={{ fontSize: 12, letterSpacing: 1 }}>RSI Official:</span>
+            <span className={`text-${getStatusColor(rsiStatus.status)}`} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 12, letterSpacing: 2 }}>
+              {rsiStatus.status?.toUpperCase() || 'OPERATIONAL'}
+            </span>
+          </div>
+          {rsiStatus.lastIncident && (
+            <div style={{ background: 'var(--nc-bg-secondary)', padding: 12, border: '1px solid var(--nc-border)' }}>
+              <div style={{ fontFamily: 'var(--nc-font-body)', fontSize: 14, color: 'var(--nc-text-secondary)' }}>
+                {rsiStatus.lastIncident.title}
+              </div>
+              <div className="font-mono text-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                {rsiStatus.lastIncident.date}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Activity Reliability */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 16 }}>
+          ACTIVITY RELIABILITY
+        </h3>
+        <div className="grid-4">
+          {RELIABILITY_METRICS.map(metric => (
+            <div key={metric.id} className="nc-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <CheckCircle size={16} className="text-green" />
+                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)' }}>
+                  {metric.label}
+                </span>
+              </div>
+              <div className="nc-progress" style={{ marginBottom: 12 }}>
+                <div 
+                  className="nc-progress-bar green" 
+                  style={{ width: `${metric.value}%` }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="font-mono text-muted" style={{ fontSize: 11 }}>{metric.description}</span>
+                <span className="text-green font-display" style={{ fontSize: 14 }}>{metric.value}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Risk Indicators */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 16 }}>
+          RISK INDICATORS
+        </h3>
+        <div className="grid-2">
+          {RISK_INDICATORS.map(indicator => (
+            <div key={indicator.id} className="nc-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <CheckCircle size={16} className="text-green" />
+                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)' }}>
+                  {indicator.label}
+                </span>
+              </div>
+              <div className="nc-progress" style={{ marginBottom: 12 }}>
+                <div 
+                  className={`nc-progress-bar ${indicator.value > 70 ? 'gold' : 'green'}`}
+                  style={{ width: `${indicator.value}%` }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="font-mono text-muted" style={{ fontSize: 11 }}>{indicator.description}</span>
+                <span className={indicator.value > 70 ? 'text-gold' : 'text-green'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>
+                  {indicator.value}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Report Section */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 8 }}>
+          REPORT AN ISSUE
+        </h3>
+        <p className="text-muted" style={{ fontSize: 14, marginBottom: 16 }}>
+          Help improve intelligence with one-tap reports
+        </p>
+        <div className="report-grid" data-testid="report-grid">
+          {REPORT_TYPES.map(type => {
+            const Icon = type.icon;
+            return (
+              <button
+                key={type.id}
+                className="report-btn"
+                onClick={() => handleReport(type.id)}
+                data-testid={`report-${type.id}`}
+              >
+                <Icon className="report-btn-icon" size={24} />
+                <span className="report-btn-label">{type.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Incident Trends */}
+      <div className="nc-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TrendingUp size={16} className="text-cyan" />
+            <span className="font-display uppercase" style={{ fontSize: 14, letterSpacing: 1 }}>
+              INCIDENT TRENDS
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div className="nc-toggle-group">
+              {[7, 14, 30].map(d => (
+                <button
+                  key={d}
+                  className={`nc-toggle ${trendRange === d ? 'active' : ''}`}
+                  onClick={() => setTrendRange(d)}
+                  style={{ padding: '8px 12px', fontSize: 11 }}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+            <div className="nc-toggle-group">
+              {['Timeline', 'Breakdown', 'Locations'].map(v => (
+                <button
+                  key={v}
+                  className={`nc-toggle ${trendView === v.toLowerCase() ? 'active' : ''}`}
+                  onClick={() => setTrendView(v.toLowerCase())}
+                  style={{ padding: '8px 12px', fontSize: 11 }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid-4" style={{ marginBottom: 24 }}>
+          <div className="nc-stat-card">
+            <div className="nc-stat-value">{totalReports}</div>
+            <div className="nc-stat-label">TOTAL REPORTS</div>
+          </div>
+          <div className="nc-stat-card">
+            <div className="nc-stat-value">{avgReports}</div>
+            <div className="nc-stat-label">AVG/DAY</div>
+          </div>
+          <div className="nc-stat-card">
+            <div className="nc-stat-value">{peakReports}</div>
+            <div className="nc-stat-label">SYSTEMS</div>
+          </div>
+          <div className="nc-stat-card">
+            <div className="nc-stat-value">{uniqueSystems}</div>
+            <div className="nc-stat-label">HOTSPOTS</div>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div style={{ height: 300 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trendData}>
+              <defs>
+                <linearGradient id="colorReports" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#00f0ff" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorPirates" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ff3366" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis 
+                dataKey="date" 
+                stroke="#4a6070" 
+                fontSize={10}
+                tickLine={false}
+                axisLine={{ stroke: '#1a3344' }}
+              />
+              <YAxis 
+                stroke="#4a6070" 
+                fontSize={10}
+                tickLine={false}
+                axisLine={{ stroke: '#1a3344' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  background: '#0d1a26', 
+                  border: '1px solid #1a3344',
+                  borderRadius: 0,
+                  fontFamily: 'Share Tech Mono'
+                }}
+                labelStyle={{ color: '#00f0ff' }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="reports" 
+                stroke="#00f0ff" 
+                fillOpacity={1}
+                fill="url(#colorReports)"
+                strokeWidth={2}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="pirates" 
+                stroke="#ff3366" 
+                fillOpacity={1}
+                fill="url(#colorPirates)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
