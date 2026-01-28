@@ -634,6 +634,18 @@ export default function Contracts() {
                       ))}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label className="nc-label">COMPENSATION</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.compensation_type}
+                      onChange={e => setNewContract(prev => ({ ...prev, compensation_type: e.target.value, payment_amount: e.target.value !== 'Flat Fee' ? '' : prev.payment_amount }))}
+                    >
+                      {CONTRACT_OPTIONS.operations.compensation.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
                 </>
               )}
 
