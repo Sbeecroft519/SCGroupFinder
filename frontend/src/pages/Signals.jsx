@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Activity, RefreshCw, CheckCircle, AlertTriangle, XCircle, Wifi, WifiOff, Skull, Bug, Package, Users, Zap, MapPin, TrendingUp, X } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import axios from 'axios';
 import { API } from '../App';
 
-const REPORT_TYPES = [
+const REPORT_COLORS = {
+  lag: '#ffcc00',
+  mission_bug: '#ff9933',
+  cargo_issue: '#00f0ff',
+  pirates: '#ff3366',
+  pvp: '#ff6600',
+  '30k': '#ff0066'
+};
   { id: 'lag', label: 'Lag / Desync', icon: Wifi, color: '#ffcc00', requiresLocation: true },
   { id: 'mission_bug', label: 'Mission Bug', icon: Bug, color: '#ff9933', requiresLocation: false },
   { id: 'cargo_issue', label: 'Cargo Issue', icon: Package, color: '#00f0ff', requiresLocation: true },
