@@ -635,6 +635,39 @@ export default function Contracts() {
           const type = getContractType(contract.type);
           const isMyShard = isMyShardContract(contract);
           
+          // Generate display info based on contract type
+          const getContractDetails = () => {
+            switch (contract.type) {
+              case 'security':
+                return { 
+                  subtitle: contract.threat || 'Standard',
+                  detail: contract.activity || contract.title
+                };
+              case 'rescue':
+                return { 
+                  subtitle: contract.environment || 'Unknown',
+                  detail: contract.status_select || contract.title
+                };
+              case 'transport':
+                return { 
+                  subtitle: contract.destination || 'Destination',
+                  detail: contract.load || contract.title
+                };
+              case 'operations':
+                return { 
+                  subtitle: `Need ${contract.role || 'Crew'}`,
+                  detail: contract.job || contract.title
+                };
+              default:
+                return { subtitle: '', detail: contract.title };
+            }
+          };
+          
+          const details = getContractDetails();
+          const displayTitle = contract.activity 
+            ? generateTitle(contract) 
+            : contract.title;
+          
           return (
             <div 
               key={contract.id} 
@@ -645,22 +678,31 @@ export default function Contracts() {
                 <div className="contract-type">
                   <span className="contract-type-icon">{type.icon}</span>
                   <span className="contract-type-label">{type.label.toUpperCase()}</span>
-                  {contract.rescue_type && (
-                    <span className="font-mono text-muted" style={{ fontSize: 10 }}>
-                      ({contract.rescue_type === 'body_marker' ? 'Body Marker' : 'Pickup'})
+                  {details.subtitle && (
+                    <span className="contract-threat-badge" style={{ 
+                      background: contract.threat?.includes('Critical') ? 'rgba(255,51,102,0.2)' : 
+                                  contract.threat?.includes('PVP') ? 'rgba(255,153,0,0.2)' : 
+                                  'rgba(0,240,255,0.15)',
+                      color: contract.threat?.includes('Critical') ? '#ff3366' : 
+                             contract.threat?.includes('PVP') ? '#ff9900' : 
+                             'var(--nc-cyan)',
+                      padding: '2px 8px',
+                      fontSize: 10,
+                      fontFamily: 'var(--nc-font-mono)'
+                    }}>
+                      {details.subtitle}
                     </span>
                   )}
                 </div>
                 <span className="contract-time">{getTimeAgo(contract.created_at)}</span>
               </div>
 
-              <h3 className="contract-title">{contract.title}</h3>
-              <p className="contract-desc">{contract.description}</p>
+              <h3 className="contract-title">{displayTitle || details.detail}</h3>
 
               <div className="contract-meta">
                 <div className="contract-meta-item">
                   <MapPin size={12} />
-                  {contract.location}
+                  {contract.location || `${contract.planet} - ${contract.location}`}
                 </div>
                 <div className="contract-meta-item">
                   <Users size={12} />
@@ -668,9 +710,9 @@ export default function Contracts() {
                 </div>
                 <div className="contract-meta-item">
                   <Star size={12} className="text-gold" />
-                  {contract.poster.reputation.toFixed(1)}
+                  {contract.poster?.reputation?.toFixed(1) || '5.0'}
                 </div>
-                {contract.poster.is_supporter && (
+                {contract.poster?.is_supporter && (
                   <span className="supporter-badge" style={{ marginLeft: 'auto' }}>SYNDICATE</span>
                 )}
               </div>
@@ -678,10 +720,10 @@ export default function Contracts() {
               <div className="contract-actions">
                 <button
                   className="nc-btn nc-btn-secondary"
-                  onClick={() => handleCopyHandle(contract.poster.handle)}
+                  onClick={() => handleCopyHandle(contract.poster?.handle || 'Unknown')}
                   data-testid={`copy-handle-${contract.id}`}
                 >
-                  {copiedHandle === contract.poster.handle ? (
+                  {copiedHandle === contract.poster?.handle ? (
                     <><Check size={14} className="text-green" /> Copied!</>
                   ) : (
                     <><Copy size={14} /> Copy Handle</>
