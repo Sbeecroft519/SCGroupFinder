@@ -676,6 +676,23 @@ export default function Contracts() {
                   </select>
                 </div>
               </div>
+              )}
+
+              {/* Payment Amount (shown except for split compensation) */}
+              {showPaymentField && (
+                <div className="form-group">
+                  <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
+                  <input
+                    type="number"
+                    className="nc-input"
+                    placeholder="e.g., 50000"
+                    value={newContract.payment_amount}
+                    onChange={e => setNewContract(prev => ({ ...prev, payment_amount: e.target.value.replace(/\D/g, '') }))}
+                    min="0"
+                    style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 18, color: 'var(--nc-green)' }}
+                  />
+                </div>
+              )}
 
               {/* Preview Generated Title */}
               {generateTitle(newContract) && (
@@ -684,6 +701,16 @@ export default function Contracts() {
                   <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-cyan)' }}>
                     {generateTitle(newContract)}
                   </div>
+                  {showPaymentField && newContract.payment_amount && (
+                    <div style={{ marginTop: 8, fontFamily: 'var(--nc-font-mono)', fontSize: 20, color: 'var(--nc-green)' }}>
+                      {parseInt(newContract.payment_amount).toLocaleString()} aUEC
+                    </div>
+                  )}
+                  {!showPaymentField && (
+                    <div style={{ marginTop: 8 }}>
+                      <span className="loot-split-badge">LOOT SPLIT</span>
+                    </div>
+                  )}
                 </div>
               )}
 
