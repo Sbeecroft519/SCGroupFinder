@@ -577,13 +577,14 @@ export default function Signals() {
             </span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <div className="nc-toggle-group">
+            <div className="nc-toggle-group" style={{ alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'var(--nc-text-muted)', marginRight: 8, fontFamily: 'var(--nc-font-mono)', letterSpacing: 1 }}>Days:</span>
               {[7, 14, 30].map(d => (
                 <button
                   key={d}
                   className={`nc-toggle ${trendRange === d ? 'active' : ''}`}
                   onClick={() => setTrendRange(d)}
-                  style={{ padding: '8px 12px', fontSize: 11 }}
+                  style={{ padding: '10px 14px', fontSize: 14 }}
                 >
                   {d}
                 </button>
@@ -595,7 +596,7 @@ export default function Signals() {
                   key={v}
                   className={`nc-toggle ${trendView === v.toLowerCase() ? 'active' : ''}`}
                   onClick={() => setTrendView(v.toLowerCase())}
-                  style={{ padding: '8px 12px', fontSize: 11 }}
+                  style={{ padding: '10px 14px', fontSize: 14 }}
                 >
                   {v}
                 </button>
