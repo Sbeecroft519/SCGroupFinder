@@ -286,92 +286,134 @@ async def get_ships():
 async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
     
-    # Activity-based mission generation
-    missions = {
-        'cargo': {
-            'title': 'Cargo Hauling',
-            'description': f'Transport goods using your {request.ship} ({ship_scu} SCU capacity).',
-            'location': {
-                'name': f'{request.system} - Trade Hub',
-                'description': 'Major trading stations with best buy/sell prices.',
-                'activities': 'Trading, Cargo Running'
-            },
-            'reward': f'{ship_scu * 100:,} - {ship_scu * 200:,} aUEC' if ship_scu > 0 else 'Variable'
-        },
-        'combat': {
-            'title': 'Combat Missions',
-            'description': 'Engage hostile targets and complete bounty contracts.',
-            'location': {
-                'name': f'{request.system} - Combat Zone',
-                'description': 'Active conflict areas with bounty targets.',
-                'activities': 'Bounty Hunting, PvE Combat'
-            },
-            'reward': '15,000 - 100,000 aUEC'
-        },
-        'salvage': {
-            'title': 'Salvage Operations',
-            'description': 'Recover valuable materials from derelict ships and debris.',
-            'location': {
-                'name': f'{request.system} - Salvage Site',
-                'description': 'Wreckage fields with recoverable materials.',
-                'activities': 'Hull Scraping, Component Recovery'
-            },
-            'reward': '20,000 - 80,000 aUEC'
-        },
-        'fps': {
-            'title': 'FPS Contracts',
-            'description': 'Ground combat operations and bunker clearing missions.',
-            'location': {
-                'name': f'{request.system} - Ground Site',
-                'description': 'Underground bunkers and surface installations.',
-                'activities': 'Bunker Clearing, Defense Contracts'
-            },
-            'reward': '10,000 - 60,000 aUEC'
-        },
-        'mining': {
-            'title': 'Mining Operations',
-            'description': 'Extract valuable minerals from asteroids and planetary deposits.',
-            'location': {
-                'name': f'{request.system} - Mining Belt',
-                'description': 'Resource-rich asteroid fields.',
-                'activities': 'Quantanium Mining, Gem Extraction'
-            },
-            'reward': '50,000 - 200,000 aUEC'
-        },
-        'chill': {
-            'title': 'Exploration & Touring',
-            'description': 'Sightseeing, cave exploration, or scenic spots.',
-            'location': {
-                'name': 'microTech Ice Caves',
-                'description': 'Land near the frozen lakes on microTech\'s surface. Look for cave entrances - crystalline ice formations inside. Bring a Pembroke suit!',
-                'activities': 'Spelunking, Photography'
-            },
-            'reward': 'Variable - Variable'
+    # Time display mapping
+    time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
+    
+    # Cargo - use UEX data for profit calculation
+    if request.activity == 'cargo':
+        reward_text = 'Variable'
+        location_desc = 'Major trading stations with best buy/sell prices.'
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get('https://api.uexcorp.space/2.0/commodities')
+                if resp.status_code == 200:
+                    data = resp.json()
+                    commodities = data.get('data', data) if isinstance(data, dict) else data
+                    if commodities and len(commodities) > 0:
+                        # Find profitable commodity based on risk tolerance
+                        import random
+                        if request.risk == 'HIGH':
+                            # High risk = illegal/volatile goods
+                            candidates = [c for c in commodities if c.get('kind') == 'Drug' or c.get('is_illegal')]
+                        elif request.risk == 'LOW':
+                            # Low risk = stable commodities
+                            candidates = [c for c in commodities if c.get('kind') in ['Metal', 'Mineral', 'Food']]
+                        else:
+                            candidates = commodities
+                        
+                        if candidates:
+                            commodity = random.choice(candidates[:10])
+                            buy_price = commodity.get('price_buy', 0) or 0
+                            sell_price = commodity.get('price_sell', 0) or 0
+                            profit_per_scu = max(0, sell_price - buy_price)
+                            total_profit = profit_per_scu * ship_scu
+                            if total_profit > 0:
+                                reward_text = f'{total_profit:,.0f} - {total_profit * 1.5:,.0f} aUEC'
+                                location_desc = f"Trade {commodity.get('name', 'goods')} - Buy low, sell high across {request.system}."
+        except Exception as e:
+            logger.error(f"UEX cargo calc error: {e}")
+        
+        return MissionResponse(
+            type='cargo', title='Cargo Hauling',
+            description=f'Transport goods using your {request.ship} ({ship_scu} SCU capacity).',
+            location={'name': f'{request.system} - Trade Route', 'description': location_desc, 'activities': 'Trading, Cargo Running'},
+            duration=time_display, reward=reward_text if ship_scu > 0 else 'Ship has no cargo capacity',
+            risk_level=request.risk, fallback={'title': 'Delivery Missions', 'description': 'Package delivery contracts from terminals'}
+        )
+    
+    # Mining - unique location suggestions
+    if request.activity == 'mining':
+        mining_locations = {
+            'Stanton': [
+                {'name': 'Aaron Halo - Lyria Cluster', 'desc': 'Dense quantanium deposits. High yield but watch for pirates near refinery routes.', 'activities': 'Quantanium, Laranite'},
+                {'name': 'Yela Asteroid Belt', 'desc': 'Beginner-friendly belt with stable rocks. Good for Prospector pilots learning the trade.', 'activities': 'Agricium, Titanium'},
+                {'name': 'Aberdeen Deep Deposits', 'desc': 'Surface mining on Aberdeen. Harsh conditions but rich hadanite veins.', 'activities': 'Hadanite, Dolivine'}
+            ],
+            'Pyro': [
+                {'name': 'Pyro Belt Alpha', 'desc': 'Lawless space with untapped riches. Bring escort or risk losing everything.', 'activities': 'Rare minerals, High risk'},
+            ],
+            'Nyx': [
+                {'name': 'Delamar Fields', 'desc': 'Remote but peaceful mining grounds away from major traffic.', 'activities': 'Mixed minerals'}
+            ]
         }
-    }
+        import random
+        locs = mining_locations.get(request.system, mining_locations['Stanton'])
+        loc = random.choice(locs)
+        return MissionResponse(
+            type='mining', title='Mining Operations',
+            description='Extract valuable minerals from asteroids and planetary deposits.',
+            location={'name': loc['name'], 'description': loc['desc'], 'activities': loc['activities']},
+            duration=time_display, reward='50,000 - 250,000 aUEC',
+            risk_level=request.risk, fallback={'title': 'Hand Mining', 'description': 'Surface gems on moons - no ship required'}
+        )
     
-    mission_data = missions.get(request.activity, missions['chill'])
+    # Chill - unique interesting locations, Variable reward
+    if request.activity == 'chill':
+        chill_locations = {
+            'Stanton': [
+                {'name': 'microTech Ice Caves', 'desc': 'Land near frozen lakes on microTech. Crystalline ice formations and bioluminescent flora inside. Bring a Pembroke suit!', 'activities': 'Spelunking, Photography'},
+                {'name': 'Daymar Racing Canyons', 'desc': 'Tight canyon networks perfect for low-altitude racing. Community events every weekend.', 'activities': 'Racing, Stunt Flying'},
+                {'name': 'Hurston Savanna Safari', 'desc': 'Drive a Cyclone across golden plains at sunset. Watch for territorial fauna.', 'activities': 'Ground Exploration, Wildlife'},
+                {'name': 'Orison Cloud Platforms', 'desc': 'Floating city with stunning views. Best coffee in the system at Cafe Musain.', 'activities': 'Sightseeing, Social'},
+                {'name': 'GrimHEX Underground', 'desc': 'Seedy asteroid bar with live music and underground racing. Mind your credits.', 'activities': 'Nightlife, Racing Bets'},
+                {'name': 'Port Tressler Observation Deck', 'desc': 'Watch ships come and go from the premium lounge. Crusader fills half the viewport.', 'activities': 'Relaxation, Ship Spotting'}
+            ],
+            'Pyro': [
+                {'name': 'Pyro Station Overlook', 'desc': 'Abandoned observation post with views of the burning star. Eerie and beautiful.', 'activities': 'Photography, Exploration'},
+                {'name': 'Ruin Station Graffiti Tour', 'desc': 'Player-made art installations in derelict structures. A living museum of verse culture.', 'activities': 'Art, History'}
+            ],
+            'Nyx': [
+                {'name': 'Levski Memorial', 'desc': 'Pay respects at the revolutionary monument. Rich history of the independence movement.', 'activities': 'History, Culture'}
+            ]
+        }
+        import random
+        locs = chill_locations.get(request.system, chill_locations['Stanton'])
+        loc = random.choice(locs)
+        return MissionResponse(
+            type='chill', title='Exploration & Touring',
+            description='Sightseeing, cave exploration, or scenic spots.',
+            location={'name': loc['name'], 'description': loc['desc'], 'activities': loc['activities']},
+            duration=time_display, reward='Variable',
+            risk_level='LOW', fallback={'title': 'Social Hub', 'description': 'Visit a landing zone and meet other pilots'}
+        )
     
-    # Convert time to display format
-    time_display = {
-        '15m': '15-30 min',
-        '30m': '30-45 min',
-        '1h': '30-60 min',
-        '2h': '60-120 min'
-    }.get(request.time, '30-60 min')
+    # Combat
+    if request.activity == 'combat':
+        return MissionResponse(
+            type='combat', title='Combat Missions',
+            description='Engage hostile targets and complete bounty contracts.',
+            location={'name': f'{request.system} - Security Post', 'description': 'Bounty boards with active contracts. VHRT targets pay best.', 'activities': 'Bounty Hunting, PvE Combat'},
+            duration=time_display, reward='15,000 - 100,000 aUEC',
+            risk_level=request.risk, fallback={'title': 'Mercenary Work', 'description': 'Security contracts from mission givers'}
+        )
     
+    # Salvage
+    if request.activity == 'salvage':
+        return MissionResponse(
+            type='salvage', title='Salvage Operations',
+            description='Recover valuable materials from derelict ships and debris.',
+            location={'name': f'{request.system} - Wreck Site', 'description': 'Fresh wrecks from recent combat. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Component Recovery'},
+            duration=time_display, reward='20,000 - 80,000 aUEC',
+            risk_level=request.risk, fallback={'title': 'Assisted Salvage', 'description': 'Join a Reclaimer crew for guaranteed cuts'}
+        )
+    
+    # FPS
     return MissionResponse(
-        type=request.activity,
-        title=mission_data['title'],
-        description=mission_data['description'],
-        location=mission_data['location'],
-        duration=time_display,
-        reward=mission_data['reward'],
-        risk_level=request.risk,
-        fallback={
-            'title': 'FPS Missions',
-            'description': 'Ground combat and bunker clearing'
-        }
+        type='fps', title='FPS Contracts',
+        description='Ground combat operations and bunker clearing missions.',
+        location={'name': f'{request.system} - Underground Bunker', 'description': 'Clear out hostile occupants. Watch corners and bring meds.', 'activities': 'Bunker Clearing, Defense Contracts'},
+        duration=time_display, reward='10,000 - 60,000 aUEC',
+        risk_level=request.risk, fallback={'title': 'Security Detail', 'description': 'Guard duty at outposts - less action, steady pay'}
     )
 
 
