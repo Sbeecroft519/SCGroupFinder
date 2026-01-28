@@ -377,7 +377,9 @@ export default function Contracts() {
     const title = generateTitle(newContract);
     const locationStr = isEscort 
       ? `${newContract.start_location} → ${newContract.end_location}`
-      : `${newContract.planet} - ${newContract.location}`;
+      : isOperations 
+        ? newContract.meet_at 
+        : `${newContract.planet} - ${newContract.location}`;
     
     const paymentAmount = showPaymentField ? parseInt(newContract.payment_amount) || 0 : 0;
 
@@ -400,6 +402,7 @@ export default function Contracts() {
         job: newContract.job,
         role: newContract.role,
         compensation_type: newContract.compensation_type,
+        meet_at: newContract.meet_at,
         // Payment
         payment_amount: paymentAmount,
         // Location
