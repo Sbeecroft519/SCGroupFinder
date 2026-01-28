@@ -26,10 +26,15 @@ const TICKER_CONFIG = {
 
 export const AlertTicker = ({ userShard, tickerSettings }) => {
   const [alerts, setAlerts] = useState([]);
+  const [rsiStatus, setRsiStatus] = useState({ status: 'operational' });
 
   useEffect(() => {
     fetchAlerts();
-    const interval = setInterval(fetchAlerts, 15000); // Poll every 15s
+    fetchRsiStatus();
+    const interval = setInterval(() => {
+      fetchAlerts();
+      fetchRsiStatus();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -39,6 +44,15 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
       setAlerts(response.data || []);
     } catch (error) {
       console.error('Failed to fetch alerts:', error);
+    }
+  };
+
+  const fetchRsiStatus = async () => {
+    try {
+      const response = await axios.get(`${API}/signals/status`);
+      setRsiStatus(response.data?.rsi_status || { status: 'operational' });
+    } catch (error) {
+      console.error('Failed to fetch RSI status:', error);
     }
   };
 
