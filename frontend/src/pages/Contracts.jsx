@@ -10,13 +10,46 @@ const CONTRACT_TYPES = [
   { id: 'operations', label: 'Operations', icon: '🤝', color: '#ff9933' }
 ];
 
+// Structured dropdown options by contract type
+const CONTRACT_OPTIONS = {
+  security: {
+    activity: ['Escort', 'Bunker Clear', 'Airspace Defense', 'Bounty Assist'],
+    threat: ['Low Risk (PVE)', 'High Risk (PVP)', 'Critical']
+  },
+  rescue: {
+    status: ['Incapacitated (Revive)', 'Stranded (Pickup)', 'Under Fire'],
+    environment: ['Space', 'Ground', 'Bunker (Hostile)', 'Bunker (Safe)']
+  },
+  transport: {
+    load: ['Single Passenger', 'Squad (2+)', 'Small Cargo'],
+    destination: ['Orbital Station', 'Ground Outpost', 'Major City']
+  },
+  operations: {
+    job: ['Mining Crew', 'Salvage Crew', 'Event Support'],
+    role: ['Turret Gunner', 'Box Mover', 'Pilot', 'Medic']
+  }
+};
+
+// Location dropdowns
+const SYSTEMS = ['Stanton'];
+const LOCATIONS = {
+  'Stanton': {
+    'Crusader': ['Port Olisar', 'Grim HEX', 'Yela', 'Cellin', 'Daymar', 'Orison'],
+    'Hurston': ['Lorville', 'HDMS Oparei', 'HDMS Thedus', 'Aberdeen', 'Arial', 'Magda', 'Ita'],
+    'ArcCorp': ['Area 18', 'Baijini Point', 'Lyria', 'Wala'],
+    'microTech': ['New Babbage', 'Port Tressler', 'Calliope', 'Clio', 'Euterpe']
+  }
+};
+
 const MOCK_CONTRACTS = [
   {
     id: '1',
     type: 'security',
-    title: 'Cargo Run Protection',
-    description: 'Need escort for Hull C transport from ArcCorp to Microtech. High-value cargo, expecting interdiction attempts.',
-    location: 'Stanton System',
+    activity: 'Escort',
+    threat: 'High Risk (PVP)',
+    system: 'Stanton',
+    planet: 'ArcCorp',
+    location: 'Area 18',
     shard: '360',
     poster: { handle: 'CaptainVex', reputation: 4.8, is_supporter: true },
     created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
@@ -25,21 +58,24 @@ const MOCK_CONTRACTS = [
   {
     id: '2',
     type: 'rescue',
-    title: 'Medical Evac Needed',
-    description: 'Crew member down in bunker near Daymar. Need immediate pickup and transport to Olisar.',
-    location: 'Crusader - Daymar',
+    status_select: 'Incapacitated (Revive)',
+    environment: 'Bunker (Hostile)',
+    system: 'Stanton',
+    planet: 'Crusader',
+    location: 'Daymar',
     shard: '422',
     poster: { handle: 'MedRunnerX', reputation: 4.5, is_supporter: false },
     created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    status: 'open',
-    rescue_type: 'pickup'
+    status: 'open'
   },
   {
     id: '3',
     type: 'transport',
-    title: 'Vehicle Delivery',
-    description: 'Need Ursa Rover transported from Lorville to New Babbage. Will pay extra for fast delivery.',
-    location: 'Hurston to microTech',
+    load: 'Single Passenger',
+    destination: 'Major City',
+    system: 'Stanton',
+    planet: 'microTech',
+    location: 'New Babbage',
     shard: '360',
     poster: { handle: 'GroundOps', reputation: 4.2, is_supporter: false },
     created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
@@ -48,9 +84,11 @@ const MOCK_CONTRACTS = [
   {
     id: '4',
     type: 'operations',
-    title: 'Mining Operation Support',
-    description: 'Looking for 2 additional pilots for Quantanium mining op. MOLE provided, need laser operators.',
-    location: 'Aaron Halo Belt',
+    job: 'Mining Crew',
+    role: 'Turret Gunner',
+    system: 'Stanton',
+    planet: 'Crusader',
+    location: 'Yela',
     shard: '512',
     poster: { handle: 'RockBreaker', reputation: 4.9, is_supporter: true },
     created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
