@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X } from 'lucide-react';
+import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -64,6 +64,9 @@ export default function Contracts() {
   const [filter, setFilter] = useState('all');
   const [myShard, setMyShard] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showReview, setShowReview] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
   const [copiedHandle, setCopiedHandle] = useState(null);
 
   // New contract form state
@@ -111,17 +114,42 @@ export default function Contracts() {
       setNewContract({ type: 'security', title: '', description: '', location: '', rescue_type: 'pickup' });
     } catch (error) {
       console.error('Failed to create contract:', error);
-      // Add to local state for demo
-      const mockNew = {
-        id: Date.now().toString(),
-        ...newContract,
-        shard: myShard,
-        poster: { handle: user?.rsi_handle || 'Anonymous', reputation: 5.0, is_supporter: user?.is_supporter },
-        created_at: new Date().toISOString(),
-        status: 'open'
-      };
-      setContracts(prev => [mockNew, ...prev]);
-      setShowCreate(false);
+    }
+  };
+
+  const handleAcceptContract = async (contractId) => {
+    try {
+      await axios.post(`${API}/contracts/${contractId}/accept`);
+      fetchContracts();
+    } catch (error) {
+      console.error('Failed to accept contract:', error);
+    }
+  };
+
+  const handleCompleteContract = async (contractId) => {
+    try {
+      await axios.post(`${API}/contracts/${contractId}/complete`);
+      fetchContracts();
+    } catch (error) {
+      console.error('Failed to complete contract:', error);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!showReview) return;
+    try {
+      await axios.post(`${API}/contracts/${showReview.id}/review`, {
+        contract_id: showReview.id,
+        rating: reviewRating,
+        comment: reviewComment,
+        review_type: showReview.isClient ? 'client_to_merc' : 'merc_to_client'
+      });
+      setShowReview(null);
+      setReviewRating(5);
+      setReviewComment('');
+      fetchContracts();
+    } catch (error) {
+      console.error('Failed to submit review:', error);
     }
   };
 
@@ -143,8 +171,61 @@ export default function Contracts() {
 
   const isMyShardContract = (contract) => myShard && contract.shard === myShard;
 
+  const canAccept = (contract) => user && contract.status === 'open' && contract.poster_id !== user.id;
+  const canComplete = (contract) => user && contract.status === 'active' && 
+    (contract.poster_id === user.id || contract.accepted_by?.id === user.id);
+  const canReview = (contract) => {
+    if (!user || contract.status !== 'completed') return false;
+    const isClient = contract.poster_id === user.id;
+    const isMerc = contract.accepted_by?.id === user.id;
+    if (isClient && !contract.client_review) return { isClient: true };
+    if (isMerc && !contract.merc_review) return { isClient: false };
+    return false;
+  };
+
   return (
     <div className="navcom-page" data-testid="contracts-page">
+      {/* Review Modal */}
+      {showReview && (
+        <div className="mission-modal-overlay" onClick={() => setShowReview(null)}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div className="mission-modal-header">
+              <div>
+                <div className="mission-type-badge">// REVIEW</div>
+                <h2 className="mission-title">Rate {showReview.isClient ? 'Mercenary' : 'Client'}</h2>
+              </div>
+              <button className="mission-modal-close" onClick={() => setShowReview(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mission-modal-content">
+              <div className="rating-stars">
+                {[1,2,3,4,5].map(star => (
+                  <button 
+                    key={star} 
+                    onClick={() => setReviewRating(star)}
+                    className={`star-btn ${star <= reviewRating ? 'active' : ''}`}
+                  >
+                    <Star size={32} fill={star <= reviewRating ? '#FFD700' : 'none'} />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                className="nc-input"
+                rows={3}
+                placeholder="Optional comment..."
+                value={reviewComment}
+                onChange={e => setReviewComment(e.target.value)}
+                style={{ marginTop: 16 }}
+              />
+              <button className="nc-btn nc-btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={handleSubmitReview}>
+                SUBMIT REVIEW
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Contract Modal */}
       {showCreate && (
         <div className="mission-modal-overlay" onClick={() => setShowCreate(false)}>
@@ -360,18 +441,41 @@ export default function Contracts() {
                   data-testid={`copy-handle-${contract.id}`}
                 >
                   {copiedHandle === contract.poster.handle ? (
-                    <>
-                      <Check size={14} className="text-green" />
-                      Copied!
-                    </>
+                    <><Check size={14} className="text-green" /> Copied!</>
                   ) : (
-                    <>
-                      <Copy size={14} />
-                      Copy RSI Handle
-                    </>
+                    <><Copy size={14} /> Copy Handle</>
                   )}
                 </button>
+                {canAccept(contract) && (
+                  <button className="nc-btn nc-btn-primary" onClick={() => handleAcceptContract(contract.id)}>
+                    <ThumbsUp size={14} /> Accept
+                  </button>
+                )}
+                {canComplete(contract) && (
+                  <button className="nc-btn nc-btn-primary" onClick={() => handleCompleteContract(contract.id)}>
+                    <Check size={14} /> Complete
+                  </button>
+                )}
+                {canReview(contract) && (
+                  <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, ...canReview(contract) })}>
+                    <Star size={14} /> Rate
+                  </button>
+                )}
               </div>
+              {(contract.client_review || contract.merc_review) && (
+                <div className="contract-reviews">
+                  {contract.client_review && (
+                    <div className="review-badge">
+                      <Star size={12} fill="#FFD700" /> Client: {contract.client_review.rating}/5
+                    </div>
+                  )}
+                  {contract.merc_review && (
+                    <div className="review-badge">
+                      <Star size={12} fill="#FFD700" /> Merc: {contract.merc_review.rating}/5
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

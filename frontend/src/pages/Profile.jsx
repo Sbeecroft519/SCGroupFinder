@@ -26,8 +26,9 @@ export default function Profile() {
 
   const reputation = user?.reputation || 4.5;
   const rank = getPilotRank(reputation);
-  const contractsCompleted = user?.contracts_completed || 12;
+  const contractsCompleted = user?.contracts_completed || 0;
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Dec 2025';
+  const avatarUrl = user?.avatar_url;
 
   return (
     <div className="navcom-page" data-testid="profile-page">
@@ -41,9 +42,13 @@ export default function Profile() {
         {/* Profile Header */}
         <div className="profile-header">
           <div className="profile-avatar">
-            <span className="avatar-initials">
-              {user?.rsi_handle?.slice(0, 2).toUpperCase() || 'NC'}
-            </span>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={user?.rsi_handle} className="avatar-image" />
+            ) : (
+              <span className="avatar-initials">
+                {user?.rsi_handle?.slice(0, 2).toUpperCase() || 'NC'}
+              </span>
+            )}
           </div>
           <div className="profile-info">
             <div className="profile-handle-row">
@@ -86,10 +91,6 @@ export default function Profile() {
 
         {/* Profile Details */}
         <div className="profile-details">
-          <div className="detail-row">
-            <span className="detail-label">EMAIL</span>
-            <span className="detail-value">{user?.email || 'pilot@navcom.space'}</span>
-          </div>
           <div className="detail-row">
             <span className="detail-label">MEMBER SINCE</span>
             <span className="detail-value">{memberSince}</span>
@@ -157,6 +158,12 @@ export default function Profile() {
         
         .supporter .profile-avatar {
           border-color: var(--nc-gold);
+        }
+        
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
         
         .avatar-initials {
