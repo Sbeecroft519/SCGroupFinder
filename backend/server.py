@@ -661,11 +661,13 @@ async def get_signals_status():
     }
 
 @api_router.get("/signals/reports")
-async def get_reports():
+async def get_reports(days: int = 7):
+    """Get reports from the last N days for trend analysis"""
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     reports = await db.reports.find(
-        {},
+        {'created_at': {'$gte': cutoff_date}},
         {'_id': 0}
-    ).sort('created_at', -1).limit(50).to_list(50)
+    ).sort('created_at', -1).to_list(500)
     return reports
 
 @api_router.post("/signals/report")
