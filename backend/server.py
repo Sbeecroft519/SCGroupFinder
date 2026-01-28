@@ -13,6 +13,9 @@ from datetime import datetime, timezone, timedelta
 import hashlib
 import jwt
 import httpx
+import socketio
+import stripe
+import secrets
 
 from ships import SHIP_SPECS, get_ship_scu, get_all_ships
 
