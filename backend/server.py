@@ -900,28 +900,192 @@ async def update_user_reputation(user_id: str):
 async def get_goals():
     goals = await db.goals.find({}, {'_id': 0}).to_list(20)
     if not goals:
-        # Return default goals if none exist
-        return [
-            GoalResponse(
-                id='1',
-                title='Mercenary Board',
-                description='Full contract system with reputation, ratings, and payment tracking.',
-                target_amount=5000,
-                current_amount=3250,
-                backers=42,
-                status='active'
-            ),
-            GoalResponse(
-                id='2',
-                title='Fleet Manager',
-                description='Track your ships, loadouts, and crew assignments in one place.',
-                target_amount=3000,
-                current_amount=1800,
-                backers=28,
-                status='active'
-            )
+        # Create default goals
+        default_goals = [
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Server Infrastructure',
+                'description': 'Keep NavCom running with dedicated hosting, database, and API infrastructure.',
+                'target_amount': 500,
+                'current_amount': 0,
+                'backers': 0,
+                'status': 'active',
+                'rewards': [
+                    {'tier': 'Bronze', 'amount': 5, 'reward': 'Supporter Badge'},
+                    {'tier': 'Silver', 'amount': 15, 'reward': 'Gold Profile Border'},
+                    {'tier': 'Gold', 'amount': 30, 'reward': 'Early Access Features'}
+                ]
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Fleet Manager',
+                'description': 'Track your ships, loadouts, and crew assignments in one place.',
+                'target_amount': 300,
+                'current_amount': 0,
+                'backers': 0,
+                'status': 'planned',
+                'rewards': [
+                    {'tier': 'Backer', 'amount': 10, 'reward': 'Priority Access'}
+                ]
+            }
         ]
+        for goal in default_goals:
+            await db.goals.insert_one(goal)
+        return default_goals
     return goals
+
+@api_router.post("/goals/{goal_id}/contribute")
+async def contribute_to_goal(goal_id: str, contribution: ContributionCreate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    goal = await db.goals.find_one({'id': goal_id})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    # Create Stripe checkout session
+    if stripe.api_key:
+        try:
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': f'NavCom: {goal["title"]}',
+                            'description': f'Contribution to {goal["title"]}'
+                        },
+                        'unit_amount': contribution.amount * 100,
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=os.environ.get('FRONTEND_URL', 'http://localhost:3000') + '/roadmap?success=true&goal=' + goal_id,
+                cancel_url=os.environ.get('FRONTEND_URL', 'http://localhost:3000') + '/roadmap?cancelled=true',
+                metadata={
+                    'goal_id': goal_id,
+                    'user_id': user['id'],
+                    'amount': contribution.amount
+                }
+            )
+            return {'checkout_url': session.url, 'session_id': session.id}
+        except Exception as e:
+            logger.error(f"Stripe error: {e}")
+            raise HTTPException(status_code=500, detail="Payment processing error")
+    else:
+        # Demo mode without Stripe
+        await db.goals.update_one(
+            {'id': goal_id},
+            {'$inc': {'current_amount': contribution.amount, 'backers': 1}}
+        )
+        await db.users.update_one({'id': user['id']}, {'$set': {'is_supporter': True}})
+        return {'message': 'Contribution recorded (demo mode)', 'demo': True}
+
+@api_router.post("/stripe/webhook")
+async def stripe_webhook(request):
+    """Handle Stripe webhook for successful payments"""
+    # In production, verify webhook signature
+    payload = await request.body()
+    event = stripe.Event.construct_from(payload, stripe.api_key)
+    
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        goal_id = session['metadata'].get('goal_id')
+        user_id = session['metadata'].get('user_id')
+        amount = int(session['metadata'].get('amount', 0))
+        
+        if goal_id and user_id:
+            await db.goals.update_one(
+                {'id': goal_id},
+                {'$inc': {'current_amount': amount, 'backers': 1}}
+            )
+            await db.contributions.insert_one({
+                'id': str(uuid.uuid4()),
+                'goal_id': goal_id,
+                'user_id': user_id,
+                'amount': amount,
+                'stripe_session': session['id'],
+                'created_at': datetime.now(timezone.utc).isoformat()
+            })
+            await db.users.update_one({'id': user_id}, {'$set': {'is_supporter': True}})
+    
+    return {'received': True}
+
+
+# ===== Admin Routes =====
+
+@api_router.get("/admin/goals")
+async def admin_get_goals(admin = Depends(require_admin)):
+    goals = await db.goals.find({}, {'_id': 0}).to_list(50)
+    return goals
+
+@api_router.post("/admin/goals")
+async def admin_create_goal(goal: GoalCreate, admin = Depends(require_admin)):
+    goal_doc = {
+        'id': str(uuid.uuid4()),
+        'title': goal.title,
+        'description': goal.description,
+        'target_amount': goal.target_amount,
+        'current_amount': 0,
+        'backers': 0,
+        'status': 'active',
+        'rewards': goal.rewards or [],
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.goals.insert_one(goal_doc)
+    goal_doc.pop('_id', None)
+    return goal_doc
+
+@api_router.put("/admin/goals/{goal_id}")
+async def admin_update_goal(goal_id: str, goal: GoalUpdate, admin = Depends(require_admin)):
+    update_data = {k: v for k, v in goal.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    result = await db.goals.update_one({'id': goal_id}, {'$set': update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return {'message': 'Goal updated'}
+
+@api_router.delete("/admin/goals/{goal_id}")
+async def admin_delete_goal(goal_id: str, admin = Depends(require_admin)):
+    result = await db.goals.delete_one({'id': goal_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return {'message': 'Goal deleted'}
+
+@api_router.get("/admin/contributions")
+async def admin_get_contributions(admin = Depends(require_admin)):
+    contributions = await db.contributions.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+    return contributions
+
+@api_router.get("/admin/users")
+async def admin_get_users(admin = Depends(require_admin)):
+    users = await db.users.find({}, {'_id': 0, 'password_hash': 0}).to_list(100)
+    return users
+
+
+# ===== User Notification Settings =====
+
+@api_router.get("/user/notification-settings")
+async def get_notification_settings(user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    settings = await db.notification_settings.find_one({'user_id': user['id']}, {'_id': 0})
+    if not settings:
+        return NotificationSettings().dict()
+    return settings
+
+@api_router.put("/user/notification-settings")
+async def update_notification_settings(settings: NotificationSettings, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    await db.notification_settings.update_one(
+        {'user_id': user['id']},
+        {'$set': {**settings.dict(), 'user_id': user['id']}},
+        upsert=True
+    )
+    return {'message': 'Settings updated'}
 
 
 # ===== Root Route =====
