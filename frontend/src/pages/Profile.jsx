@@ -284,8 +284,8 @@ export default function Profile() {
         }
 
         .avatar-container {
-          width: 120px;
-          height: 120px;
+          width: 150px;
+          height: 150px;
           border-radius: 50%;
           border: 2px solid var(--nc-cyan);
           box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
@@ -298,38 +298,45 @@ export default function Profile() {
 
         .avatar-ring {
           position: absolute;
-          inset: -10px;
-          border: 1px solid var(--nc-cyan);
+          inset: -12px;
+          border: 2px solid var(--nc-cyan);
           border-radius: 50%;
-          opacity: 0.4;
+          border-top-color: transparent;
+          border-left-color: transparent;
+          animation: spin 3s linear infinite;
+          opacity: 0.7;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .avatar-ring::after {
           content: '';
           position: absolute;
-          inset: -8px;
+          inset: -10px;
           border: 1px solid var(--nc-cyan);
           border-radius: 50%;
-          opacity: 0.2;
+          opacity: 0.3;
         }
 
         .avatar-icon {
-          width: 70px;
-          height: 70px;
+          width: 88px;
+          height: 88px;
           object-fit: contain;
           filter: drop-shadow(0 0 8px var(--nc-cyan));
         }
 
         .avatar-icon.rsi-avatar {
-          width: 90px;
-          height: 90px;
+          width: 115px;
+          height: 115px;
           border-radius: 50%;
           object-fit: cover;
         }
 
         .avatar-initials {
           font-family: var(--nc-font-display);
-          font-size: 36px;
+          font-size: 44px;
           color: var(--nc-cyan);
           text-shadow: 0 0 10px var(--nc-cyan);
         }
