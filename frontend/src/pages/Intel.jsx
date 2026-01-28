@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Radar, MapPin, Clock, DollarSign, AlertTriangle, Rocket, Crosshair, Wrench, Target, Pickaxe, Coffee, Check, Loader2, TrendingUp, X } from 'lucide-react';
+import { Radar, MapPin, Clock, DollarSign, AlertTriangle, Rocket, Crosshair, Wrench, Target, Pickaxe, Coffee, Check, Loader2, TrendingUp, X, Navigation } from 'lucide-react';
 import axios from 'axios';
 import { API } from '../App';
 
@@ -229,6 +229,38 @@ export default function Intel() {
                   <div className="mission-fallback-label">FALLBACK OPTION</div>
                   <div className="mission-fallback-title">{mission.fallback.title}</div>
                   <p className="mission-fallback-desc">{mission.fallback.description}</p>
+                </div>
+              )}
+
+              {/* Live Profit Calculation for Cargo */}
+              {mission.profit_data && (
+                <div className="profit-calc-section">
+                  <div className="profit-calc-header">
+                    <TrendingUp size={16} className="text-green" />
+                    <span>Live Profit Calculation</span>
+                  </div>
+                  <div className="profit-calc-grid">
+                    <div className="profit-calc-item">
+                      <span className="profit-label">Commodity</span>
+                      <span className="profit-value">{mission.profit_data.commodity}</span>
+                    </div>
+                    <div className="profit-calc-item">
+                      <span className="profit-label">Route</span>
+                      <span className="profit-value">{mission.profit_data.route}</span>
+                    </div>
+                    <div className="profit-calc-item">
+                      <span className="profit-label">Profit/SCU</span>
+                      <span className="profit-value">{mission.profit_data.profit_per_scu} aUEC</span>
+                    </div>
+                    <div className="profit-calc-item highlight">
+                      <span className="profit-label">Total Profit</span>
+                      <span className="profit-value text-green">{mission.profit_data.total_profit?.toLocaleString()} aUEC</span>
+                    </div>
+                    <div className="profit-calc-item">
+                      <span className="profit-label">ROI</span>
+                      <span className="profit-value">{mission.profit_data.roi}%</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -463,6 +495,58 @@ export default function Intel() {
           .intel-preview {
             order: -1;
           }
+        }
+        
+        .profit-calc-section {
+          margin-top: 20px;
+          background: rgba(0, 255, 136, 0.05);
+          border: 1px solid var(--nc-green);
+          padding: 16px;
+        }
+        
+        .profit-calc-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: var(--nc-font-display);
+          font-size: 14px;
+          color: var(--nc-green);
+          margin-bottom: 16px;
+        }
+        
+        .profit-calc-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        
+        .profit-calc-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 8px 12px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+        }
+        
+        .profit-calc-item.highlight {
+          grid-column: span 2;
+          background: rgba(0, 255, 136, 0.1);
+          border-color: var(--nc-green);
+        }
+        
+        .profit-label {
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        
+        .profit-value {
+          font-family: var(--nc-font-display);
+          font-size: 14px;
+          color: var(--nc-text-primary);
         }
       `}</style>
     </div>
