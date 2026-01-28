@@ -5,12 +5,12 @@ import axios from 'axios';
 import { API } from '../App';
 
 const REPORT_TYPES = [
-  { id: 'lag', label: 'Lag / Desync', icon: Wifi },
-  { id: 'mission_bug', label: 'Mission Bug', icon: Bug },
-  { id: 'cargo_issue', label: 'Cargo Issue', icon: Package },
-  { id: 'pirates', label: 'Pirates', icon: Skull },
-  { id: 'pvp', label: 'PvP / Griefing', icon: Users },
-  { id: '30k', label: '30k Disconnect', icon: Zap }
+  { id: 'lag', label: 'Lag / Desync', icon: Wifi, color: '#ffcc00', requiresLocation: true },
+  { id: 'mission_bug', label: 'Mission Bug', icon: Bug, color: '#ff9933', requiresLocation: false },
+  { id: 'cargo_issue', label: 'Cargo Issue', icon: Package, color: '#00f0ff', requiresLocation: true },
+  { id: 'pirates', label: 'Pirates', icon: Skull, color: '#ff3366', requiresLocation: true, timeSensitive: true },
+  { id: 'pvp', label: 'PvP / Griefing', icon: Users, color: '#ff6600', requiresLocation: true, timeSensitive: true },
+  { id: '30k', label: '30k Disconnect', icon: Zap, color: '#ff0066', requiresLocation: false }
 ];
 
 const LOCATIONS = {
@@ -76,6 +76,8 @@ export default function Signals() {
   const [showReportModal, setShowReportModal] = useState(null);
   const [reportSystem, setReportSystem] = useState('Stanton');
   const [reportLocation, setReportLocation] = useState('');
+  const [reportShard, setReportShard] = useState('');
+  const [reportConfirmed, setReportConfirmed] = useState(false);
 
   useEffect(() => {
     fetchSignalsData();
@@ -109,22 +111,29 @@ export default function Signals() {
   };
 
   const handleReport = async (type) => {
-    setShowReportModal(type);
+    const reportType = REPORT_TYPES.find(r => r.id === type);
+    setShowReportModal(reportType);
     setReportLocation('');
+    setReportShard(myShard);
+    setReportConfirmed(false);
   };
 
   const submitReport = async () => {
-    if (!showReportModal || !reportLocation) return;
+    if (!showReportModal) return;
+    if (showReportModal.requiresLocation && !reportLocation) return;
+    if (showReportModal.requiresLocation && !reportConfirmed) return;
+    
     try {
       await axios.post(`${API}/signals/report`, {
-        type: showReportModal,
+        type: showReportModal.id,
         system: reportSystem,
-        location: reportLocation,
-        shard: myShard || null,
+        location: reportLocation || null,
+        shard: reportShard || null,
         timestamp: new Date().toISOString()
       });
       setShowReportModal(null);
       setReportLocation('');
+      setReportConfirmed(false);
       fetchSignalsData();
     } catch (error) {
       console.error('Failed to submit report:', error);
@@ -150,12 +159,12 @@ export default function Signals() {
       {/* Report Location Modal */}
       {showReportModal && (
         <div className="mission-modal-overlay" onClick={() => setShowReportModal(null)}>
-          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="mission-modal-header">
               <div>
                 <div className="mission-type-badge">// SUBMIT_REPORT</div>
-                <h2 className="mission-title">
-                  {REPORT_TYPES.find(r => r.id === showReportModal)?.label || 'Report Issue'}
+                <h2 className="mission-title" style={{ color: showReportModal.color }}>
+                  {showReportModal.label}
                 </h2>
               </div>
               <button className="mission-modal-close" onClick={() => setShowReportModal(null)}>
@@ -163,91 +172,122 @@ export default function Signals() {
               </button>
             </div>
             <div className="mission-modal-content">
+              {/* Shard Input */}
               <div className="form-group">
                 <label className="nc-label">
-                  <MapPin size={14} />
-                  SYSTEM
+                  SERVER SHARD (Required for accurate reporting)
                 </label>
-                <div className="nc-toggle-group">
-                  {['Stanton', 'Pyro', 'Nyx'].map(sys => (
-                    <button
-                      key={sys}
-                      className={`nc-toggle ${reportSystem === sys ? 'active' : ''}`}
-                      onClick={() => { setReportSystem(sys); setReportLocation(''); }}
-                    >
-                      {sys}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="text"
+                  className="nc-input"
+                  placeholder="Enter your shard number (e.g., 360)"
+                  value={reportShard}
+                  onChange={e => setReportShard(e.target.value)}
+                />
+                <span className="font-mono text-muted" style={{ fontSize: 10, marginTop: 4, display: 'block' }}>
+                  Leave blank for global report (visible to all shards)
+                </span>
               </div>
 
-              <div className="form-group">
-                <label className="nc-label">LOCATION</label>
-                <div className="location-grid">
-                  {LOCATIONS[reportSystem]?.planets.length > 0 && (
-                    <div className="location-group">
-                      <span className="location-group-label">Planets</span>
-                      {LOCATIONS[reportSystem].planets.map(loc => (
+              {showReportModal.requiresLocation && (
+                <>
+                  <div className="form-group">
+                    <label className="nc-label">
+                      <MapPin size={14} />
+                      SYSTEM
+                    </label>
+                    <div className="nc-toggle-group">
+                      {['Stanton', 'Pyro', 'Nyx'].map(sys => (
                         <button
-                          key={loc}
-                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                          onClick={() => setReportLocation(loc)}
+                          key={sys}
+                          className={`nc-toggle ${reportSystem === sys ? 'active' : ''}`}
+                          onClick={() => { setReportSystem(sys); setReportLocation(''); }}
                         >
-                          {loc}
+                          {sys}
                         </button>
                       ))}
                     </div>
-                  )}
-                  {LOCATIONS[reportSystem]?.moons.length > 0 && (
-                    <div className="location-group">
-                      <span className="location-group-label">Moons</span>
-                      {LOCATIONS[reportSystem].moons.map(loc => (
-                        <button
-                          key={loc}
-                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                          onClick={() => setReportLocation(loc)}
-                        >
-                          {loc}
-                        </button>
-                      ))}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="nc-label">LOCATION</label>
+                    <div className="location-grid">
+                      {LOCATIONS[reportSystem]?.planets.length > 0 && (
+                        <div className="location-group">
+                          <span className="location-group-label">Planets</span>
+                          {LOCATIONS[reportSystem].planets.map(loc => (
+                            <button
+                              key={loc}
+                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                              onClick={() => setReportLocation(loc)}
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {LOCATIONS[reportSystem]?.moons.length > 0 && (
+                        <div className="location-group">
+                          <span className="location-group-label">Moons</span>
+                          {LOCATIONS[reportSystem].moons.map(loc => (
+                            <button
+                              key={loc}
+                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                              onClick={() => setReportLocation(loc)}
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {LOCATIONS[reportSystem]?.stations.length > 0 && (
+                        <div className="location-group">
+                          <span className="location-group-label">Stations</span>
+                          {LOCATIONS[reportSystem].stations.map(loc => (
+                            <button
+                              key={loc}
+                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                              onClick={() => setReportLocation(loc)}
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {LOCATIONS[reportSystem]?.other.length > 0 && (
+                        <div className="location-group">
+                          <span className="location-group-label">Other</span>
+                          {LOCATIONS[reportSystem].other.map(loc => (
+                            <button
+                              key={loc}
+                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                              onClick={() => setReportLocation(loc)}
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {LOCATIONS[reportSystem]?.stations.length > 0 && (
-                    <div className="location-group">
-                      <span className="location-group-label">Stations</span>
-                      {LOCATIONS[reportSystem].stations.map(loc => (
-                        <button
-                          key={loc}
-                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                          onClick={() => setReportLocation(loc)}
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {LOCATIONS[reportSystem]?.other.length > 0 && (
-                    <div className="location-group">
-                      <span className="location-group-label">Other</span>
-                      {LOCATIONS[reportSystem].other.map(loc => (
-                        <button
-                          key={loc}
-                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                          onClick={() => setReportLocation(loc)}
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+
+                  {/* Confirmation Checkbox */}
+                  <label className="confirm-checkbox">
+                    <input 
+                      type="checkbox" 
+                      checked={reportConfirmed} 
+                      onChange={e => setReportConfirmed(e.target.checked)}
+                    />
+                    <span>I confirm this report is accurate and happened within the last 15 minutes</span>
+                  </label>
+                </>
+              )}
 
               <button 
                 className="nc-btn nc-btn-primary" 
-                style={{ width: '100%', marginTop: 16 }}
+                style={{ width: '100%', marginTop: 16, background: showReportModal.color, borderColor: showReportModal.color }}
                 onClick={submitReport}
-                disabled={!reportLocation}
+                disabled={showReportModal.requiresLocation && (!reportLocation || !reportConfirmed)}
               >
                 SUBMIT REPORT
               </button>
@@ -398,9 +438,11 @@ export default function Signals() {
                 className="report-btn"
                 onClick={() => handleReport(type.id)}
                 data-testid={`report-${type.id}`}
+                style={{ '--hover-color': type.color }}
               >
                 <Icon className="report-btn-icon" size={24} />
                 <span className="report-btn-label">{type.label}</span>
+                {type.timeSensitive && <span className="report-badge-live">LIVE</span>}
               </button>
             );
           })}
