@@ -95,8 +95,8 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ## Backlog
 
 ### P1 - High Priority
-- [ ] User profile image upload (512x512) with AI moderation as fallback to RSI scraping
-- [ ] Complete Stripe payment flow for Roadmap contributions
+- [ ] ~~User profile image upload~~ → Replaced with Avatar Preset system
+- [ ] Real Stripe payment flow (needs production keys)
 - [ ] WebSocket real-time contract notifications (foundation laid)
 
 ### P2 - Medium Priority
