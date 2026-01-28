@@ -235,7 +235,7 @@ export default function Profile() {
 
         .citizen-name {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 32px;
+          font-size: 42px;
           font-weight: 700;
           color: var(--nc-cyan);
           letter-spacing: 6px;
