@@ -787,6 +787,22 @@ export default function Contracts() {
                   </select>
                 </div>
               </div>
+
+              {/* Meet At for Operations */}
+              {isOperations && (
+                <div className="form-group">
+                  <label className="nc-label">MEET AT</label>
+                  <select 
+                    className="nc-input"
+                    value={newContract.meet_at}
+                    onChange={e => setNewContract(prev => ({ ...prev, meet_at: e.target.value }))}
+                  >
+                    <option value="">Select meeting point...</option>
+                    {MAJOR_LOCATIONS.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
               )}
 
               {/* Payment Amount (shown except for split compensation) */}
