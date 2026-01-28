@@ -331,6 +331,20 @@ export default function Signals() {
                 </>
               )}
 
+              {/* Details field for bugs/cargo issues */}
+              {showReportModal.needsDetails && (
+                <div className="form-group">
+                  <label className="nc-label">DETAILS (Optional)</label>
+                  <input
+                    type="text"
+                    className="nc-input"
+                    placeholder={showReportModal.id === 'mission_bug' ? 'e.g., Bunker mission NPC stuck' : 'e.g., New Babbage cargo elevator'}
+                    value={reportDetails}
+                    onChange={e => setReportDetails(e.target.value)}
+                  />
+                </div>
+              )}
+
               <button 
                 className="nc-btn nc-btn-primary" 
                 style={{ width: '100%', marginTop: 16, background: showReportModal.color, borderColor: showReportModal.color }}
