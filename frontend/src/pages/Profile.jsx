@@ -366,20 +366,20 @@ export default function Profile() {
 
         .label {
           font-family: var(--nc-font-mono);
-          font-size: 11px;
+          font-size: 14px;
           color: var(--nc-text-muted);
           letter-spacing: 2px;
           display: block;
-          margin-bottom: 2px;
+          margin-bottom: 4px;
         }
 
         .rank-section {
-          margin-bottom: 8px;
+          margin-bottom: 12px;
         }
 
         .rank-section .rank-value {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 36px;
+          font-size: 44px;
           font-weight: 700;
           color: #ffd700;
           letter-spacing: 4px;
@@ -387,18 +387,18 @@ export default function Profile() {
         }
 
         .rep-section {
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
 
         .rep-row {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 100px;
         }
 
         .rep-value {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 32px;
+          font-size: 40px;
           font-weight: 700;
           color: var(--nc-cyan);
           text-shadow: 0 0 10px var(--nc-cyan);
@@ -406,44 +406,44 @@ export default function Profile() {
 
         .stars {
           display: flex;
-          gap: 4px;
+          gap: 6px;
         }
 
         .star {
-          font-size: 20px;
+          font-size: 26px;
           color: #334455;
         }
 
         .star.filled {
           color: #ffd700;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+          text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
         }
 
         .stats-row {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 20px;
           font-family: var(--nc-font-mono);
-          font-size: 13px;
+          font-size: 16px;
           color: var(--nc-text-muted);
-          margin-top: 8px;
+          margin-top: 12px;
         }
 
         .stats-row .stat-item {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
         }
 
         .stats-row .stat-label {
-          font-size: 10px;
+          font-size: 12px;
           letter-spacing: 1px;
           opacity: 0.6;
         }
 
         .stats-row .stat-value {
           color: var(--nc-cyan);
-          font-size: 14px;
+          font-size: 18px;
         }
 
         .stats-row .stat-divider {
