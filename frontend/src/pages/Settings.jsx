@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug } from 'lucide-react';
+import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText } from 'lucide-react';
 import { useAuth } from '../App';
 
 const THEMES = [
@@ -9,20 +9,30 @@ const THEMES = [
   { id: 'aegis', name: 'Aegis Dynamics', primary: '#ff0044', description: 'Military red theme' }
 ];
 
+const CONTRACT_TYPES = [
+  { id: 'escort', label: 'Escort Missions' },
+  { id: 'rescue', label: 'Rescue / Medical' },
+  { id: 'transport', label: 'Transport' },
+  { id: 'mining', label: 'Mining Support' },
+  { id: 'combat', label: 'Combat / Security' }
+];
+
 export default function Settings() {
-  const { user, updateUser, tickerSettings, updateTickerSettings, userShard, setShard, setShowShardPrompt } = useAuth();
+  const { user, updateUser, tickerSettings, updateTickerSettings, notificationSettings, updateNotificationSettings, userShard, setShard, setShowShardPrompt } = useAuth();
   const [activeSection, setActiveSection] = useState('alerts');
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
-  const [notifications, setNotifications] = useState({
-    contracts: true,
-    reports: true,
-    goals: false
-  });
 
   const handleThemeChange = (themeId) => {
     setSelectedTheme(themeId);
     updateUser({ theme_id: themeId });
-    // In real app, would also update CSS variables
+  };
+
+  const toggleContractType = (typeId) => {
+    const current = notificationSettings?.contract_types || [];
+    const newTypes = current.includes(typeId) 
+      ? current.filter(t => t !== typeId)
+      : [...current, typeId];
+    updateNotificationSettings({ contract_types: newTypes });
   };
 
   return (
@@ -44,19 +54,19 @@ export default function Settings() {
             <ChevronRight size={16} className="nav-arrow" />
           </button>
           <button 
+            className={`settings-nav-item ${activeSection === 'notifications' ? 'active' : ''}`}
+            onClick={() => setActiveSection('notifications')}
+          >
+            <Bell size={18} />
+            <span>Push Notifications</span>
+            <ChevronRight size={16} className="nav-arrow" />
+          </button>
+          <button 
             className={`settings-nav-item ${activeSection === 'theme' ? 'active' : ''}`}
             onClick={() => setActiveSection('theme')}
           >
             <Palette size={18} />
             <span>Theme</span>
-            <ChevronRight size={16} className="nav-arrow" />
-          </button>
-          <button 
-            className={`settings-nav-item ${activeSection === 'notifications' ? 'active' : ''}`}
-            onClick={() => setActiveSection('notifications')}
-          >
-            <Bell size={18} />
-            <span>Notifications</span>
             <ChevronRight size={16} className="nav-arrow" />
           </button>
           <button 
