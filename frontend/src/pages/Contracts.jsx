@@ -142,6 +142,10 @@ export default function Contracts() {
     // Security fields
     activity: '',
     threat: '',
+    // Escort-specific fields
+    start_location: '',
+    end_location: '',
+    cargo_value: '',
     // Rescue fields
     status_select: '',
     environment: '',
@@ -151,16 +155,26 @@ export default function Contracts() {
     // Operations fields
     job: '',
     role: '',
+    compensation_type: 'Flat Fee',
+    // Payment (global)
+    payment_amount: '',
     // Location fields
     system: 'Stanton',
     planet: '',
     location: ''
   });
 
+  const isEscort = newContract.type === 'security' && newContract.activity === 'Escort';
+  const isOperations = newContract.type === 'operations';
+  const showPaymentField = !isOperations || newContract.compensation_type === 'Flat Fee';
+
   // Generate title based on contract type and selections
   const generateTitle = (contract) => {
     switch (contract.type) {
       case 'security':
+        if (contract.activity === 'Escort' && contract.start_location && contract.end_location) {
+          return `Escort: ${contract.start_location} → ${contract.end_location} (${contract.cargo_value || 'Standard'})`;
+        }
         return contract.activity && contract.threat 
           ? `${contract.activity} - ${contract.threat}` 
           : '';
@@ -173,8 +187,9 @@ export default function Contracts() {
           ? `${contract.load} to ${contract.destination}` 
           : '';
       case 'operations':
+        const comp = contract.compensation_type !== 'Flat Fee' ? ` (${contract.compensation_type})` : '';
         return contract.job && contract.role 
-          ? `${contract.job} - Need ${contract.role}` 
+          ? `${contract.job} - Need ${contract.role}${comp}` 
           : '';
       default:
         return '';
