@@ -25,6 +25,9 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] 5-slide onboarding carousel
 - [x] Session-based shard management
 - [x] Protected routes (all require login)
+- [x] **Mobile Bottom Navigation** - Fixed nav bar at bottom (<768px) with Intel, Signals, Contracts, Roadmap, Profile
+- [x] **Avatar Preset System** - 10 role-based SVG icons selectable in Settings (replaces complex file uploads)
+- [x] **Community Badge** - "Made by the Community" badge on Login, Register, and Settings pages
 
 ### INTEL Module - COMPLETE
 - [x] Mission recommendations (Cargo, Mining, Chill, Combat, Salvage, FPS)
@@ -37,7 +40,7 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] "Thinking/Scanning" animation
 
 ### SIGNALS Module - COMPLETE
-- [x] RSI server status (RSS feed)
+- [x] RSI server status (RSS feed) - Color-coded Green/Yellow/Red
 - [x] Crowdsourced incident reporting
 - [x] Dynamic reliability (REAL DATA, no random)
 - [x] Trend charts (Timeline, Breakdown, Locations)
@@ -48,6 +51,9 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] Structured contract creation (no free-text, anti-toxicity)
 - [x] Bidding/handshake workflow (apply -> accept -> in_progress)
 - [x] Double-handshake completion (both parties confirm)
+- [x] **Auto-expiry** - OPEN contracts >1 hour hidden from feed
+- [x] **Completed hidden** - COMPLETED contracts excluded from main feed
+- [x] **Contract polling** - 15-second polling with toast notifications (toggleable)
 - [x] Bilateral 5-star ratings
 - [x] Contract expiration (30 min)
 - [x] Concurrency limits (1 active contract per user)
