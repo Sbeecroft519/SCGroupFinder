@@ -1079,6 +1079,107 @@ export default function Contracts() {
         )}
       </div>
 
+      {/* Manage Bids Modal */}
+      {showBidsModal && (
+        <div className="mission-modal-overlay" onClick={() => setShowBidsModal(null)}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 550 }}>
+            <div className="mission-modal-header">
+              <div>
+                <div className="mission-type-badge">// APPLICANTS</div>
+                <h2 className="mission-title">Manage Bids</h2>
+              </div>
+              <button className="mission-modal-close" onClick={() => setShowBidsModal(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mission-modal-content">
+              {contractBids.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--nc-text-muted)', padding: 32 }}>
+                  No bids yet. Check back soon!
+                </p>
+              ) : (
+                <div className="bids-list">
+                  {contractBids.filter(b => b.status === 'pending').map(bid => (
+                    <div key={bid.id} className="pilot-card">
+                      <div className="pilot-avatar">
+                        {bid.bidder?.avatar_url ? (
+                          <img src={bid.bidder.avatar_url} alt="" />
+                        ) : (
+                          <Users size={32} />
+                        )}
+                      </div>
+                      <div className="pilot-info">
+                        <h4>{bid.bidder?.handle || 'Unknown'}</h4>
+                        <div className="pilot-stats">
+                          <span><Star size={12} fill="#FFD700" /> {bid.bidder?.reputation?.toFixed(1) || '5.0'}</span>
+                          <span>{bid.bidder?.contracts_completed || 0} contracts</span>
+                        </div>
+                      </div>
+                      <div className="pilot-actions">
+                        <button 
+                          className="nc-btn nc-btn-primary"
+                          onClick={() => handleAcceptBid(showBidsModal, bid.id, bid.bidder?.handle)}
+                        >
+                          Accept
+                        </button>
+                        <button 
+                          className="nc-btn nc-btn-secondary"
+                          onClick={() => handleDeclineBid(showBidsModal, bid.id)}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Handshake Modal */}
+      {showHandshakeModal && (
+        <div className="mission-modal-overlay">
+          <div className="mission-modal" style={{ maxWidth: 450, textAlign: 'center' }}>
+            <div className="mission-modal-header" style={{ justifyContent: 'center' }}>
+              <div>
+                <div className="mission-type-badge">// HANDSHAKE_COMPLETE</div>
+                <h2 className="mission-title">Contract Accepted!</h2>
+              </div>
+            </div>
+            <div className="mission-modal-content">
+              <div className="handshake-icon">🤝</div>
+              <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 24, fontSize: 15 }}>
+                {showHandshakeModal.type === 'poster' ? (
+                  <>Your selected mercenary is ready. Add them to your party in Star Citizen.</>
+                ) : (
+                  <>Your bid was accepted! Add the client to your party immediately.</>
+                )}
+              </p>
+              <div className="handshake-handle">
+                <span className="label">RSI HANDLE</span>
+                <span className="handle">{showHandshakeModal.handle}</span>
+                <button 
+                  className="nc-btn nc-btn-secondary"
+                  onClick={() => handleCopyHandle(showHandshakeModal.handle)}
+                  style={{ marginTop: 12 }}
+                >
+                  <Copy size={14} /> Copy Handle
+                </button>
+              </div>
+              <button 
+                className="nc-btn nc-btn-primary"
+                onClick={() => setShowHandshakeModal(null)}
+                style={{ width: '100%', marginTop: 24 }}
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .payment-amount {
           font-family: var(--nc-font-mono);
