@@ -130,6 +130,7 @@ class ContractCreate(BaseModel):
     job: Optional[str] = None
     role: Optional[str] = None
     compensation_type: Optional[str] = None
+    meet_at: Optional[str] = None
     # Payment
     payment_amount: Optional[int] = 0
     # Location
