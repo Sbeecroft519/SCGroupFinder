@@ -490,6 +490,45 @@
   margin-top: 16px;
 }
 
+.contract-reviews {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nc-border);
+}
+
+.review-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--nc-font-mono);
+  font-size: 11px;
+  color: var(--nc-gold);
+}
+
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--nc-text-muted);
+  transition: transform 0.15s;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn.active {
+  color: var(--nc-gold);
+}
+
 /* ===== Roadmap / Supply Drop ===== */
 .goal-card {
   background: var(--nc-bg-card);
