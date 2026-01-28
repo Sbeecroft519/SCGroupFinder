@@ -161,10 +161,10 @@ const MOCK_CONTRACTS = [
 ];
 
 export default function Contracts() {
-  const { user } = useAuth();
+  const { user, userShard } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [contracts, setContracts] = useState(MOCK_CONTRACTS);
   const [filter, setFilter] = useState('all');
-  const [myShard, setMyShard] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showReview, setShowReview] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -178,6 +178,15 @@ export default function Contracts() {
   const [contractBids, setContractBids] = useState([]);
   const [showHandshakeModal, setShowHandshakeModal] = useState(null);
   const [hasActiveContract, setHasActiveContract] = useState(false);
+
+  // Handle ?action=create from QuickActions FAB
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setShowCreate(true);
+      // Clear the param so it doesn't persist
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   // New contract form state
   const [newContract, setNewContract] = useState({
