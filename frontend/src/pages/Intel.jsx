@@ -272,7 +272,19 @@ export default function Intel() {
       {/* Page Header */}
       <div className="page-header">
         <div className="page-label">// MISSION_ADVISOR</div>
-        <h1 className="page-title">What Should I Do?</h1>
+        <h1 className="page-title">OPERATIONAL PLANNING</h1>
+        <p className="page-subtitle">Define resource availability for optimized engagement protocols.</p>
+      </div>
+
+      {/* Collapsible Help Panel */}
+      <div className="help-accordion">
+        <button className="help-toggle" onClick={() => setHelpOpen(!helpOpen)}>
+          <span>How to use this panel</span>
+          <ChevronDown size={18} className={`help-chevron ${helpOpen ? 'open' : ''}`} />
+        </button>
+        <div className={`help-content ${helpOpen ? 'open' : ''}`}>
+          <p>Indecision burns fuel and time. This tactical computer analyzes your available assets (Time, Vehicle, Crew) against current system risk levels to generate the optimal sortie profile. Stop guessing. Start flying.</p>
+        </div>
       </div>
 
       {/* Main Content */}
