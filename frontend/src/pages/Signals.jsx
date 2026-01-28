@@ -477,7 +477,7 @@ export default function Signals() {
             Last Updated: {new Date().toUTCString().slice(0, -4)} UTC
           </span>
           <span className="font-mono text-muted" style={{ fontSize: 12 }}>
-            Game Version: {rsiStatus.gameVersion || '4.0.2-LIVE'}
+            Game Version: Star Citizen Alpha {rsiStatus.gameVersion || 'Unknown'}
           </span>
         </div>
       </div>
