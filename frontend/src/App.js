@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Header from './components/Header';
+import AlertTicker from './components/AlertTicker';
 import Intel from './pages/Intel';
 import Signals from './pages/Signals';
 import Contracts from './pages/Contracts';
@@ -55,6 +56,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('navcom_token'));
+  const [userShard, setUserShard] = useState(localStorage.getItem('navcom_shard') || '');
 
   // Configure axios defaults
   useEffect(() => {
@@ -113,6 +115,11 @@ function App() {
     setUser(prev => ({ ...prev, ...updates }));
   };
 
+  const setShard = (shard) => {
+    setUserShard(shard);
+    localStorage.setItem('navcom_shard', shard);
+  };
+
   const authValue = {
     user,
     token,
@@ -120,13 +127,16 @@ function App() {
     login,
     register,
     logout,
-    updateUser
+    updateUser,
+    userShard,
+    setShard
   };
 
   return (
     <AuthContext.Provider value={authValue}>
       <div className="App">
         <BrowserRouter>
+          <AlertTicker userShard={userShard} />
           <Header user={user} onLogout={logout} />
           <main className="navcom-main">
             <Routes>
