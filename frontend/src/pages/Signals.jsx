@@ -412,26 +412,33 @@ export default function Signals() {
       {/* Activity Reliability */}
       <div style={{ marginBottom: 24 }}>
         <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 16 }}>
-          ACTIVITY RELIABILITY
+          ACTIVITY RELIABILITY (Based on reports & server health)
         </h3>
         <div className="grid-4">
-          {RELIABILITY_METRICS.map(metric => (
+          {[
+            { id: 'cargo', label: 'Cargo Reliability', value: reliability.cargo },
+            { id: 'combat', label: 'Combat Reliability', value: reliability.combat },
+            { id: 'salvage', label: 'Salvage Reliability', value: reliability.salvage },
+            { id: 'fps', label: 'FPS Reliability', value: reliability.fps }
+          ].map(metric => (
             <div key={metric.id} className="nc-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <CheckCircle size={16} className="text-green" />
+                <CheckCircle size={16} className={metric.value >= 70 ? 'text-green' : metric.value >= 40 ? 'text-orange' : 'text-red'} />
                 <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)' }}>
                   {metric.label}
                 </span>
               </div>
               <div className="nc-progress" style={{ marginBottom: 12 }}>
                 <div 
-                  className="nc-progress-bar green" 
+                  className={`nc-progress-bar ${metric.value >= 70 ? 'green' : metric.value >= 40 ? 'gold' : 'red'}`}
                   style={{ width: `${metric.value}%` }}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="font-mono text-muted" style={{ fontSize: 11 }}>{metric.description}</span>
-                <span className="text-green font-display" style={{ fontSize: 14 }}>{metric.value}%</span>
+                <span className="font-mono text-muted" style={{ fontSize: 11 }}>Current stability</span>
+                <span className={metric.value >= 70 ? 'text-green' : metric.value >= 40 ? 'text-orange' : 'text-red'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>
+                  {metric.value}%
+                </span>
               </div>
             </div>
           ))}
