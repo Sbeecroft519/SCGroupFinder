@@ -115,9 +115,19 @@ class ReportCreate(BaseModel):
 class ContractCreate(BaseModel):
     type: str
     title: str
-    description: str
+    # Structured fields
+    activity: Optional[str] = None
+    threat: Optional[str] = None
+    status_select: Optional[str] = None
+    environment: Optional[str] = None
+    load: Optional[str] = None
+    destination: Optional[str] = None
+    job: Optional[str] = None
+    role: Optional[str] = None
+    # Location
+    system: Optional[str] = None
+    planet: Optional[str] = None
     location: Optional[str] = None
-    rescue_type: Optional[str] = None
     shard: Optional[str] = None
 
 class ReviewCreate(BaseModel):
