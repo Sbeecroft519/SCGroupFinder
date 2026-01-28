@@ -57,6 +57,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('navcom_token'));
   const [userShard, setUserShard] = useState(localStorage.getItem('navcom_shard') || '');
+  const [tickerSettings, setTickerSettings] = useState(() => {
+    const saved = localStorage.getItem('navcom_tickers');
+    return saved ? JSON.parse(saved) : { threats: true, stability: true, issues: true };
+  });
+  const [showShardPrompt, setShowShardPrompt] = useState(!localStorage.getItem('navcom_shard'));
 
   // Configure axios defaults
   useEffect(() => {
@@ -118,6 +123,13 @@ function App() {
   const setShard = (shard) => {
     setUserShard(shard);
     localStorage.setItem('navcom_shard', shard);
+    setShowShardPrompt(false);
+  };
+
+  const updateTickerSettings = (key, value) => {
+    const newSettings = { ...tickerSettings, [key]: value };
+    setTickerSettings(newSettings);
+    localStorage.setItem('navcom_tickers', JSON.stringify(newSettings));
   };
 
   const authValue = {
@@ -129,16 +141,72 @@ function App() {
     logout,
     updateUser,
     userShard,
-    setShard
+    setShard,
+    tickerSettings,
+    updateTickerSettings,
+    showShardPrompt,
+    setShowShardPrompt
   };
 
   return (
     <AuthContext.Provider value={authValue}>
       <div className="App">
         <BrowserRouter>
-          <AlertTicker userShard={userShard} />
-          <Header user={user} onLogout={logout} />
+          <AlertTicker userShard={userShard} tickerSettings={tickerSettings} />
+          <Header user={user} onLogout={logout} userShard={userShard} onShardClick={() => setShowShardPrompt(true)} />
           <main className="navcom-main">
+            {/* Shard Prompt Modal */}
+            {showShardPrompt && (
+              <div className="mission-modal-overlay" style={{ zIndex: 1001 }}>
+                <div className="mission-modal" style={{ maxWidth: 450 }}>
+                  <div className="mission-modal-header">
+                    <div>
+                      <div className="mission-type-badge">// SESSION_SETUP</div>
+                      <h2 className="mission-title">Enter Your Shard</h2>
+                    </div>
+                  </div>
+                  <div className="mission-modal-content">
+                    <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                      To receive accurate alerts for your server, enter your shard number. 
+                      Alerts from other shards won't apply to your gameplay.
+                    </p>
+                    <div className="shard-instructions">
+                      <h4>How to find your shard:</h4>
+                      <ol>
+                        <li>Press <code>~</code> (tilde) to open console</li>
+                        <li>Type <code>r_displayinfo 1</code></li>
+                        <li>Look for "Shard" in the info overlay</li>
+                        <li>Enter the number below</li>
+                      </ol>
+                    </div>
+                    <input
+                      type="text"
+                      className="nc-input"
+                      placeholder="Enter shard number (e.g., 360)"
+                      defaultValue={userShard}
+                      onChange={e => setUserShard(e.target.value)}
+                      style={{ marginTop: 16 }}
+                    />
+                    <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                      <button 
+                        className="nc-btn nc-btn-secondary" 
+                        style={{ flex: 1 }}
+                        onClick={() => { setShard(''); setShowShardPrompt(false); }}
+                      >
+                        Skip (Global Only)
+                      </button>
+                      <button 
+                        className="nc-btn nc-btn-primary" 
+                        style={{ flex: 1 }}
+                        onClick={() => setShard(userShard)}
+                      >
+                        Set Shard
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
