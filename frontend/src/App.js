@@ -88,6 +88,9 @@ function App() {
 
   // WebSocket notifications hook
   useNotifications(userShard, notificationSettings, handleNewAlert);
+  
+  // Contract polling (every 15 seconds when enabled)
+  useContractPolling(API, user && notificationSettings?.contract_alerts, null);
 
   // Configure axios defaults
   useEffect(() => {
