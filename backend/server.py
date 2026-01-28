@@ -419,6 +419,25 @@ async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
     time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
     
+    # Pyro is always moderate-to-high risk due to full PvP
+    effective_risk = request.risk
+    pyro_warning = ""
+    if request.system == 'Pyro':
+        if request.risk == 'LOW':
+            effective_risk = 'MEDIUM'
+            pyro_warning = " ⚠️ PYRO: Minimum risk elevated to MEDIUM (full PvP system)"
+        else:
+            pyro_warning = " ⚠️ PYRO: Full PvP system - expect hostile players"
+    
+    # System-specific terminal/location keywords for filtering
+    system_keywords = {
+        'Stanton': ['Hurston', 'Lorville', 'Area18', 'ArcCorp', 'Crusader', 'Orison', 'microTech', 'New Babbage', 
+                    'Port Tressler', 'GrimHEX', 'CRU-L', 'HUR-L', 'ARC-L', 'MIC-L', 'Everus', 'Baijini',
+                    'Yela', 'Cellin', 'Daymar', 'Arial', 'Aberdeen', 'Magda', 'Ita', 'Euterpe', 'Calliope', 'Clio'],
+        'Pyro': ['Pyro', 'Ruin Station', 'Checkmate', 'Ignis', 'Bloom', 'Terminus'],
+        'Nyx': ['Nyx', 'Levski', 'Delamar']
+    }
+    
     # Cargo - fetch LIVE UEX data for best routes
     if request.activity == 'cargo':
         best_route = None
@@ -430,24 +449,33 @@ async def analyze_mission(request: IntelRequest):
                     prices_data = prices_resp.json()
                     prices = prices_data.get('data', prices_data) if isinstance(prices_data, dict) else prices_data
                     
-                    # Group by commodity - find buy and sell locations
+                    # Filter by system - only include terminals in selected system
+                    keywords = system_keywords.get(request.system, system_keywords['Stanton'])
+                    
+                    def is_in_system(terminal_name):
+                        if not terminal_name:
+                            return False
+                        return any(kw.lower() in terminal_name.lower() for kw in keywords)
+                    
+                    # Group by commodity - find buy and sell locations IN THE SELECTED SYSTEM
                     commodity_prices = {}
                     for p in prices:
                         cname = p.get('commodity_name')
-                        if not cname:
+                        terminal = p.get('terminal_name', '')
+                        if not cname or not is_in_system(terminal):
                             continue
                         if cname not in commodity_prices:
                             commodity_prices[cname] = {'buys': [], 'sells': []}
                         
                         if p.get('price_buy') and p.get('price_buy') > 0 and p.get('status_buy') == 1:
                             commodity_prices[cname]['buys'].append({
-                                'terminal': p.get('terminal_name'),
+                                'terminal': terminal,
                                 'price': p.get('price_buy'),
                                 'stock': p.get('scu_buy', 0)
                             })
                         if p.get('price_sell') and p.get('price_sell') > 0 and p.get('status_sell') == 1:
                             commodity_prices[cname]['sells'].append({
-                                'terminal': p.get('terminal_name'),
+                                'terminal': terminal,
                                 'price': p.get('price_sell'),
                                 'stock': p.get('scu_sell_stock', 0)
                             })
@@ -484,10 +512,10 @@ async def analyze_mission(request: IntelRequest):
                     illegal_commodities = ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin']
                     high_value = ['Laranite', 'Agricium', 'Bexalite', 'Quantanium', 'Taranite']
                     
-                    if request.risk == 'LOW':
+                    if effective_risk == 'LOW':
                         # Safe, stable commodities - lower profit but consistent
                         routes = [r for r in routes if r['commodity'] not in illegal_commodities and r['roi'] < 50]
-                    elif request.risk == 'HIGH':
+                    elif effective_risk == 'HIGH':
                         # High risk = illegal or high-value targets
                         routes = [r for r in routes if r['commodity'] in illegal_commodities or r['commodity'] in high_value or r['roi'] > 30]
                     else:
@@ -499,34 +527,47 @@ async def analyze_mission(request: IntelRequest):
         except Exception as e:
             logger.error(f"UEX API error: {e}")
         
-        # Fallback routes if API fails
+        # Fallback routes if API fails - system-specific
         if not best_route:
             fallback_routes = {
-                'LOW': {'commodity': 'Medical Supplies', 'buy_terminal': 'Orison - Providence Platform', 'buy_price': 1715, 'sell_terminal': 'GrimHEX', 'sell_price': 2150, 'profit_per_scu': 435},
-                'MEDIUM': {'commodity': 'Laranite', 'buy_terminal': 'HDMS-Lathan (Arial)', 'buy_price': 2788, 'sell_terminal': 'TDD New Babbage', 'sell_price': 3156, 'profit_per_scu': 368},
-                'HIGH': {'commodity': 'WiDoW', 'buy_terminal': 'Jumptown (Yela)', 'buy_price': 2400, 'sell_terminal': 'GrimHEX', 'sell_price': 11200, 'profit_per_scu': 8800}
+                'Stanton': {
+                    'LOW': {'commodity': 'Medical Supplies', 'buy_terminal': 'Orison - Providence Platform', 'buy_price': 1715, 'sell_terminal': 'GrimHEX', 'sell_price': 2150, 'profit_per_scu': 435},
+                    'MEDIUM': {'commodity': 'Laranite', 'buy_terminal': 'HDMS-Lathan (Arial)', 'buy_price': 2788, 'sell_terminal': 'TDD New Babbage', 'sell_price': 3156, 'profit_per_scu': 368},
+                    'HIGH': {'commodity': 'WiDoW', 'buy_terminal': 'Jumptown (Yela)', 'buy_price': 2400, 'sell_terminal': 'GrimHEX', 'sell_price': 11200, 'profit_per_scu': 8800}
+                },
+                'Pyro': {
+                    'MEDIUM': {'commodity': 'Scrap', 'buy_terminal': 'Ruin Station Salvage', 'buy_price': 150, 'sell_terminal': 'Checkmate Station', 'sell_price': 320, 'profit_per_scu': 170},
+                    'HIGH': {'commodity': 'Contraband Mix', 'buy_terminal': 'Pyro Smuggler Cache', 'buy_price': 800, 'sell_terminal': 'Ruin Station Black Market', 'sell_price': 2400, 'profit_per_scu': 1600}
+                },
+                'Nyx': {
+                    'LOW': {'commodity': 'Processed Food', 'buy_terminal': 'Levski Market', 'buy_price': 120, 'sell_terminal': 'Delamar Outpost', 'sell_price': 185, 'profit_per_scu': 65},
+                    'MEDIUM': {'commodity': 'Titanium', 'buy_terminal': 'Delamar Mining Hub', 'buy_price': 850, 'sell_terminal': 'Levski Refinery', 'sell_price': 1120, 'profit_per_scu': 270},
+                    'HIGH': {'commodity': 'Gold', 'buy_terminal': 'Delamar Deep Mine', 'buy_price': 620, 'sell_terminal': 'Levski Black Market', 'sell_price': 980, 'profit_per_scu': 360}
+                }
             }
-            best_route = fallback_routes.get(request.risk, fallback_routes['MEDIUM'])
+            system_routes = fallback_routes.get(request.system, fallback_routes['Stanton'])
+            best_route = system_routes.get(effective_risk, system_routes.get('MEDIUM', list(system_routes.values())[0]))
             best_route['total_profit'] = best_route['profit_per_scu'] * ship_scu
             best_route['investment'] = best_route['buy_price'] * ship_scu
             best_route['roi'] = (best_route['profit_per_scu'] / best_route['buy_price']) * 100
         
         note = ""
-        if best_route.get('commodity') in ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin']:
+        if best_route.get('commodity') in ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin', 'Contraband Mix']:
             note = " ⚠️ ILLEGAL - Scan risk, pirate activity"
+        note += pyro_warning
         
         return MissionResponse(
             type='cargo', title='Cargo Hauling',
             description=f"Trade {best_route['commodity']} for maximum profit{note}",
             location={
-                'name': f"{best_route['commodity']} Trade Route",
+                'name': f"📍 {request.system} System: {best_route['commodity']} Trade Route",
                 'description': f"{best_route['buy_terminal']} → {best_route['sell_terminal']}",
                 'activities': f"Buy at {best_route['buy_price']:,.0f} aUEC/SCU, Sell at {best_route['sell_price']:,.0f} aUEC/SCU"
             },
             duration=time_display, 
             reward=f"{best_route['total_profit']:,.0f} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
-            risk_level=request.risk, 
-            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no investment needed'},
+            risk_level=effective_risk, 
+            fallback={'title': 'Delivery Missions', 'description': f'Package delivery from {request.system} contract terminals - no investment needed'},
             profit_data={
                 'commodity': best_route['commodity'],
                 'route': f"{best_route['buy_terminal']} → {best_route['sell_terminal']}",
