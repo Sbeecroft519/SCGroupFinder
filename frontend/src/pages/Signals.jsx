@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Activity, RefreshCw, CheckCircle, AlertTriangle, XCircle, Wifi, WifiOff, Skull, Bug, Package, Users, Zap, MapPin, TrendingUp, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import axios from 'axios';
