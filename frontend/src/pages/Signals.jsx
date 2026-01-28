@@ -575,60 +575,151 @@ export default function Signals() {
           </div>
         </div>
 
-        {/* Chart */}
+        {/* Chart - conditional rendering based on view */}
         <div style={{ height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="colorReports" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#00f0ff" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorPirates" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#ff3366" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="date" 
-                stroke="#4a6070" 
-                fontSize={10}
-                tickLine={false}
-                axisLine={{ stroke: '#1a3344' }}
-              />
-              <YAxis 
-                stroke="#4a6070" 
-                fontSize={10}
-                tickLine={false}
-                axisLine={{ stroke: '#1a3344' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  background: '#0d1a26', 
-                  border: '1px solid #1a3344',
-                  borderRadius: 0,
-                  fontFamily: 'Share Tech Mono'
-                }}
-                labelStyle={{ color: '#00f0ff' }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="reports" 
-                stroke="#00f0ff" 
-                fillOpacity={1}
-                fill="url(#colorReports)"
-                strokeWidth={2}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="pirates" 
-                stroke="#ff3366" 
-                fillOpacity={1}
-                fill="url(#colorPirates)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {trendView === 'timeline' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="colorReports" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#00f0ff" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorPirates" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ff3366" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#4a6070" 
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1a3344' }}
+                />
+                <YAxis 
+                  stroke="#4a6070" 
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1a3344' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: '#0d1a26', 
+                    border: '1px solid #1a3344',
+                    borderRadius: 0,
+                    fontFamily: 'Share Tech Mono'
+                  }}
+                  labelStyle={{ color: '#00f0ff' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="reports" 
+                  stroke="#00f0ff" 
+                  fillOpacity={1}
+                  fill="url(#colorReports)"
+                  strokeWidth={2}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="pirates" 
+                  stroke="#ff3366" 
+                  fillOpacity={1}
+                  fill="url(#colorPirates)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+
+          {trendView === 'breakdown' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 40 }}>
+              <ResponsiveContainer width="50%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={getBreakdownData()}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {getBreakdownData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: '#0d1a26', 
+                      border: '1px solid #1a3344',
+                      borderRadius: 0,
+                      fontFamily: 'Share Tech Mono'
+                    }}
+                    formatter={(value, name) => [`${value} reports`, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {getBreakdownData().map((entry, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 12, height: 12, background: entry.color }} />
+                    <span className="font-mono" style={{ fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+                      {entry.name}
+                    </span>
+                    <span className="font-mono" style={{ fontSize: 12, color: entry.color, marginLeft: 'auto' }}>
+                      {entry.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {trendView === 'locations' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={getLocationData()} layout="vertical">
+                <XAxis 
+                  type="number" 
+                  stroke="#4a6070" 
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1a3344' }}
+                />
+                <YAxis 
+                  type="category" 
+                  dataKey="location" 
+                  stroke="#4a6070" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1a3344' }}
+                  width={100}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: '#0d1a26', 
+                    border: '1px solid #1a3344',
+                    borderRadius: 0,
+                    fontFamily: 'Share Tech Mono'
+                  }}
+                  formatter={(value) => [`${value} reports`, 'Reports']}
+                  labelStyle={{ color: '#00f0ff' }}
+                />
+                <Bar 
+                  dataKey="reports" 
+                  fill="#00f0ff"
+                  radius={[0, 4, 4, 0]}
+                >
+                  {getLocationData().map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={index === 0 ? '#ff3366' : index === 1 ? '#ff6600' : '#00f0ff'} 
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>
