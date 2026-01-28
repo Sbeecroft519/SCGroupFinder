@@ -26,9 +26,29 @@ const CONTRACT_OPTIONS = {
     destination: ['Orbital Station', 'Ground Outpost', 'Major City']
   },
   operations: {
-    job: ['Mining Crew', 'Salvage Crew', 'Event Support'],
-    role: ['Turret Gunner', 'Box Mover', 'Pilot', 'Medic'],
-    compensation: ['Flat Fee', 'Equal Split', 'Negotiated %']
+    job: [
+      'Multi-Crew Mining',
+      'Deep Space Salvage',
+      'Bunker / FPS Ops',
+      'Exploration / Touring',
+      'Security Detail',
+      'Refueling Support',
+      'Logistics / Moving',
+      'Org Training / Event',
+      'Film / Media Production'
+    ],
+    role: [
+      'FPS Specialist',
+      'Hired Gun / Turret',
+      'Laser Operator',
+      'Cargo Handler',
+      'Engineer',
+      'Pilot / Driver',
+      'Medic',
+      'Scout',
+      'Camera Operator'
+    ],
+    compensation: ['Flat Fee', 'Equal Split', 'Negotiated %', 'No Payment']
   }
 };
 
