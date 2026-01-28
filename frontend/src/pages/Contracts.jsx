@@ -198,16 +198,23 @@ export default function Contracts() {
 
   // Check if contract form is valid
   const isContractValid = () => {
-    if (!newContract.planet || !newContract.location) return false;
+    // Payment validation (except for split compensation)
+    if (showPaymentField && (!newContract.payment_amount || isNaN(parseInt(newContract.payment_amount)))) {
+      return false;
+    }
+    
     switch (newContract.type) {
       case 'security':
-        return newContract.activity && newContract.threat;
+        if (newContract.activity === 'Escort') {
+          return newContract.start_location && newContract.end_location && newContract.cargo_value;
+        }
+        return newContract.activity && newContract.threat && newContract.planet && newContract.location;
       case 'rescue':
-        return newContract.status_select && newContract.environment;
+        return newContract.status_select && newContract.environment && newContract.planet && newContract.location;
       case 'transport':
-        return newContract.load && newContract.destination;
+        return newContract.load && newContract.destination && newContract.planet && newContract.location;
       case 'operations':
-        return newContract.job && newContract.role;
+        return newContract.job && newContract.role && newContract.planet && newContract.location;
       default:
         return false;
     }
