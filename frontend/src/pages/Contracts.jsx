@@ -984,33 +984,70 @@ export default function Contracts() {
               </div>
 
               <div className="contract-actions">
-                <button
-                  className="nc-btn nc-btn-secondary"
-                  onClick={() => handleCopyHandle(contract.poster?.handle || 'Unknown')}
-                  data-testid={`copy-handle-${contract.id}`}
-                >
-                  {copiedHandle === contract.poster?.handle ? (
-                    <><Check size={14} className="text-green" /> Copied!</>
+                {/* Status Badge */}
+                {contract.status && contract.status !== 'open' && (
+                  <span className={`status-badge status-${contract.status}`}>
+                    {contract.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                )}
+                
+                {/* Poster Actions */}
+                {contract.poster_id === user?.id && contract.status === 'open' && (
+                  <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
+                    <Users size={14} /> Manage Bids
+                  </button>
+                )}
+                
+                {/* Merc Actions - Apply */}
+                {contract.poster_id !== user?.id && contract.status === 'open' && (
+                  myBids.some(b => b.contract_id === contract.id) ? (
+                    <button className="nc-btn nc-btn-secondary" disabled>
+                      <Check size={14} /> Bid Sent
+                    </button>
                   ) : (
-                    <><Copy size={14} /> Copy Handle</>
-                  )}
-                </button>
-                {canAccept(contract) && (
-                  <button className="nc-btn nc-btn-primary" onClick={() => handleAcceptContract(contract.id)}>
-                    <ThumbsUp size={14} /> Accept
-                  </button>
+                    <button 
+                      className="nc-btn nc-btn-primary" 
+                      onClick={() => handleBid(contract.id)}
+                      disabled={hasActiveContract}
+                      title={hasActiveContract ? 'You already have an active contract' : ''}
+                    >
+                      <ThumbsUp size={14} /> Apply for Contract
+                    </button>
+                  )
                 )}
-                {canComplete(contract) && (
-                  <button className="nc-btn nc-btn-primary" onClick={() => handleCompleteContract(contract.id)}>
-                    <Check size={14} /> Complete
-                  </button>
+                
+                {/* In Progress - Show Handle & Mark Complete */}
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion') && (
+                  <>
+                    <button
+                      className="nc-btn nc-btn-secondary"
+                      onClick={() => handleCopyHandle(
+                        contract.poster_id === user?.id 
+                          ? contract.accepted_by?.handle 
+                          : contract.poster?.handle
+                      )}
+                    >
+                      <Copy size={14} /> Copy Handle
+                    </button>
+                    <button 
+                      className="nc-btn nc-btn-primary" 
+                      onClick={() => handleMarkComplete(contract.id)}
+                    >
+                      <Check size={14} /> 
+                      {contract.status === 'pending_completion' ? 'Confirm Complete' : 'Mark Complete'}
+                    </button>
+                  </>
                 )}
-                {canReview(contract) && (
-                  <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, ...canReview(contract) })}>
-                    <Star size={14} /> Rate
+                
+                {/* Completed - Show Rating */}
+                {contract.status === 'completed' && !contract.client_review && !contract.merc_review && (
+                  <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id })}>
+                    <Star size={14} /> Rate Experience
                   </button>
                 )}
               </div>
+              
+              {/* Reviews Display */}
               {(contract.client_review || contract.merc_review) && (
                 <div className="contract-reviews">
                   {contract.client_review && (
