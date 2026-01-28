@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Header from './components/Header';
+import MobileNav from './components/MobileNav';
 import AlertTicker from './components/AlertTicker';
 import OnboardingCarousel from './components/OnboardingCarousel';
 import Intel from './pages/Intel';
@@ -15,6 +16,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
+import { useContractPolling } from './hooks/useContractPolling';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
