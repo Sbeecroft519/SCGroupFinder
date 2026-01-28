@@ -346,6 +346,7 @@ export default function Profile() {
           gap: 3px;
           align-items: flex-end;
           height: 60px;
+          margin-top: 40px;
         }
 
         .bar {
