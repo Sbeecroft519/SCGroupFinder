@@ -761,9 +761,19 @@ export default function Contracts() {
               )}
 
               {/* Location Selectors */}
+              {!isOperations && (
               <div className="form-group">
                 <label className="nc-label">LOCATION</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <select 
+                    className="nc-input"
+                    value={newContract.system}
+                    onChange={e => setNewContract(prev => ({ ...prev, system: e.target.value, planet: '', location: '' }))}
+                  >
+                    {SYSTEMS.map(sys => (
+                      <option key={sys} value={sys}>{sys}</option>
+                    ))}
+                  </select>
                   <select 
                     className="nc-input"
                     value={newContract.planet}
