@@ -55,7 +55,7 @@ export default function Profile() {
         {/* Header */}
         <div className="card-header">
           <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
-          <div className="card-label">UEE CITIZEN RECORD</div>
+          <div className="card-label">CITIZEN ID BADGE</div>
         </div>
         
         <div className="card-divider" />
@@ -95,9 +95,7 @@ export default function Profile() {
             </div>
 
             <div className="stats-row">
-              <span>Contracts: {user.contracts_completed || 0}</span>
-              <span className="divider">|</span>
-              <span>Joined: {joinDate}</span>
+              <span>Completed Contracts: {user.contracts_completed || 0}</span>
               <span className="divider">|</span>
               <span>Status: <strong>{user.is_verified ? 'VERIFIED' : 'PENDING'}</strong></span>
             </div>
@@ -106,7 +104,7 @@ export default function Profile() {
 
         {/* Footer - Badge Rack */}
         <div className="card-footer">
-          <div className="badge-rack-label">RIBBON RACK</div>
+          <div className="badge-rack-label">AWARDS</div>
           <div className="badge-rack">
             {user.is_supporter && (
               <div className="ribbon supporter" title="Supporter">
@@ -323,11 +321,11 @@ export default function Profile() {
 
         .stats-row {
           font-family: var(--nc-font-mono);
-          font-size: 11px;
+          font-size: 12px;
           color: var(--nc-text-muted);
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 10px;
           margin-top: 8px;
         }
 
