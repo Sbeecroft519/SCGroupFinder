@@ -64,6 +64,7 @@ export default function Intel() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [mission, setMission] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const selectedShip = SHIPS.find(s => s.name === ship);
 
