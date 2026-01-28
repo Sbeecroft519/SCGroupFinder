@@ -1,9 +1,10 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Header from './components/Header';
 import AlertTicker from './components/AlertTicker';
+import OnboardingCarousel from './components/OnboardingCarousel';
 import Intel from './pages/Intel';
 import Signals from './pages/Signals';
 import Contracts from './pages/Contracts';
@@ -12,6 +13,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import Admin from './pages/Admin';
+import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -27,7 +30,7 @@ export const useAuth = () => {
   return context;
 };
 
-// Protected Route Component
+// Protected Route Component - ALL routes require auth now
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
@@ -49,6 +52,8 @@ const ProtectedRoute = ({ children }) => {
 
 // Home redirect
 const Home = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
   return <Navigate to="/intel" replace />;
 };
 
@@ -56,12 +61,31 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('navcom_token'));
-  const [userShard, setUserShard] = useState(localStorage.getItem('navcom_shard') || '');
+  const [userShard, setUserShard] = useState(''); // Session-based, not localStorage
   const [tickerSettings, setTickerSettings] = useState(() => {
     const saved = localStorage.getItem('navcom_tickers');
     return saved ? JSON.parse(saved) : { threats: true, stability: true, issues: true };
   });
-  const [showShardPrompt, setShowShardPrompt] = useState(!localStorage.getItem('navcom_shard'));
+  const [notificationSettings, setNotificationSettings] = useState({
+    websocket_enabled: true,
+    sound_enabled: true,
+    threat_alerts: true,
+    stability_alerts: true,
+    issue_alerts: true,
+    contract_alerts: true,
+    contract_types: []
+  });
+  const [showShardPrompt, setShowShardPrompt] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [recentAlerts, setRecentAlerts] = useState([]);
+
+  // Handle new alerts from WebSocket
+  const handleNewAlert = useCallback((alert) => {
+    setRecentAlerts(prev => [alert, ...prev.slice(0, 9)]);
+  }, []);
+
+  // WebSocket notifications hook
+  useNotifications(userShard, notificationSettings, handleNewAlert);
 
   // Configure axios defaults
   useEffect(() => {
@@ -83,6 +107,26 @@ function App() {
       try {
         const response = await axios.get(`${API}/auth/me`);
         setUser(response.data);
+        
+        // Check if first time user (no onboarding completed)
+        const onboardingDone = localStorage.getItem('navcom_onboarding_done');
+        if (!onboardingDone) {
+          setShowOnboarding(true);
+        } else {
+          // Always show shard prompt on login (session-based)
+          setShowShardPrompt(true);
+        }
+        
+        // Request notification permission
+        requestNotificationPermission();
+        
+        // Fetch notification settings
+        try {
+          const settingsRes = await axios.get(`${API}/user/notification-settings`);
+          setNotificationSettings(settingsRes.data);
+        } catch (e) {
+          // Use defaults
+        }
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('navcom_token');
@@ -102,6 +146,17 @@ function App() {
     localStorage.setItem('navcom_token', newToken);
     setToken(newToken);
     setUser(userData);
+    
+    // Check if first time user
+    const onboardingDone = localStorage.getItem('navcom_onboarding_done');
+    if (!onboardingDone) {
+      setShowOnboarding(true);
+    } else {
+      // Always prompt for shard on login
+      setShowShardPrompt(true);
+    }
+    
+    requestNotificationPermission();
     return userData;
   };
 
@@ -114,6 +169,7 @@ function App() {
     localStorage.removeItem('navcom_token');
     setToken(null);
     setUser(null);
+    setUserShard(''); // Clear session shard
   };
 
   const updateUser = (updates) => {
@@ -122,14 +178,29 @@ function App() {
 
   const setShard = (shard) => {
     setUserShard(shard);
-    localStorage.setItem('navcom_shard', shard);
     setShowShardPrompt(false);
+  };
+
+  const completeOnboarding = () => {
+    localStorage.setItem('navcom_onboarding_done', 'true');
+    setShowOnboarding(false);
+    // Don't show shard prompt again since onboarding handles it
   };
 
   const updateTickerSettings = (key, value) => {
     const newSettings = { ...tickerSettings, [key]: value };
     setTickerSettings(newSettings);
     localStorage.setItem('navcom_tickers', JSON.stringify(newSettings));
+  };
+
+  const updateNotificationSettings = async (updates) => {
+    const newSettings = { ...notificationSettings, ...updates };
+    setNotificationSettings(newSettings);
+    try {
+      await axios.put(`${API}/user/notification-settings`, newSettings);
+    } catch (e) {
+      console.error('Failed to save notification settings:', e);
+    }
   };
 
   const authValue = {
@@ -144,19 +215,31 @@ function App() {
     setShard,
     tickerSettings,
     updateTickerSettings,
+    notificationSettings,
+    updateNotificationSettings,
     showShardPrompt,
-    setShowShardPrompt
+    setShowShardPrompt,
+    recentAlerts
   };
 
   return (
     <AuthContext.Provider value={authValue}>
       <div className="App">
         <BrowserRouter>
-          <AlertTicker userShard={userShard} tickerSettings={tickerSettings} />
+          {/* Only show tickers when logged in */}
+          {user && <AlertTicker userShard={userShard} tickerSettings={tickerSettings} />}
           <Header user={user} onLogout={logout} userShard={userShard} onShardClick={() => setShowShardPrompt(true)} />
           <main className="navcom-main">
-            {/* Shard Prompt Modal */}
-            {showShardPrompt && (
+            {/* Onboarding Carousel for first-time users */}
+            {showOnboarding && user && (
+              <OnboardingCarousel 
+                onComplete={completeOnboarding} 
+                onSetShard={setShard}
+              />
+            )}
+
+            {/* Shard Prompt Modal - shown on every login after onboarding */}
+            {showShardPrompt && user && !showOnboarding && (
               <div className="mission-modal-overlay" style={{ zIndex: 1001 }}>
                 <div className="mission-modal" style={{ maxWidth: 450 }}>
                   <div className="mission-modal-header">
@@ -167,8 +250,8 @@ function App() {
                   </div>
                   <div className="mission-modal-content">
                     <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
-                      To receive accurate alerts for your server, enter your shard number. 
-                      Alerts from other shards won't apply to your gameplay.
+                      Welcome back, <span style={{ color: 'var(--nc-cyan)' }}>{user?.rsi_handle}</span>! 
+                      Enter your current shard number for accurate alerts.
                     </p>
                     <div className="shard-instructions">
                       <h4>How to find your shard:</h4>
@@ -183,7 +266,7 @@ function App() {
                       type="text"
                       className="nc-input"
                       placeholder="Enter shard number (e.g., 360)"
-                      defaultValue={userShard}
+                      value={userShard}
                       onChange={e => setUserShard(e.target.value)}
                       style={{ marginTop: 16 }}
                     />
@@ -191,7 +274,7 @@ function App() {
                       <button 
                         className="nc-btn nc-btn-secondary" 
                         style={{ flex: 1 }}
-                        onClick={() => { setShard(''); setShowShardPrompt(false); }}
+                        onClick={() => setShard('')}
                       >
                         Skip (Global Only)
                       </button>
@@ -207,30 +290,18 @@ function App() {
                 </div>
               </div>
             )}
+
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/intel" element={<Intel />} />
-              <Route path="/signals" element={<Signals />} />
-              <Route path="/contracts" element={<Contracts />} />
-              <Route path="/roadmap" element={<Roadmap />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route path="/intel" element={<ProtectedRoute><Intel /></ProtectedRoute>} />
+              <Route path="/signals" element={<ProtectedRoute><Signals /></ProtectedRoute>} />
+              <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
+              <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             </Routes>
           </main>
         </BrowserRouter>
