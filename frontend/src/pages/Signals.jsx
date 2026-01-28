@@ -55,32 +55,16 @@ const RISK_INDICATORS = [
   { id: 'pvp', label: 'PvP Risk', description: 'Current griefing and PvP activity level', value: 75 }
 ];
 
-// Mock trend data
-const generateTrendData = (days) => {
-  const data = [];
-  for (let i = days; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      reports: Math.floor(Math.random() * 15) + 2,
-      lag: Math.floor(Math.random() * 5),
-      bugs: Math.floor(Math.random() * 3),
-      pirates: Math.floor(Math.random() * 4)
-    });
-  }
-  return data;
-};
-
 export default function Signals() {
   const [serverStatus, setServerStatus] = useState('operational');
   const [rsiStatus, setRsiStatus] = useState({ status: 'operational', lastIncident: null });
-  const [reports24h, setReports24h] = useState(5);
+  const [reports24h, setReports24h] = useState(0);
   const [trendRange, setTrendRange] = useState(7);
   const [trendView, setTrendView] = useState('timeline');
-  const [trendData, setTrendData] = useState(generateTrendData(7));
+  const [trendData, setTrendData] = useState([]);
   const [recentReports, setRecentReports] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [reportStats, setReportStats] = useState({ byType: {}, byLocation: {} });
+  const [loading, setLoading] = useState(true);
   const [myShard, setMyShard] = useState('');
   const [showReportModal, setShowReportModal] = useState(null);
   const [reportSystem, setReportSystem] = useState('Stanton');
