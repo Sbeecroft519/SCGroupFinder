@@ -441,30 +441,111 @@ export default function Intel() {
       </div>
 
       <style>{`
+        .page-subtitle {
+          font-family: var(--nc-font-body);
+          font-size: 16px;
+          color: var(--nc-text-muted);
+          margin-top: 8px;
+          font-style: italic;
+        }
+
+        .help-accordion {
+          margin-bottom: 24px;
+          background: rgba(0, 240, 255, 0.03);
+          border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        .help-toggle {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 14px 18px;
+          background: transparent;
+          border: none;
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-mono);
+          font-size: 14px;
+          letter-spacing: 1px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .help-toggle:hover {
+          background: rgba(0, 240, 255, 0.05);
+        }
+
+        .help-chevron {
+          transition: transform 0.3s ease;
+        }
+
+        .help-chevron.open {
+          transform: rotate(180deg);
+        }
+
+        .help-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease, padding 0.3s ease;
+          padding: 0 18px;
+        }
+
+        .help-content.open {
+          max-height: 200px;
+          padding: 0 18px 18px;
+        }
+
+        .help-content p {
+          font-family: var(--nc-font-body);
+          font-size: 15px;
+          color: var(--nc-text-secondary);
+          line-height: 1.6;
+        }
+
         .intel-layout {
-          display: grid;
-          grid-template-columns: 1fr 320px;
+          display: flex;
           gap: 24px;
         }
         
         .intel-config {
+          flex: 1;
+          order: 1;
           background: var(--nc-bg-card);
           border: 1px solid var(--nc-border);
           padding: 24px;
         }
+
+        .intel-preview {
+          width: 360px;
+          order: 2;
+        }
         
         .ship-info {
           font-family: var(--nc-font-mono);
-          font-size: 12px;
+          font-size: 14px;
           color: var(--nc-cyan);
           margin-top: 8px;
+        }
+
+        .nc-label {
+          font-size: 13px;
+        }
+
+        .nc-select {
+          font-size: 15px;
+          padding: 12px 14px;
+        }
+
+        .nc-toggle {
+          font-size: 14px;
+          padding: 10px 16px;
         }
         
         .analyze-btn {
           width: 100%;
           margin-top: 24px;
-          padding: 16px;
-          font-size: 14px;
+          padding: 18px;
+          font-size: 16px;
         }
         
         .preview-grid {
@@ -482,14 +563,14 @@ export default function Intel() {
         
         .preview-label {
           font-family: var(--nc-font-mono);
-          font-size: 11px;
+          font-size: 13px;
           color: var(--nc-text-muted);
           letter-spacing: 1px;
         }
         
         .preview-value {
           font-family: var(--nc-font-display);
-          font-size: 14px;
+          font-size: 16px;
           color: var(--nc-text-primary);
         }
         
@@ -500,13 +581,18 @@ export default function Intel() {
           padding: 24px;
         }
         
-        @media (max-width: 1024px) {
+        @media (max-width: 900px) {
           .intel-layout {
-            grid-template-columns: 1fr;
+            flex-direction: column;
           }
           
+          .intel-config {
+            order: 1;
+          }
+
           .intel-preview {
-            order: -1;
+            order: 2;
+            width: 100%;
           }
         }
         
@@ -522,7 +608,7 @@ export default function Intel() {
           align-items: center;
           gap: 8px;
           font-family: var(--nc-font-display);
-          font-size: 14px;
+          font-size: 15px;
           color: var(--nc-green);
           margin-bottom: 16px;
         }
@@ -537,7 +623,7 @@ export default function Intel() {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          padding: 8px 12px;
+          padding: 10px 14px;
           background: var(--nc-bg-secondary);
           border: 1px solid var(--nc-border);
         }
@@ -550,7 +636,7 @@ export default function Intel() {
         
         .profit-label {
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 12px;
           color: var(--nc-text-muted);
           letter-spacing: 1px;
           text-transform: uppercase;
