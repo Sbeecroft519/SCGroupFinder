@@ -82,18 +82,27 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ## Backlog
 
 ### P1 - High Priority
-- [ ] User profile image upload with AI moderation
-- [ ] Contract notifications by type
+- [ ] User profile image upload (512x512) with AI moderation as fallback to RSI scraping
+- [ ] Complete Stripe payment flow for Roadmap contributions
+- [ ] WebSocket real-time contract notifications (foundation laid)
 
 ### P2 - Medium Priority
+- [ ] Granular push notifications (e.g., Medic only gets "Rescue" alerts)
+- [ ] Refactor Contracts.jsx into smaller components
+- [ ] Extract clipboard utility to shared function
+- [ ] Implement locked themes (Scavenger, Luxury, MilSpec)
 - [ ] Org/group support
 - [ ] Fleet manager
-- [ ] Implement locked themes (Scavenger, Luxury, MilSpec)
 
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
+## Bug Fixes Applied This Session (Jan 28, 2026)
+1. **Admin endpoints registration bug**: `/admin/reset-reports` and `/admin/last-reset` were defined after `app.include_router()` causing 404s. Moved endpoints before router inclusion.
+2. **RSI avatar not displaying**: Updated admin user's avatar_url in database. Verified scraping works with "Mowri" handle.
+
 ## Admin Credentials
 - Email: beecroft519@gmail.com
 - Password: Nv$C0m_Adm1n_2025!
+- RSI Handle: Mowri (verified with avatar)
