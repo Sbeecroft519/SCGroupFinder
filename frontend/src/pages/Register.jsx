@@ -227,7 +227,7 @@ export default function Register() {
             <div className="verification-code-box">
               <span className="font-mono text-muted" style={{ fontSize: 11 }}>YOUR CODE:</span>
               <div className="verification-code">
-                <span className="code-text">{verificationCode}</span>
+                <span className="code-text" data-testid="verification-code">{verificationCode}</span>
                 <button 
                   className="nc-btn nc-btn-secondary" 
                   onClick={handleCopyCode}
