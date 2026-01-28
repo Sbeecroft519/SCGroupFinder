@@ -264,7 +264,11 @@ export default function Contracts() {
     if (!isContractValid()) return;
 
     const title = generateTitle(newContract);
-    const locationStr = `${newContract.planet} - ${newContract.location}`;
+    const locationStr = isEscort 
+      ? `${newContract.start_location} → ${newContract.end_location}`
+      : `${newContract.planet} - ${newContract.location}`;
+    
+    const paymentAmount = showPaymentField ? parseInt(newContract.payment_amount) || 0 : 0;
 
     try {
       const response = await axios.post(`${API}/contracts`, {
@@ -273,12 +277,21 @@ export default function Contracts() {
         // Include structured fields
         activity: newContract.activity,
         threat: newContract.threat,
+        // Escort fields
+        start_location: newContract.start_location,
+        end_location: newContract.end_location,
+        cargo_value: newContract.cargo_value,
+        // Other type fields
         status_select: newContract.status_select,
         environment: newContract.environment,
         load: newContract.load,
         destination: newContract.destination,
         job: newContract.job,
         role: newContract.role,
+        compensation_type: newContract.compensation_type,
+        // Payment
+        payment_amount: paymentAmount,
+        // Location
         system: newContract.system,
         planet: newContract.planet,
         location: locationStr,
@@ -286,7 +299,13 @@ export default function Contracts() {
       });
       setContracts(prev => [response.data, ...prev]);
       setShowCreate(false);
-      setNewContract({ type: 'security', title: '', description: '', location: '', rescue_type: 'pickup' });
+      // Reset form
+      setNewContract({
+        type: 'security', activity: '', threat: '', start_location: '', end_location: '',
+        cargo_value: '', status_select: '', environment: '', load: '', destination: '',
+        job: '', role: '', compensation_type: 'Flat Fee', payment_amount: '',
+        system: 'Stanton', planet: '', location: ''
+      });
     } catch (error) {
       console.error('Failed to create contract:', error);
     }
