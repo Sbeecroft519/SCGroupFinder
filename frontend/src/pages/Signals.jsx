@@ -508,8 +508,8 @@ export default function Signals() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="font-mono text-muted" style={{ fontSize: 11 }}>Current stability</span>
-                <span className={metric.value >= 70 ? 'text-green' : metric.value >= 40 ? 'text-orange' : 'text-red'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>
+                <span className="font-mono text-muted" style={{ fontSize: 14 }}>Current stability</span>
+                <span className={metric.value >= 70 ? 'text-green' : metric.value >= 40 ? 'text-orange' : 'text-red'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16 }}>
                   {metric.value}%
                 </span>
               </div>
@@ -519,8 +519,8 @@ export default function Signals() {
       </div>
 
       {/* Risk Indicators */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 16 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 20 }}>
           RISK INDICATORS
         </h3>
         <div className="grid-2">
@@ -528,7 +528,7 @@ export default function Signals() {
             <div key={indicator.id} className="nc-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <CheckCircle size={16} className="text-green" />
-                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)' }}>
+                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-text-primary)' }}>
                   {indicator.label}
                 </span>
               </div>
@@ -539,8 +539,8 @@ export default function Signals() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="font-mono text-muted" style={{ fontSize: 11 }}>{indicator.description}</span>
-                <span className={indicator.value > 70 ? 'text-gold' : 'text-green'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>
+                <span className="font-mono text-muted" style={{ fontSize: 14 }}>{indicator.description}</span>
+                <span className={indicator.value > 70 ? 'text-gold' : 'text-green'} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16 }}>
                   {indicator.value}%
                 </span>
               </div>
@@ -550,11 +550,11 @@ export default function Signals() {
       </div>
 
       {/* Report Section */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 8 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 12 }}>
           REPORT AN ISSUE
         </h3>
-        <p className="text-muted" style={{ fontSize: 14, marginBottom: 16 }}>
+        <p className="text-muted" style={{ fontSize: 16, marginBottom: 20 }}>
           Help improve intelligence with one-tap reports
         </p>
         <div className="report-grid" data-testid="report-grid">
