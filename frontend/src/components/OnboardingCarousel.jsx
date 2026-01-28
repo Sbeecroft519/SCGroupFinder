@@ -35,6 +35,14 @@ const SLIDES = [
     features: ['Escort & rescue contracts', '5-star rating system', 'Reputation tracking']
   },
   {
+    id: 'disclaimer',
+    title: 'About NavCom',
+    subtitle: 'Made by the Community',
+    description: 'This site is created and maintained by one person — Mowri — and is a work in progress. I am not affiliated with Cloud Imperium Games, Roberts Space Industries, or Star Citizen in any way.',
+    icon: null,
+    showCommunityBadge: true
+  },
+  {
     id: 'getstarted',
     title: 'Set Your Shard',
     subtitle: 'Personalize Your Experience',
