@@ -57,6 +57,7 @@ const RISK_INDICATORS = [
 ];
 
 export default function Signals() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [serverStatus, setServerStatus] = useState('operational');
   const [rsiStatus, setRsiStatus] = useState({ status: 'operational', lastIncident: null });
   const [reports24h, setReports24h] = useState(0);
@@ -73,6 +74,15 @@ export default function Signals() {
   const [reportShard, setReportShard] = useState('');
   const [reportConfirmed, setReportConfirmed] = useState(false);
   const [reportDetails, setReportDetails] = useState('');
+
+  // Handle ?action=report from QuickActions FAB
+  useEffect(() => {
+    if (searchParams.get('action') === 'report') {
+      // Default to 'threat' report type when coming from FAB
+      setShowReportModal('threat');
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     fetchSignalsData();
