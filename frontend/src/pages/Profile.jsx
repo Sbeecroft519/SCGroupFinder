@@ -51,7 +51,10 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
-      <div className="citizen-card">
+      <div className="profile-grid">
+        {/* Left Column - Citizen ID Card */}
+        <div className="card-column">
+          <div className="citizen-card">
         {/* Header */}
         <div className="card-header">
           <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
