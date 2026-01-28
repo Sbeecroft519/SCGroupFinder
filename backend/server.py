@@ -578,6 +578,7 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
         'system': report.system,
         'location': report.location,
         'shard': report.shard,
+        'details': report.details,
         'user_id': user['id'] if user else None,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
