@@ -135,6 +135,14 @@ export default function Contracts() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [copiedHandle, setCopiedHandle] = useState(null);
+  
+  // Bidding system state
+  const [myBids, setMyBids] = useState([]);
+  const [activeContract, setActiveContract] = useState(null);
+  const [showBidsModal, setShowBidsModal] = useState(null);
+  const [contractBids, setContractBids] = useState([]);
+  const [showHandshakeModal, setShowHandshakeModal] = useState(null);
+  const [hasActiveContract, setHasActiveContract] = useState(false);
 
   // New contract form state
   const [newContract, setNewContract] = useState({
