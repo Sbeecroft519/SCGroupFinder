@@ -94,6 +94,15 @@ export default function Login() {
           <span className="text-muted">New pilot?</span>
           <Link to="/register" className="auth-link">Create Account</Link>
         </div>
+        
+        {/* Community Badge */}
+        <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+          <img 
+            src="https://customer-assets.emergentagent.com/job_space-contracts/artifacts/cs2lc5r9_ola6jl4j_MadeByTheCommunity_White.png" 
+            alt="Made by the Community" 
+            style={{ height: 32, opacity: 0.7 }}
+          />
+        </div>
       </div>
     </div>
   );
