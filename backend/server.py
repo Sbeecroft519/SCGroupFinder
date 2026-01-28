@@ -118,12 +118,20 @@ class ContractCreate(BaseModel):
     # Structured fields
     activity: Optional[str] = None
     threat: Optional[str] = None
+    # Escort fields
+    start_location: Optional[str] = None
+    end_location: Optional[str] = None
+    cargo_value: Optional[str] = None
+    # Other type fields
     status_select: Optional[str] = None
     environment: Optional[str] = None
     load: Optional[str] = None
     destination: Optional[str] = None
     job: Optional[str] = None
     role: Optional[str] = None
+    compensation_type: Optional[str] = None
+    # Payment
+    payment_amount: Optional[int] = 0
     # Location
     system: Optional[str] = None
     planet: Optional[str] = None
