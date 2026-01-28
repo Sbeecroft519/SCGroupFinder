@@ -767,7 +767,16 @@ async def get_commodity_prices(commodity_code: str):
 
 @api_router.get("/contracts")
 async def get_contracts(type: Optional[str] = None):
-    query = {}
+    # Filter out expired contracts (>30 min old and still open)
+    thirty_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    
+    query = {
+        '$or': [
+            {'status': {'$ne': 'open'}},  # Non-open contracts
+            {'status': 'open', 'created_at': {'$gte': thirty_min_ago}}  # Open but not expired
+        ],
+        'status': {'$nin': ['completed', 'expired']}  # Hide completed/expired
+    }
     if type:
         query['type'] = type
     
@@ -775,6 +784,13 @@ async def get_contracts(type: Optional[str] = None):
         query,
         {'_id': 0}
     ).sort('created_at', -1).limit(50).to_list(50)
+    
+    # Mark expired contracts
+    await db.contracts.update_many(
+        {'status': 'open', 'created_at': {'$lt': thirty_min_ago}},
+        {'$set': {'status': 'expired'}}
+    )
+    
     return contracts
 
 @api_router.post("/contracts")
