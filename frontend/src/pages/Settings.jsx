@@ -91,6 +91,14 @@ export default function Settings() {
             <ChevronRight size={16} className="nav-arrow" />
           </button>
           <button 
+            className={`settings-nav-item ${activeSection === 'avatar' ? 'active' : ''}`}
+            onClick={() => setActiveSection('avatar')}
+          >
+            <User size={18} />
+            <span>Avatar</span>
+            <ChevronRight size={16} className="nav-arrow" />
+          </button>
+          <button 
             className={`settings-nav-item ${activeSection === 'theme' ? 'active' : ''}`}
             onClick={() => setActiveSection('theme')}
           >
