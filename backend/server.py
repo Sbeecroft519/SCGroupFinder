@@ -789,12 +789,20 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         # Structured fields
         'activity': contract.activity,
         'threat': contract.threat,
+        # Escort fields
+        'start_location': contract.start_location,
+        'end_location': contract.end_location,
+        'cargo_value': contract.cargo_value,
+        # Other type fields
         'status_select': contract.status_select,
         'environment': contract.environment,
         'load': contract.load,
         'destination': contract.destination,
         'job': contract.job,
         'role': contract.role,
+        'compensation_type': contract.compensation_type,
+        # Payment
+        'payment_amount': contract.payment_amount or 0,
         # Location
         'system': contract.system,
         'planet': contract.planet,
