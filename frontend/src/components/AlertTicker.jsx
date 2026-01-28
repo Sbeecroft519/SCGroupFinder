@@ -83,23 +83,46 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
     if (!tickerSettings?.[configKey]) return null;
     
     const filteredAlerts = filterAlerts(config.types);
-    const isEmpty = filteredAlerts.length === 0;
+    
+    // For stability ticker, check if RSI status is degraded
+    const isRsiDegraded = configKey === 'stability' && rsiStatus.status !== 'operational';
+    const isEmpty = filteredAlerts.length === 0 && !isRsiDegraded;
+    const showColor = !isEmpty || isRsiDegraded;
+
+    // Build stability message
+    let stabilityMessage = null;
+    if (configKey === 'stability') {
+      if (isEmpty && !isRsiDegraded) {
+        stabilityMessage = 'ALL CLEAR — No instability issues reported.';
+      }
+    }
 
     return (
-      <div className="alert-ticker" style={{ '--ticker-color': isEmpty ? '#4a6070' : config.color }} key={configKey}>
-        <div className="alert-ticker-label" style={{ background: isEmpty ? '#1a2530' : `${config.color}22`, borderColor: isEmpty ? '#2a3540' : `${config.color}44`, color: isEmpty ? '#6a7a8a' : config.color }}>
-          <Radio size={12} className={isEmpty ? '' : 'pulse-icon'} />
+      <div className="alert-ticker" style={{ '--ticker-color': showColor ? config.color : '#4a6070' }} key={configKey}>
+        <div className="alert-ticker-label" style={{ background: showColor ? `${config.color}22` : '#1a2530', borderColor: showColor ? `${config.color}44` : '#2a3540', color: showColor ? config.color : '#6a7a8a' }}>
+          <Radio size={12} className={showColor ? 'pulse-icon' : ''} />
           <span>{config.label}</span>
         </div>
         <div className="alert-ticker-scroll">
           <div className="alert-ticker-content">
-            {isEmpty ? (
+            {configKey === 'stability' && isRsiDegraded && (
+              <>
+                <div className="alert-ticker-item" style={{ '--alert-color': config.color }}>
+                  <Wifi size={14} style={{ color: config.color }} />
+                  <span style={{ color: config.color, fontWeight: 600 }}>RSI SERVER: {rsiStatus.status?.toUpperCase()}</span>
+                  {rsiStatus.lastIncident && (
+                    <span style={{ color: '#aaa', marginLeft: 8 }}>— {rsiStatus.lastIncident.title}</span>
+                  )}
+                </div>
+              </>
+            )}
+            {isEmpty && !isRsiDegraded ? (
               <>
                 <div className="alert-ticker-item all-clear">
-                  <span style={{ color: '#4a6070' }}>ALL CLEAR — No active {config.label.toLowerCase()} reported</span>
+                  <span style={{ color: '#4a6070' }}>{stabilityMessage || `ALL CLEAR — No active ${config.label.toLowerCase()} reported`}</span>
                 </div>
                 <div className="alert-ticker-item all-clear">
-                  <span style={{ color: '#4a6070' }}>ALL CLEAR — No active {config.label.toLowerCase()} reported</span>
+                  <span style={{ color: '#4a6070' }}>{stabilityMessage || `ALL CLEAR — No active ${config.label.toLowerCase()} reported`}</span>
                 </div>
               </>
             ) : (
