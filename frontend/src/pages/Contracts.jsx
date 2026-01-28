@@ -257,7 +257,7 @@ export default function Contracts() {
       case 'transport':
         return newContract.load && newContract.destination && newContract.planet && newContract.location;
       case 'operations':
-        return newContract.job && newContract.role && newContract.planet && newContract.location;
+        return newContract.job && newContract.role && newContract.meet_at;
       default:
         return false;
     }
