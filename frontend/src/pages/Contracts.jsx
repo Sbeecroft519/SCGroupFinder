@@ -965,6 +965,45 @@ export default function Contracts() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .payment-amount {
+          font-family: var(--nc-font-mono);
+          font-size: 18px;
+          font-weight: bold;
+          color: #00ff88;
+          letter-spacing: 1px;
+        }
+        .loot-split-badge {
+          background: rgba(153, 51, 255, 0.2);
+          color: #cc66ff;
+          padding: 4px 10px;
+          font-family: var(--nc-font-mono);
+          font-size: 11px;
+          font-weight: bold;
+          letter-spacing: 1px;
+          border: 1px solid rgba(153, 51, 255, 0.4);
+        }
+        .escort-route {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 0;
+          font-family: var(--nc-font-display);
+          font-size: 18px;
+        }
+        .route-point {
+          color: var(--nc-text-primary);
+        }
+        .route-arrow {
+          color: var(--nc-cyan);
+          animation: pulse-arrow 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-arrow {
+          0%, 100% { opacity: 0.5; transform: translateX(0); }
+          50% { opacity: 1; transform: translateX(3px); }
+        }
+      `}</style>
     </div>
   );
 }
