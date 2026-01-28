@@ -164,6 +164,37 @@ body {
 .navcom-avatar-area {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.shard-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--nc-bg-secondary);
+  border: 1px solid var(--nc-cyan-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.shard-display:hover {
+  border-color: var(--nc-cyan);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.shard-label {
+  font-family: var(--nc-font-mono);
+  font-size: 8px;
+  color: var(--nc-text-muted);
+  letter-spacing: 1px;
+}
+
+.shard-value {
+  font-family: var(--nc-font-display);
+  font-size: 14px;
+  color: var(--nc-cyan);
+  letter-spacing: 1px;
 }
 
 .avatar-trigger {
