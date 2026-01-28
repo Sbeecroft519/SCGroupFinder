@@ -240,7 +240,7 @@ export default function Profile() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 12px;
+          gap: 24px;
           min-width: 100px;
         }
 
