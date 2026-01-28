@@ -210,11 +210,27 @@ export default function Contracts() {
   };
 
   const handleCreateContract = async () => {
-    if (!newContract.title || !newContract.description) return;
+    if (!isContractValid()) return;
+
+    const title = generateTitle(newContract);
+    const locationStr = `${newContract.planet} - ${newContract.location}`;
 
     try {
       const response = await axios.post(`${API}/contracts`, {
-        ...newContract,
+        type: newContract.type,
+        title,
+        // Include structured fields
+        activity: newContract.activity,
+        threat: newContract.threat,
+        status_select: newContract.status_select,
+        environment: newContract.environment,
+        load: newContract.load,
+        destination: newContract.destination,
+        job: newContract.job,
+        role: newContract.role,
+        system: newContract.system,
+        planet: newContract.planet,
+        location: locationStr,
         shard: myShard
       });
       setContracts(prev => [response.data, ...prev]);
