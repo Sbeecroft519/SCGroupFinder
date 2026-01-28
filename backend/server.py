@@ -778,9 +778,19 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'id': str(uuid.uuid4()),
         'type': contract.type,
         'title': contract.title,
-        'description': contract.description,
+        # Structured fields
+        'activity': contract.activity,
+        'threat': contract.threat,
+        'status_select': contract.status_select,
+        'environment': contract.environment,
+        'load': contract.load,
+        'destination': contract.destination,
+        'job': contract.job,
+        'role': contract.role,
+        # Location
+        'system': contract.system,
+        'planet': contract.planet,
         'location': contract.location,
-        'rescue_type': contract.rescue_type,
         'shard': contract.shard,
         'poster_id': user['id'],
         'poster': {
@@ -798,6 +808,10 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     
     await db.contracts.insert_one(contract_doc)
     contract_doc.pop('_id', None)
+    
+    # Broadcast new contract via WebSocket
+    await broadcast_contract(contract_doc)
+    
     return contract_doc
 
 
