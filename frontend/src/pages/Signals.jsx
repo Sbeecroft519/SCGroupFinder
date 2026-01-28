@@ -75,11 +75,7 @@ export default function Signals() {
 
   useEffect(() => {
     fetchSignalsData();
-  }, []);
-
-  useEffect(() => {
-    setTrendData(generateTrendData(trendRange));
-  }, [trendRange]);
+  }, [trendRange]); // Refetch when trend range changes
 
   const fetchSignalsData = async () => {
     setLoading(true);
