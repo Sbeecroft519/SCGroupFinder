@@ -187,6 +187,57 @@ export default function Profile() {
           /* Future: Mission History module */
         }
 
+        .badges-box {
+          width: 100%;
+          max-width: 720px;
+          height: 60px;
+          margin: 16px auto 0;
+          background: #020b14;
+          position: relative;
+          padding: 12px 24px;
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+        }
+
+        .badges-box::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, var(--nc-cyan) 0%, var(--nc-cyan) 100%);
+          clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+          z-index: 0;
+        }
+
+        .badges-box::after {
+          content: '';
+          position: absolute;
+          inset: 2px;
+          background: #020b14;
+          clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+          z-index: 1;
+        }
+
+        .badges-label {
+          position: relative;
+          z-index: 2;
+          font-family: var(--nc-font-mono);
+          font-size: 14px;
+          color: var(--nc-text-muted);
+          letter-spacing: 2px;
+        }
+
+        .badges-content {
+          position: relative;
+          z-index: 2;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          /* Future: Badge icons with labels will go here */
+        }
+
         .citizen-card {
           width: 100%;
           max-width: 720px;
