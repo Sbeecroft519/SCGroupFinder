@@ -4,9 +4,9 @@ import { useAuth } from '../App';
 
 const THEMES = [
   { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default NavCom theme' },
-  { id: 'drake', name: 'Drake Interplanetary', primary: '#ff6600', description: 'Industrial orange theme' },
-  { id: 'origin', name: 'Origin Jumpworks', primary: '#ffffff', description: 'Clean luxury white theme' },
-  { id: 'aegis', name: 'Aegis Dynamics', primary: '#ff0044', description: 'Military red theme' }
+  { id: 'scavenger', name: 'Scavenger', primary: '#ff6600', description: 'Industrial orange theme' },
+  { id: 'luxury', name: 'Luxury', primary: '#ffffff', description: 'Clean luxury white theme' },
+  { id: 'milspec', name: 'MilSpec', primary: '#ff0044', description: 'Military red theme' }
 ];
 
 const CONTRACT_TYPES = [
