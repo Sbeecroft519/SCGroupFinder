@@ -371,7 +371,12 @@ export default function Contracts() {
                     <button
                       key={type.id}
                       className={`nc-toggle ${newContract.type === type.id ? 'active' : ''}`}
-                      onClick={() => setNewContract(prev => ({ ...prev, type: type.id }))}
+                      onClick={() => setNewContract(prev => ({ 
+                        ...prev, 
+                        type: type.id,
+                        activity: '', threat: '', status_select: '', environment: '',
+                        load: '', destination: '', job: '', role: ''
+                      }))}
                       style={{ display: 'flex', alignItems: 'center', gap: 8 }}
                     >
                       <span>{type.icon}</span>
@@ -381,65 +386,177 @@ export default function Contracts() {
                 </div>
               </div>
 
+              {/* SECURITY Options */}
+              {newContract.type === 'security' && (
+                <>
+                  <div className="form-group">
+                    <label className="nc-label">ACTIVITY</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.activity}
+                      onChange={e => setNewContract(prev => ({ ...prev, activity: e.target.value }))}
+                    >
+                      <option value="">Select activity...</option>
+                      {CONTRACT_OPTIONS.security.activity.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="nc-label">THREAT LEVEL</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.threat}
+                      onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
+                    >
+                      <option value="">Select threat level...</option>
+                      {CONTRACT_OPTIONS.security.threat.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* RESCUE Options */}
               {newContract.type === 'rescue' && (
-                <div className="form-group">
-                  <label className="nc-label">RESCUE TYPE</label>
-                  <div className="nc-toggle-group">
-                    <button
-                      className={`nc-toggle ${newContract.rescue_type === 'body_marker' ? 'active' : ''}`}
-                      onClick={() => setNewContract(prev => ({ ...prev, rescue_type: 'body_marker' }))}
+                <>
+                  <div className="form-group">
+                    <label className="nc-label">STATUS</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.status_select}
+                      onChange={e => setNewContract(prev => ({ ...prev, status_select: e.target.value }))}
                     >
-                      Body Marker
-                    </button>
-                    <button
-                      className={`nc-toggle ${newContract.rescue_type === 'pickup' ? 'active' : ''}`}
-                      onClick={() => setNewContract(prev => ({ ...prev, rescue_type: 'pickup' }))}
+                      <option value="">Select status...</option>
+                      {CONTRACT_OPTIONS.rescue.status.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="nc-label">ENVIRONMENT</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.environment}
+                      onChange={e => setNewContract(prev => ({ ...prev, environment: e.target.value }))}
                     >
-                      Pickup
-                    </button>
+                      <option value="">Select environment...</option>
+                      {CONTRACT_OPTIONS.rescue.environment.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* TRANSPORT Options */}
+              {newContract.type === 'transport' && (
+                <>
+                  <div className="form-group">
+                    <label className="nc-label">LOAD TYPE</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.load}
+                      onChange={e => setNewContract(prev => ({ ...prev, load: e.target.value }))}
+                    >
+                      <option value="">Select load...</option>
+                      {CONTRACT_OPTIONS.transport.load.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="nc-label">DESTINATION TYPE</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.destination}
+                      onChange={e => setNewContract(prev => ({ ...prev, destination: e.target.value }))}
+                    >
+                      <option value="">Select destination type...</option>
+                      {CONTRACT_OPTIONS.transport.destination.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* OPERATIONS Options */}
+              {newContract.type === 'operations' && (
+                <>
+                  <div className="form-group">
+                    <label className="nc-label">JOB TYPE</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.job}
+                      onChange={e => setNewContract(prev => ({ ...prev, job: e.target.value }))}
+                    >
+                      <option value="">Select job...</option>
+                      {CONTRACT_OPTIONS.operations.job.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="nc-label">ROLE NEEDED</label>
+                    <select 
+                      className="nc-input"
+                      value={newContract.role}
+                      onChange={e => setNewContract(prev => ({ ...prev, role: e.target.value }))}
+                    >
+                      <option value="">Select role...</option>
+                      {CONTRACT_OPTIONS.operations.role.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Location Selectors */}
+              <div className="form-group">
+                <label className="nc-label">LOCATION</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <select 
+                    className="nc-input"
+                    value={newContract.planet}
+                    onChange={e => setNewContract(prev => ({ ...prev, planet: e.target.value, location: '' }))}
+                  >
+                    <option value="">Planet/Area...</option>
+                    {Object.keys(LOCATIONS['Stanton']).map(planet => (
+                      <option key={planet} value={planet}>{planet}</option>
+                    ))}
+                  </select>
+                  <select 
+                    className="nc-input"
+                    value={newContract.location}
+                    onChange={e => setNewContract(prev => ({ ...prev, location: e.target.value }))}
+                    disabled={!newContract.planet}
+                  >
+                    <option value="">Specific location...</option>
+                    {newContract.planet && LOCATIONS['Stanton'][newContract.planet]?.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Preview Generated Title */}
+              {generateTitle(newContract) && (
+                <div className="form-group" style={{ background: 'var(--nc-bg-secondary)', padding: 16, border: '1px solid var(--nc-border)' }}>
+                  <label className="nc-label" style={{ marginBottom: 8 }}>GENERATED TITLE</label>
+                  <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-cyan)' }}>
+                    {generateTitle(newContract)}
                   </div>
                 </div>
               )}
-
-              <div className="form-group">
-                <label className="nc-label">TITLE</label>
-                <input
-                  type="text"
-                  className="nc-input"
-                  placeholder="Brief description of the job"
-                  value={newContract.title}
-                  onChange={e => setNewContract(prev => ({ ...prev, title: e.target.value }))}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="nc-label">DESCRIPTION</label>
-                <textarea
-                  className="nc-input"
-                  rows={4}
-                  placeholder="Full details about what you need..."
-                  value={newContract.description}
-                  onChange={e => setNewContract(prev => ({ ...prev, description: e.target.value }))}
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="nc-label">LOCATION</label>
-                <input
-                  type="text"
-                  className="nc-input"
-                  placeholder="e.g., Stanton - Crusader area"
-                  value={newContract.location}
-                  onChange={e => setNewContract(prev => ({ ...prev, location: e.target.value }))}
-                />
-              </div>
 
               <button 
                 className="nc-btn nc-btn-primary" 
                 style={{ width: '100%', marginTop: 16 }}
                 onClick={handleCreateContract}
-                disabled={!newContract.title || !newContract.description}
+                disabled={!isContractValid()}
               >
                 POST BEACON
               </button>
