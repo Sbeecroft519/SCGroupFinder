@@ -796,11 +796,19 @@ export default function Contracts() {
         {filteredContracts.map(contract => {
           const type = getContractType(contract.type);
           const isMyShard = isMyShardContract(contract);
+          const isEscortContract = contract.type === 'security' && contract.activity === 'Escort';
+          const isLootSplit = contract.compensation_type && contract.compensation_type !== 'Flat Fee';
           
           // Generate display info based on contract type
           const getContractDetails = () => {
             switch (contract.type) {
               case 'security':
+                if (isEscortContract) {
+                  return { 
+                    subtitle: contract.cargo_value || 'Standard',
+                    detail: contract.activity
+                  };
+                }
                 return { 
                   subtitle: contract.threat || 'Standard',
                   detail: contract.activity || contract.title
@@ -842,11 +850,11 @@ export default function Contracts() {
                   <span className="contract-type-label">{type.label.toUpperCase()}</span>
                   {details.subtitle && (
                     <span className="contract-threat-badge" style={{ 
-                      background: contract.threat?.includes('Critical') ? 'rgba(255,51,102,0.2)' : 
-                                  contract.threat?.includes('PVP') ? 'rgba(255,153,0,0.2)' : 
+                      background: contract.threat?.includes('Critical') || contract.cargo_value?.includes('Whale') ? 'rgba(255,51,102,0.2)' : 
+                                  contract.threat?.includes('PVP') || contract.cargo_value?.includes('High') ? 'rgba(255,153,0,0.2)' : 
                                   'rgba(0,240,255,0.15)',
-                      color: contract.threat?.includes('Critical') ? '#ff3366' : 
-                             contract.threat?.includes('PVP') ? '#ff9900' : 
+                      color: contract.threat?.includes('Critical') || contract.cargo_value?.includes('Whale') ? '#ff3366' : 
+                             contract.threat?.includes('PVP') || contract.cargo_value?.includes('High') ? '#ff9900' : 
                              'var(--nc-cyan)',
                       padding: '2px 8px',
                       fontSize: 10,
@@ -856,10 +864,30 @@ export default function Contracts() {
                     </span>
                   )}
                 </div>
-                <span className="contract-time">{getTimeAgo(contract.created_at)}</span>
+                
+                {/* Payment Display */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {isLootSplit ? (
+                    <span className="loot-split-badge">
+                      {contract.compensation_type === 'Equal Split' ? 'LOOT SPLIT' : '% SHARE'}
+                    </span>
+                  ) : contract.payment_amount > 0 ? (
+                    <span className="payment-amount">{contract.payment_amount.toLocaleString()} aUEC</span>
+                  ) : null}
+                  <span className="contract-time">{getTimeAgo(contract.created_at)}</span>
+                </div>
               </div>
 
-              <h3 className="contract-title">{displayTitle || details.detail}</h3>
+              {/* Escort Route Display */}
+              {isEscortContract && contract.start_location && contract.end_location ? (
+                <div className="escort-route">
+                  <span className="route-point">{contract.start_location}</span>
+                  <ArrowRight size={16} className="route-arrow" />
+                  <span className="route-point">{contract.end_location}</span>
+                </div>
+              ) : (
+                <h3 className="contract-title">{displayTitle || details.detail}</h3>
+              )}
 
               <div className="contract-meta">
                 <div className="contract-meta-item">
