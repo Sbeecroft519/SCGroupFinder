@@ -211,39 +211,118 @@ export default function Settings() {
 
           {activeSection === 'notifications' && (
             <div className="settings-section">
-              <h2 className="section-title">Notification Preferences</h2>
+              <h2 className="section-title">Push Notifications</h2>
               <p className="section-description">
-                Control what notifications you receive from NavCom.
+                Control real-time notifications from NavCom via WebSocket.
               </p>
+              
+              {/* Sound Toggle */}
               <div className="notification-options">
                 <label className="notification-option">
                   <div className="option-info">
-                    <span className="option-name">Contract Updates</span>
-                    <span className="option-desc">Get notified about new contracts matching your preferences</span>
+                    <span className="option-name">
+                      {notificationSettings?.sound_enabled ? <Volume2 size={16} style={{ marginRight: 8 }} /> : <VolumeX size={16} style={{ marginRight: 8 }} />}
+                      Notification Sound
+                    </span>
+                    <span className="option-desc">Play alert sound when notifications arrive</span>
                   </div>
-                  <div className={`toggle-switch ${notifications.contracts ? 'active' : ''}`} onClick={() => setNotifications(prev => ({ ...prev, contracts: !prev.contracts }))}>
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
-                <label className="notification-option">
-                  <div className="option-info">
-                    <span className="option-name">Incident Reports</span>
-                    <span className="option-desc">Alerts when issues are reported in your system</span>
-                  </div>
-                  <div className={`toggle-switch ${notifications.reports ? 'active' : ''}`} onClick={() => setNotifications(prev => ({ ...prev, reports: !prev.reports }))}>
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
-                <label className="notification-option">
-                  <div className="option-info">
-                    <span className="option-name">Roadmap Updates</span>
-                    <span className="option-desc">News about feature progress and releases</span>
-                  </div>
-                  <div className={`toggle-switch ${notifications.goals ? 'active' : ''}`} onClick={() => setNotifications(prev => ({ ...prev, goals: !prev.goals }))}>
+                  <div 
+                    className={`toggle-switch ${notificationSettings?.sound_enabled ? 'active' : ''}`} 
+                    onClick={() => updateNotificationSettings({ sound_enabled: !notificationSettings?.sound_enabled })}
+                    data-testid="sound-toggle"
+                  >
                     <div className="toggle-thumb" />
                   </div>
                 </label>
               </div>
+
+              {/* Alert Types Section */}
+              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
+                Alert Types
+              </h3>
+              <div className="notification-options">
+                <label className="notification-option">
+                  <div className="option-info">
+                    <span className="option-name">Threat Alerts</span>
+                    <span className="option-desc">PvP and pirate activity notifications</span>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${notificationSettings?.threat_alerts ? 'active' : ''}`} 
+                    onClick={() => updateNotificationSettings({ threat_alerts: !notificationSettings?.threat_alerts })}
+                    data-testid="threat-alerts-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+                <label className="notification-option">
+                  <div className="option-info">
+                    <span className="option-name">Stability Alerts</span>
+                    <span className="option-desc">Lag, desync, and 30K disconnect reports</span>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${notificationSettings?.stability_alerts ? 'active' : ''}`} 
+                    onClick={() => updateNotificationSettings({ stability_alerts: !notificationSettings?.stability_alerts })}
+                    data-testid="stability-alerts-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+                <label className="notification-option">
+                  <div className="option-info">
+                    <span className="option-name">Issue Alerts</span>
+                    <span className="option-desc">Mission bugs and cargo elevator issues</span>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${notificationSettings?.issue_alerts ? 'active' : ''}`} 
+                    onClick={() => updateNotificationSettings({ issue_alerts: !notificationSettings?.issue_alerts })}
+                    data-testid="issue-alerts-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+              </div>
+
+              {/* Contract Notifications Section */}
+              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
+                Contract Notifications
+              </h3>
+              <div className="notification-options">
+                <label className="notification-option">
+                  <div className="option-info">
+                    <span className="option-name">
+                      <FileText size={16} style={{ marginRight: 8 }} />
+                      Contract Alerts
+                    </span>
+                    <span className="option-desc">Get notified about new contracts</span>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${notificationSettings?.contract_alerts ? 'active' : ''}`} 
+                    onClick={() => updateNotificationSettings({ contract_alerts: !notificationSettings?.contract_alerts })}
+                    data-testid="contract-alerts-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+              </div>
+              
+              {notificationSettings?.contract_alerts && (
+                <div className="contract-type-filters" style={{ marginTop: 16, paddingLeft: 16 }}>
+                  <p style={{ fontSize: 12, color: 'var(--nc-text-muted)', marginBottom: 12 }}>Filter by contract type:</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {CONTRACT_TYPES.map(type => (
+                      <button
+                        key={type.id}
+                        className={`nc-btn ${notificationSettings?.contract_types?.includes(type.id) ? 'nc-btn-primary' : 'nc-btn-secondary'}`}
+                        style={{ padding: '6px 12px', fontSize: 12 }}
+                        onClick={() => toggleContractType(type.id)}
+                        data-testid={`contract-filter-${type.id}`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
