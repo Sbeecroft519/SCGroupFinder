@@ -437,6 +437,14 @@ export default function Settings() {
                     Cloud Imperium Rights LLC.
                   </p>
                 </div>
+                {/* Community Badge */}
+                <div className="community-badge-footer" style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+                  <img 
+                    src="https://customer-assets.emergentagent.com/job_space-contracts/artifacts/cs2lc5r9_ola6jl4j_MadeByTheCommunity_White.png" 
+                    alt="Made by the Community" 
+                    style={{ height: 40, opacity: 0.7 }}
+                  />
+                </div>
               </div>
             </div>
           )}
