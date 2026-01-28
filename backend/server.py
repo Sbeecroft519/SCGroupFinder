@@ -133,6 +133,33 @@ class GoalResponse(BaseModel):
     current_amount: int
     backers: int
     status: str
+    rewards: Optional[List[dict]] = None
+
+class GoalCreate(BaseModel):
+    title: str
+    description: str
+    target_amount: int
+    rewards: Optional[List[dict]] = None
+
+class GoalUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    target_amount: Optional[int] = None
+    status: Optional[str] = None
+    rewards: Optional[List[dict]] = None
+
+class ContributionCreate(BaseModel):
+    goal_id: str
+    amount: int
+
+class NotificationSettings(BaseModel):
+    websocket_enabled: bool = True
+    sound_enabled: bool = True
+    threat_alerts: bool = True
+    stability_alerts: bool = True
+    issue_alerts: bool = True
+    contract_alerts: bool = True
+    contract_types: Optional[List[str]] = None  # e.g., ['rescue', 'escort', 'transport']
 
 
 # ===== Utility Functions =====
