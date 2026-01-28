@@ -206,6 +206,51 @@ export default function Settings() {
             </div>
           )}
 
+          {activeSection === 'avatar' && (
+            <div className="settings-section">
+              <h2 className="section-title">Profile Avatar</h2>
+              <p className="section-description">
+                Choose a role-based avatar for your pilot profile. This will be displayed on your identity card and contracts.
+              </p>
+              
+              {user?.avatar_url && !user?.avatar_preset && (
+                <div className="current-avatar-notice" style={{ 
+                  background: 'rgba(0, 240, 255, 0.1)', 
+                  border: '1px solid var(--nc-cyan-dim)', 
+                  padding: 16, 
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16
+                }}>
+                  <img src={user.avatar_url} alt="Current avatar" style={{ width: 48, height: 48, borderRadius: 4 }} />
+                  <div>
+                    <p style={{ color: 'var(--nc-text-primary)', fontSize: 14, marginBottom: 4 }}>RSI Avatar Active</p>
+                    <p style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}>Your RSI profile image is currently being used. Select a preset below to override it.</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="avatar-grid">
+                {AVATAR_PRESETS.map(preset => (
+                  <button
+                    key={preset.id}
+                    className={`avatar-preset-card ${selectedAvatar === preset.id || user?.avatar_preset === preset.id ? 'active' : ''}`}
+                    onClick={() => handleAvatarChange(preset)}
+                    disabled={savingAvatar}
+                    data-testid={`avatar-${preset.id}`}
+                  >
+                    <img src={preset.file} alt={preset.name} className="avatar-preset-img" />
+                    <span className="avatar-preset-name">{preset.name}</span>
+                    {(selectedAvatar === preset.id || user?.avatar_preset === preset.id) && (
+                      <Check size={14} className="avatar-check" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {activeSection === 'theme' && (
             <div className="settings-section">
               <h2 className="section-title">Theme Selection</h2>
