@@ -230,6 +230,7 @@ export default function Contracts() {
 
   useEffect(() => {
     fetchContracts();
+    fetchUserStatus();
   }, [filter]);
 
   const fetchContracts = async () => {
@@ -241,7 +242,74 @@ export default function Contracts() {
       }
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
-      // Keep mock data on error
+    }
+  };
+
+  const fetchUserStatus = async () => {
+    try {
+      const [activeRes, bidsRes] = await Promise.all([
+        axios.get(`${API}/user/active-contract`),
+        axios.get(`${API}/user/my-bids`)
+      ]);
+      setHasActiveContract(activeRes.data?.has_active || false);
+      setActiveContract(activeRes.data?.contract || null);
+      setMyBids(bidsRes.data || []);
+    } catch (e) {
+      console.error('Failed to fetch user status:', e);
+    }
+  };
+
+  const handleBid = async (contractId) => {
+    try {
+      await axios.post(`${API}/contracts/${contractId}/bid`);
+      setMyBids(prev => [...prev, { contract_id: contractId, status: 'pending' }]);
+      fetchUserStatus();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to submit bid');
+    }
+  };
+
+  const fetchBids = async (contractId) => {
+    try {
+      const response = await axios.get(`${API}/contracts/${contractId}/bids`);
+      setContractBids(response.data || []);
+      setShowBidsModal(contractId);
+    } catch (error) {
+      console.error('Failed to fetch bids:', error);
+    }
+  };
+
+  const handleAcceptBid = async (contractId, bidId, mercHandle) => {
+    try {
+      await axios.post(`${API}/contracts/${contractId}/bids/${bidId}/accept`);
+      setShowBidsModal(null);
+      setShowHandshakeModal({ type: 'poster', handle: mercHandle });
+      fetchContracts();
+      fetchUserStatus();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to accept bid');
+    }
+  };
+
+  const handleDeclineBid = async (contractId, bidId) => {
+    try {
+      await axios.post(`${API}/contracts/${contractId}/bids/${bidId}/decline`);
+      setContractBids(prev => prev.filter(b => b.id !== bidId));
+    } catch (error) {
+      alert('Failed to decline bid');
+    }
+  };
+
+  const handleMarkComplete = async (contractId) => {
+    try {
+      const response = await axios.post(`${API}/contracts/${contractId}/mark-complete`);
+      if (response.data.show_rating) {
+        setShowReview({ id: contractId, role: 'both' });
+      }
+      fetchContracts();
+      fetchUserStatus();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to mark complete');
     }
   };
 
