@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp } from 'lucide-react';
+import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -14,7 +14,8 @@ const CONTRACT_TYPES = [
 const CONTRACT_OPTIONS = {
   security: {
     activity: ['Escort', 'Bunker Clear', 'Airspace Defense', 'Bounty Assist'],
-    threat: ['Low Risk (PVE)', 'High Risk (PVP)', 'Critical']
+    threat: ['Low Risk (PVE)', 'High Risk (PVP)', 'Critical'],
+    cargo_value: ['Low Value', 'Medium Value', 'High Value (Whale)']
   },
   rescue: {
     status: ['Incapacitated (Revive)', 'Stranded (Pickup)', 'Under Fire'],
@@ -26,9 +27,16 @@ const CONTRACT_OPTIONS = {
   },
   operations: {
     job: ['Mining Crew', 'Salvage Crew', 'Event Support'],
-    role: ['Turret Gunner', 'Box Mover', 'Pilot', 'Medic']
+    role: ['Turret Gunner', 'Box Mover', 'Pilot', 'Medic'],
+    compensation: ['Flat Fee', 'Equal Split', 'Negotiated %']
   }
 };
+
+// Major landing zones/stations for Escort routes
+const MAJOR_LOCATIONS = [
+  'Port Olisar', 'Grim HEX', 'Orison', 'Lorville', 'Area 18', 'New Babbage',
+  'Port Tressler', 'Baijini Point', 'Everus Harbor', 'CRU-L1', 'HUR-L1', 'ARC-L1', 'MIC-L1'
+];
 
 // Location dropdowns
 const SYSTEMS = ['Stanton'];
@@ -46,7 +54,10 @@ const MOCK_CONTRACTS = [
     id: '1',
     type: 'security',
     activity: 'Escort',
-    threat: 'High Risk (PVP)',
+    start_location: 'Port Olisar',
+    end_location: 'Area 18',
+    cargo_value: 'High Value (Whale)',
+    payment_amount: 75000,
     system: 'Stanton',
     planet: 'ArcCorp',
     location: 'Area 18',
