@@ -633,33 +633,35 @@ export default function Signals() {
           )}
 
           {trendView === 'breakdown' && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 40 }}>
-              <ResponsiveContainer width="50%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={getBreakdownData()}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {getBreakdownData().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#0d1a26', 
-                      border: '1px solid #1a3344',
-                      borderRadius: 0,
-                      fontFamily: 'Share Tech Mono'
-                    }}
-                    formatter={(value, name) => [`${value} reports`, name]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 60 }}>
+              <div style={{ width: 300, height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={getBreakdownData()}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={120}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {getBreakdownData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: '#0d1a26', 
+                        border: '1px solid #1a3344',
+                        borderRadius: 0,
+                        fontFamily: 'Share Tech Mono'
+                      }}
+                      formatter={(value, name) => [`${value} reports`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {getBreakdownData().map((entry, index) => (
                   <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
