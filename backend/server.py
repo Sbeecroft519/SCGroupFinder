@@ -1208,3 +1208,188 @@ async def admin_get_last_reset(admin = Depends(require_admin)):
     """Get last reset timestamp"""
     setting = await db.settings.find_one({'key': 'last_reset'}, {'_id': 0})
     return {'last_reset': setting['value'] if setting else None}
+
+# ===== Contract Bidding System =====
+
+@api_router.get("/contracts/{contract_id}/bids")
+async def get_contract_bids(contract_id: str, user = Depends(get_current_user)):
+    """Get all bids for a contract (poster only)"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only poster can view bids")
+    bids = await db.contract_bids.find({'contract_id': contract_id}, {'_id': 0}).to_list(50)
+    return bids
+
+@api_router.post("/contracts/{contract_id}/bid")
+async def submit_bid(contract_id: str, user = Depends(get_current_user)):
+    """Submit a bid for a contract"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Check concurrency - user can only have 1 active contract
+    active = await db.contracts.find_one({
+        '$or': [
+            {'poster_id': user['id'], 'status': {'$in': ['open', 'in_progress', 'pending_completion']}},
+            {'accepted_by.id': user['id'], 'status': {'$in': ['in_progress', 'pending_completion']}}
+        ]
+    })
+    if active:
+        raise HTTPException(status_code=400, detail="You already have an active contract")
+    
+    # Check if already bid
+    existing_bid = await db.contract_bids.find_one({'contract_id': contract_id, 'bidder_id': user['id']})
+    if existing_bid:
+        raise HTTPException(status_code=400, detail="Already bid on this contract")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract or contract['status'] != 'open':
+        raise HTTPException(status_code=400, detail="Contract not available")
+    if contract['poster_id'] == user['id']:
+        raise HTTPException(status_code=400, detail="Cannot bid on your own contract")
+    
+    bid = {
+        'id': str(uuid.uuid4()),
+        'contract_id': contract_id,
+        'bidder_id': user['id'],
+        'bidder': {
+            'handle': user['rsi_handle'],
+            'reputation': user.get('reputation', 5.0),
+            'avatar_url': user.get('avatar_url'),
+            'contracts_completed': user.get('contracts_completed', 0)
+        },
+        'status': 'pending',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.contract_bids.insert_one(bid)
+    bid.pop('_id', None)
+    return bid
+
+@api_router.post("/contracts/{contract_id}/bids/{bid_id}/accept")
+async def accept_bid(contract_id: str, bid_id: str, user = Depends(get_current_user)):
+    """Accept a bid - triggers handshake"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract or contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    bid = await db.contract_bids.find_one({'id': bid_id, 'contract_id': contract_id})
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    # Get bidder info
+    bidder = await db.users.find_one({'id': bid['bidder_id']}, {'_id': 0, 'password_hash': 0})
+    
+    # Update contract to in_progress
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$set': {
+            'status': 'in_progress',
+            'accepted_by': {
+                'id': bid['bidder_id'],
+                'handle': bid['bidder']['handle'],
+                'reputation': bid['bidder']['reputation'],
+                'avatar_url': bid['bidder'].get('avatar_url')
+            }
+        }}
+    )
+    
+    # Update bid status
+    await db.contract_bids.update_one({'id': bid_id}, {'$set': {'status': 'accepted'}})
+    
+    # Decline other bids
+    await db.contract_bids.update_many(
+        {'contract_id': contract_id, 'id': {'$ne': bid_id}},
+        {'$set': {'status': 'declined'}}
+    )
+    
+    return {'message': 'Bid accepted', 'merc_handle': bid['bidder']['handle']}
+
+@api_router.post("/contracts/{contract_id}/bids/{bid_id}/decline")
+async def decline_bid(contract_id: str, bid_id: str, user = Depends(get_current_user)):
+    """Decline a bid"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract or contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.contract_bids.update_one({'id': bid_id}, {'$set': {'status': 'declined'}})
+    return {'message': 'Bid declined'}
+
+@api_router.post("/contracts/{contract_id}/mark-complete")
+async def mark_contract_complete(contract_id: str, user = Depends(get_current_user)):
+    """Mark contract as complete (requires both parties)"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    is_poster = contract['poster_id'] == user['id']
+    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    
+    if not is_poster and not is_merc:
+        raise HTTPException(status_code=403, detail="Not a party to this contract")
+    
+    if contract['status'] == 'in_progress':
+        # First party marking complete
+        completed_by = 'poster' if is_poster else 'merc'
+        await db.contracts.update_one(
+            {'id': contract_id},
+            {'$set': {'status': 'pending_completion', 'completed_by': completed_by}}
+        )
+        return {'message': 'Waiting for other party', 'status': 'pending_completion'}
+    
+    elif contract['status'] == 'pending_completion':
+        # Check if this is the other party
+        first_completer = contract.get('completed_by')
+        if (first_completer == 'poster' and is_poster) or (first_completer == 'merc' and is_merc):
+            return {'message': 'Already marked complete, waiting for other party'}
+        
+        # Both parties confirmed - complete the contract
+        await db.contracts.update_one(
+            {'id': contract_id},
+            {'$set': {'status': 'completed', 'completed_at': datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Increment completed contracts for both users
+        await db.users.update_one({'id': contract['poster_id']}, {'$inc': {'contracts_completed': 1}})
+        await db.users.update_one({'id': contract['accepted_by']['id']}, {'$inc': {'contracts_completed': 1}})
+        
+        return {'message': 'Contract completed!', 'status': 'completed', 'show_rating': True}
+    
+    return {'message': 'Invalid contract state'}
+
+@api_router.get("/user/active-contract")
+async def get_user_active_contract(user = Depends(get_current_user)):
+    """Check if user has an active contract"""
+    if not user:
+        return {'has_active': False}
+    
+    active = await db.contracts.find_one({
+        '$or': [
+            {'poster_id': user['id'], 'status': {'$in': ['open', 'in_progress', 'pending_completion']}},
+            {'accepted_by.id': user['id'], 'status': {'$in': ['in_progress', 'pending_completion']}}
+        ]
+    }, {'_id': 0})
+    
+    return {'has_active': active is not None, 'contract': active}
+
+@api_router.get("/user/my-bids")
+async def get_user_bids(user = Depends(get_current_user)):
+    """Get user's pending bids"""
+    if not user:
+        return []
+    bids = await db.contract_bids.find(
+        {'bidder_id': user['id'], 'status': 'pending'},
+        {'_id': 0}
+    ).to_list(20)
+    return bids
