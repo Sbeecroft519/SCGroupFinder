@@ -270,13 +270,24 @@ async def verify_rsi_handle(request: RSIVerifyRequest):
             # Extract avatar URL from RSI profile
             avatar_url = None
             import re
-            avatar_match = re.search(r'<img[^>]*class="[^"]*thumb[^"]*"[^>]*src="([^"]+)"', page_content)
-            if not avatar_match:
-                avatar_match = re.search(r'src="(https://robertsspaceindustries\.com/media/[^"]+)"', page_content)
-            if avatar_match:
-                avatar_url = avatar_match.group(1)
+            # Try multiple patterns for RSI avatar images
+            avatar_patterns = [
+                r'<img[^>]*class="[^"]*thumb[^"]*"[^>]*src="([^"]+)"',
+                r'src="(https://media\.robertsspaceindustries\.com/[^"]+)"',
+                r'src="(/media/[^"]+heap_thumb[^"]*)"',
+                r'src="(/media/[^"]+heap_infobox[^"]*\.(?:jpg|png))"',
+            ]
+            for pattern in avatar_patterns:
+                avatar_match = re.search(pattern, page_content)
+                if avatar_match:
+                    avatar_url = avatar_match.group(1)
+                    break
+            
+            if avatar_url:
                 if avatar_url.startswith('//'):
                     avatar_url = 'https:' + avatar_url
+                elif avatar_url.startswith('/'):
+                    avatar_url = 'https://robertsspaceindustries.com' + avatar_url
             
             if request.verification_code in page_content:
                 await db.users.update_one(
