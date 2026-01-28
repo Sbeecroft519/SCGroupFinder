@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Radar, MapPin, Clock, DollarSign, AlertTriangle, Rocket, Crosshair, Wrench, Target, Pickaxe, Coffee, Check, Loader2, TrendingUp, X, Navigation } from 'lucide-react';
+import { Radar, MapPin, Clock, DollarSign, AlertTriangle, Rocket, Crosshair, Wrench, Target, Pickaxe, Coffee, Check, Loader2, TrendingUp, X, Navigation, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { API } from '../App';
 
