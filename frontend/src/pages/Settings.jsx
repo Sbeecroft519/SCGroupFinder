@@ -1,12 +1,26 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText } from 'lucide-react';
-import { useAuth } from '../App';
+import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText, User } from 'lucide-react';
+import { useAuth, API } from '../App';
+import axios from 'axios';
 
 const THEMES = [
   { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default NavCom theme' },
   { id: 'scavenger', name: 'Scavenger', primary: '#ff6600', description: 'Industrial orange theme' },
   { id: 'luxury', name: 'Luxury', primary: '#ffffff', description: 'Clean luxury white theme' },
   { id: 'milspec', name: 'MilSpec', primary: '#ff0044', description: 'Military red theme' }
+];
+
+const AVATAR_PRESETS = [
+  { id: 'helmet', name: 'Pilot Helmet', file: '/avatars/helmet.svg' },
+  { id: 'medic', name: 'Combat Medic', file: '/avatars/medic.svg' },
+  { id: 'skull', name: 'Pirate', file: '/avatars/skull.svg' },
+  { id: 'cargo', name: 'Hauler', file: '/avatars/cargo.svg' },
+  { id: 'target', name: 'Bounty Hunter', file: '/avatars/target.svg' },
+  { id: 'pilot', name: 'Fighter Pilot', file: '/avatars/pilot.svg' },
+  { id: 'miner', name: 'Miner', file: '/avatars/miner.svg' },
+  { id: 'commander', name: 'Commander', file: '/avatars/commander.svg' },
+  { id: 'explorer', name: 'Explorer', file: '/avatars/explorer.svg' },
+  { id: 'engineer', name: 'Engineer', file: '/avatars/engineer.svg' },
 ];
 
 const CONTRACT_TYPES = [
