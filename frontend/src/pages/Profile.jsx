@@ -181,8 +181,8 @@ export default function Profile() {
 
         .citizen-card {
           width: 100%;
-          max-width: 620px;
-          aspect-ratio: 1.1;
+          max-width: 720px;
+          aspect-ratio: 1.75;
           background: #020b14;
           position: relative;
           padding: 0;
