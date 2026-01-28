@@ -95,10 +95,27 @@ export default function Contracts() {
     }
   };
 
-  const handleCopyHandle = (handle) => {
-    navigator.clipboard.writeText(handle);
-    setCopiedHandle(handle);
-    setTimeout(() => setCopiedHandle(null), 2000);
+  const handleCopyHandle = async (handle) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(handle);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = handle;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedHandle(handle);
+      setTimeout(() => setCopiedHandle(null), 2000);
+    } catch (err) {
+      console.warn('Clipboard copy failed:', err);
+      setCopiedHandle(handle);
+      setTimeout(() => setCopiedHandle(null), 2000);
+    }
   };
 
   const handleCreateContract = async () => {
