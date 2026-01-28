@@ -81,6 +81,7 @@ class UserResponse(BaseModel):
     contracts_completed: int = 0
     created_at: str
     avatar_url: Optional[str] = None
+    avatar_preset: Optional[str] = None
 
 class TokenResponse(BaseModel):
     token: str
