@@ -399,7 +399,8 @@ async def get_me(user = Depends(get_current_user)):
         reputation=user.get('reputation', 5.0),
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
-        avatar_url=user.get('avatar_url')
+        avatar_url=user.get('avatar_url'),
+        avatar_preset=user.get('avatar_preset')
     )
 
 
