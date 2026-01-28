@@ -534,6 +534,22 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
     return {'message': 'Report submitted', 'id': report_doc['id']}
 
 
+@api_router.get("/signals/alerts")
+async def get_alerts():
+    """Get time-sensitive alerts (pirates, pvp) from last hour"""
+    one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    
+    alerts = await db.reports.find(
+        {
+            'type': {'$in': ['pirates', 'pvp']},
+            'created_at': {'$gte': one_hour_ago}
+        },
+        {'_id': 0}
+    ).sort('created_at', -1).limit(20).to_list(20)
+    
+    return alerts
+
+
 # ===== UEX Corp Integration =====
 
 @api_router.get("/uex/commodities")
