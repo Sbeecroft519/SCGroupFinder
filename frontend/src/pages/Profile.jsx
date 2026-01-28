@@ -345,19 +345,19 @@ export default function Profile() {
 
         .stars {
           display: flex;
-          gap: 2px;
+          gap: 4px;
         }
 
         .star {
-          font-size: 14px;
-          color: var(--nc-text-muted);
-          opacity: 0.3;
+          font-size: 22px;
+          color: #665500;
+          opacity: 0.4;
         }
 
         .star.filled {
-          color: var(--nc-cyan);
+          color: #ffd700;
           opacity: 1;
-          text-shadow: 0 0 6px var(--nc-cyan);
+          text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
         }
 
         .stats-row {
