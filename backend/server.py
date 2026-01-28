@@ -586,16 +586,15 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
 
 @api_router.get("/signals/alerts")
 async def get_alerts():
-    """Get time-sensitive alerts (pirates, pvp) from last hour"""
+    """Get all alerts from last hour for multi-ticker system"""
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     
     alerts = await db.reports.find(
         {
-            'type': {'$in': ['pirates', 'pvp']},
             'created_at': {'$gte': one_hour_ago}
         },
         {'_id': 0}
-    ).sort('created_at', -1).limit(20).to_list(20)
+    ).sort('created_at', -1).limit(50).to_list(50)
     
     return alerts
 
