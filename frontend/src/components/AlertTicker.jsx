@@ -1,24 +1,35 @@
 import { useState, useEffect } from 'react';
-import { Skull, Users, AlertTriangle, Radio } from 'lucide-react';
+import { Skull, Users, AlertTriangle, Radio, Wifi, Zap, Bug, Package } from 'lucide-react';
 import axios from 'axios';
 import { API } from '../App';
 
-const ALERT_ICONS = {
-  pirates: Skull,
-  pvp: Users
+const TICKER_CONFIG = {
+  threats: {
+    types: ['pirates', 'pvp'],
+    label: 'LIVE THREATS',
+    color: '#ff3366',
+    icons: { pirates: Skull, pvp: Users }
+  },
+  stability: {
+    types: ['lag', '30k'],
+    label: 'STABILITY',
+    color: '#ffcc00',
+    icons: { lag: Wifi, '30k': Zap }
+  },
+  issues: {
+    types: ['mission_bug', 'cargo_issue'],
+    label: 'ISSUES',
+    color: '#00f0ff',
+    icons: { mission_bug: Bug, cargo_issue: Package }
+  }
 };
 
-const ALERT_COLORS = {
-  pirates: '#ff3366',
-  pvp: '#ff6600'
-};
-
-export const AlertTicker = ({ userShard }) => {
+export const AlertTicker = ({ userShard, tickerSettings }) => {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
     fetchAlerts();
-    const interval = setInterval(fetchAlerts, 30000); // Poll every 30s
+    const interval = setInterval(fetchAlerts, 15000); // Poll every 15s
     return () => clearInterval(interval);
   }, []);
 
@@ -39,75 +50,73 @@ export const AlertTicker = ({ userShard }) => {
     return 'expired';
   };
 
-  const isOnMyShard = (alert) => userShard && alert.shard === userShard;
-  const activeAlerts = alerts.filter(a => {
-    const age = Date.now() - new Date(a.created_at).getTime();
-    return age < 3600000; // 1 hour expiry
-  });
+  // Filter alerts: only show if on same shard OR if user has no shard set (show global only)
+  const filterAlerts = (types) => {
+    return alerts.filter(a => {
+      const age = Date.now() - new Date(a.created_at).getTime();
+      if (age > 3600000) return false; // 1 hour expiry
+      if (!types.includes(a.type)) return false;
+      
+      // Shard filtering: show if same shard, or if alert has no shard (global)
+      if (userShard && a.shard && a.shard !== userShard) return false;
+      
+      return true;
+    });
+  };
 
-  if (activeAlerts.length === 0) return null;
+  const renderTicker = (configKey) => {
+    const config = TICKER_CONFIG[configKey];
+    if (!tickerSettings?.[configKey]) return null;
+    
+    const filteredAlerts = filterAlerts(config.types);
+    if (filteredAlerts.length === 0) return null;
 
-  return (
-    <div className="alert-ticker" data-testid="alert-ticker">
-      <div className="alert-ticker-label">
-        <Radio size={12} className="pulse-icon" />
-        <span>LIVE THREATS</span>
-      </div>
-      <div className="alert-ticker-scroll">
-        <div className="alert-ticker-content">
-          {activeAlerts.map((alert, idx) => {
-            const Icon = ALERT_ICONS[alert.type] || AlertTriangle;
-            const color = ALERT_COLORS[alert.type] || '#ff9933';
-            const onMyShard = isOnMyShard(alert);
-            
-            return (
-              <div 
-                key={alert.id || idx} 
-                className={`alert-ticker-item ${onMyShard ? 'my-shard' : ''}`}
-                style={{ '--alert-color': color }}
-              >
-                <Icon size={14} style={{ color }} />
-                <span className="alert-type">{alert.type === 'pirates' ? 'PIRATES' : 'PVP'}</span>
-                <span className="alert-location">{alert.location || alert.system}</span>
-                {alert.shard ? (
-                  <span className={`alert-shard ${onMyShard ? 'same' : ''}`}>
-                    {onMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
+    return (
+      <div className="alert-ticker" style={{ '--ticker-color': config.color }} key={configKey}>
+        <div className="alert-ticker-label" style={{ background: `${config.color}22`, borderColor: `${config.color}44`, color: config.color }}>
+          <Radio size={12} className="pulse-icon" />
+          <span>{config.label}</span>
+        </div>
+        <div className="alert-ticker-scroll">
+          <div className="alert-ticker-content">
+            {[...filteredAlerts, ...filteredAlerts].map((alert, idx) => {
+              const Icon = config.icons[alert.type] || AlertTriangle;
+              const isOnMyShard = userShard && alert.shard === userShard;
+              
+              return (
+                <div 
+                  key={`${alert.id || idx}-${idx}`} 
+                  className={`alert-ticker-item ${isOnMyShard ? 'my-shard' : ''}`}
+                  style={{ '--alert-color': config.color }}
+                >
+                  <Icon size={14} style={{ color: config.color }} />
+                  <span className="alert-type" style={{ color: config.color }}>
+                    {alert.type.replace('_', ' ').toUpperCase()}
                   </span>
-                ) : (
-                  <span className="alert-shard global">GLOBAL</span>
-                )}
-                <span className="alert-time">{getTimeAgo(alert.created_at)}</span>
-              </div>
-            );
-          })}
-          {/* Duplicate for seamless scroll */}
-          {activeAlerts.map((alert, idx) => {
-            const Icon = ALERT_ICONS[alert.type] || AlertTriangle;
-            const color = ALERT_COLORS[alert.type] || '#ff9933';
-            const onMyShard = isOnMyShard(alert);
-            
-            return (
-              <div 
-                key={`dup-${alert.id || idx}`} 
-                className={`alert-ticker-item ${onMyShard ? 'my-shard' : ''}`}
-                style={{ '--alert-color': color }}
-              >
-                <Icon size={14} style={{ color }} />
-                <span className="alert-type">{alert.type === 'pirates' ? 'PIRATES' : 'PVP'}</span>
-                <span className="alert-location">{alert.location || alert.system}</span>
-                {alert.shard ? (
-                  <span className={`alert-shard ${onMyShard ? 'same' : ''}`}>
-                    {onMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
-                  </span>
-                ) : (
-                  <span className="alert-shard global">GLOBAL</span>
-                )}
-                <span className="alert-time">{getTimeAgo(alert.created_at)}</span>
-              </div>
-            );
-          })}
+                  <span className="alert-location">{alert.location || alert.system}</span>
+                  {alert.details && <span className="alert-details">"{alert.details}"</span>}
+                  {alert.shard ? (
+                    <span className={`alert-shard ${isOnMyShard ? 'same' : ''}`} style={isOnMyShard ? { borderColor: config.color, color: config.color } : {}}>
+                      {isOnMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
+                    </span>
+                  ) : (
+                    <span className="alert-shard global">GLOBAL</span>
+                  )}
+                  <span className="alert-time">{getTimeAgo(alert.created_at)}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="alert-tickers-container" data-testid="alert-tickers">
+      {renderTicker('threats')}
+      {renderTicker('stability')}
+      {renderTicker('issues')}
     </div>
   );
 };
