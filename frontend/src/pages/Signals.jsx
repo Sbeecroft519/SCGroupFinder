@@ -454,27 +454,37 @@ export default function Signals() {
             ) : (
               <AlertTriangle size={16} className="text-orange" />
             )}
-            <span className="font-mono text-muted" style={{ fontSize: 12, letterSpacing: 1 }}>RSI Official:</span>
-            <span className={`text-${getStatusColor(rsiStatus.status)}`} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 12, letterSpacing: 2 }}>
+            <span className="font-mono text-muted" style={{ fontSize: 14, letterSpacing: 1 }}>RSI Official:</span>
+            <span className={`text-${getStatusColor(rsiStatus.status)}`} style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, letterSpacing: 2 }}>
               {rsiStatus.status?.toUpperCase() || 'OPERATIONAL'}
             </span>
           </div>
           {rsiStatus.lastIncident && (
             <div style={{ background: 'var(--nc-bg-secondary)', padding: 12, border: '1px solid var(--nc-border)' }}>
-              <div style={{ fontFamily: 'var(--nc-font-body)', fontSize: 14, color: 'var(--nc-text-secondary)' }}>
+              <div style={{ fontFamily: 'var(--nc-font-body)', fontSize: 16, color: 'var(--nc-text-secondary)' }}>
                 {rsiStatus.lastIncident.title}
               </div>
-              <div className="font-mono text-muted" style={{ fontSize: 11, marginTop: 4 }}>
+              <div className="font-mono text-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {rsiStatus.lastIncident.date}
               </div>
             </div>
           )}
         </div>
+        
+        {/* Footer: Last Updated & Game Version */}
+        <div style={{ borderTop: '1px solid var(--nc-border)', marginTop: 16, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="font-mono text-muted" style={{ fontSize: 12 }}>
+            Last Updated: {new Date().toUTCString().slice(0, -4)} UTC
+          </span>
+          <span className="font-mono text-muted" style={{ fontSize: 12 }}>
+            Game Version: {rsiStatus.gameVersion || '4.0.2-LIVE'}
+          </span>
+        </div>
       </div>
 
       {/* Activity Reliability */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 12, marginBottom: 16 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 20 }}>
           ACTIVITY RELIABILITY (Based on reports & server health)
         </h3>
         <div className="grid-4">
