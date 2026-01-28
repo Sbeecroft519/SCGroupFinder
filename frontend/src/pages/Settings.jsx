@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug } from 'lucide-react';
 import { useAuth } from '../App';
 
 const THEMES = [
@@ -10,8 +10,8 @@ const THEMES = [
 ];
 
 export default function Settings() {
-  const { user, updateUser } = useAuth();
-  const [activeSection, setActiveSection] = useState('theme');
+  const { user, updateUser, tickerSettings, updateTickerSettings, userShard, setShard, setShowShardPrompt } = useAuth();
+  const [activeSection, setActiveSection] = useState('alerts');
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
   const [notifications, setNotifications] = useState({
     contracts: true,
@@ -35,6 +35,14 @@ export default function Settings() {
       <div className="settings-layout">
         {/* Sidebar */}
         <div className="settings-sidebar">
+          <button 
+            className={`settings-nav-item ${activeSection === 'alerts' ? 'active' : ''}`}
+            onClick={() => setActiveSection('alerts')}
+          >
+            <Radio size={18} />
+            <span>Alert Tickers</span>
+            <ChevronRight size={16} className="nav-arrow" />
+          </button>
           <button 
             className={`settings-nav-item ${activeSection === 'theme' ? 'active' : ''}`}
             onClick={() => setActiveSection('theme')}
@@ -63,6 +71,94 @@ export default function Settings() {
 
         {/* Content */}
         <div className="settings-content">
+          {activeSection === 'alerts' && (
+            <div className="settings-section">
+              <h2 className="section-title">Alert Ticker Settings</h2>
+              <p className="section-description">
+                Control which alert tickers appear at the top of your screen. Alerts are filtered to your current shard.
+              </p>
+              
+              {/* Shard Setting */}
+              <div className="shard-setting">
+                <div className="shard-setting-info">
+                  <h3>Current Shard</h3>
+                  <p>You are currently viewing alerts for:</p>
+                  <div className="current-shard-display">
+                    {userShard ? (
+                      <>
+                        <span className="shard-number">{userShard}</span>
+                        <button className="nc-btn nc-btn-secondary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }}>
+                          Change
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="shard-global">GLOBAL (All Shards)</span>
+                        <button className="nc-btn nc-btn-primary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }}>
+                          Set Shard
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Ticker Toggles */}
+              <div className="ticker-toggles">
+                <div className="ticker-toggle-card" style={{ '--ticker-color': '#ff3366' }}>
+                  <div className="ticker-toggle-header">
+                    <Skull size={20} />
+                    <div>
+                      <h4>PvP & Pirate Alerts</h4>
+                      <p>Live reports of hostile player activity</p>
+                    </div>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${tickerSettings?.threats ? 'active' : ''}`} 
+                    onClick={() => updateTickerSettings('threats', !tickerSettings?.threats)}
+                    style={{ '--toggle-color': '#ff3366' }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </div>
+
+                <div className="ticker-toggle-card" style={{ '--ticker-color': '#ffcc00' }}>
+                  <div className="ticker-toggle-header">
+                    <Wifi size={20} />
+                    <div>
+                      <h4>Stability Alerts</h4>
+                      <p>Lag, desync, and 30K disconnect reports</p>
+                    </div>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${tickerSettings?.stability ? 'active' : ''}`} 
+                    onClick={() => updateTickerSettings('stability', !tickerSettings?.stability)}
+                    style={{ '--toggle-color': '#ffcc00' }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </div>
+
+                <div className="ticker-toggle-card" style={{ '--ticker-color': '#00f0ff' }}>
+                  <div className="ticker-toggle-header">
+                    <Bug size={20} />
+                    <div>
+                      <h4>Bug & Issue Alerts</h4>
+                      <p>Mission bugs and cargo elevator issues</p>
+                    </div>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${tickerSettings?.issues ? 'active' : ''}`} 
+                    onClick={() => updateTickerSettings('issues', !tickerSettings?.issues)}
+                    style={{ '--toggle-color': '#00f0ff' }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeSection === 'theme' && (
             <div className="settings-section">
               <h2 className="section-title">Theme Selection</h2>
