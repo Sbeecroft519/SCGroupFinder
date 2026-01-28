@@ -818,6 +818,7 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'job': contract.job,
         'role': contract.role,
         'compensation_type': contract.compensation_type,
+        'meet_at': contract.meet_at,
         # Payment
         'payment_amount': contract.payment_amount or 0,
         # Location
