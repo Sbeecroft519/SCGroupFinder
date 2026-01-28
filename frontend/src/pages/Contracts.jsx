@@ -110,11 +110,64 @@ export default function Contracts() {
   // New contract form state
   const [newContract, setNewContract] = useState({
     type: 'security',
-    title: '',
-    description: '',
-    location: '',
-    rescue_type: 'pickup'
+    // Security fields
+    activity: '',
+    threat: '',
+    // Rescue fields
+    status_select: '',
+    environment: '',
+    // Transport fields
+    load: '',
+    destination: '',
+    // Operations fields
+    job: '',
+    role: '',
+    // Location fields
+    system: 'Stanton',
+    planet: '',
+    location: ''
   });
+
+  // Generate title based on contract type and selections
+  const generateTitle = (contract) => {
+    switch (contract.type) {
+      case 'security':
+        return contract.activity && contract.threat 
+          ? `${contract.activity} - ${contract.threat}` 
+          : '';
+      case 'rescue':
+        return contract.status_select && contract.environment 
+          ? `${contract.status_select} - ${contract.environment}` 
+          : '';
+      case 'transport':
+        return contract.load && contract.destination 
+          ? `${contract.load} to ${contract.destination}` 
+          : '';
+      case 'operations':
+        return contract.job && contract.role 
+          ? `${contract.job} - Need ${contract.role}` 
+          : '';
+      default:
+        return '';
+    }
+  };
+
+  // Check if contract form is valid
+  const isContractValid = () => {
+    if (!newContract.planet || !newContract.location) return false;
+    switch (newContract.type) {
+      case 'security':
+        return newContract.activity && newContract.threat;
+      case 'rescue':
+        return newContract.status_select && newContract.environment;
+      case 'transport':
+        return newContract.load && newContract.destination;
+      case 'operations':
+        return newContract.job && newContract.role;
+      default:
+        return false;
+    }
+  };
 
   useEffect(() => {
     fetchContracts();
