@@ -201,7 +201,7 @@ async def require_admin(user = Depends(get_current_user)):
     return user
 
 # Admin email constant
-ADMIN_EMAIL = "beecroft519@outlook.com"
+ADMIN_EMAIL = "beecroft519@gmail.com"
 
 
 # ===== Socket.IO Events =====
