@@ -13,6 +13,27 @@ const REPORT_TYPES = [
   { id: '30k', label: '30k Disconnect', icon: Zap }
 ];
 
+const LOCATIONS = {
+  'Stanton': {
+    planets: ['Hurston', 'Crusader', 'ArcCorp', 'microTech'],
+    moons: ['Yela', 'Daymar', 'Cellin', 'Lyria', 'Wala', 'Arial', 'Aberdeen', 'Ita', 'Magda', 'Clio', 'Euterpe', 'Calliope'],
+    stations: ['Port Olisar', 'Everus Harbor', 'Port Tressler', 'Baijini Point', 'GrimHEX', 'CRU-L1', 'HUR-L1', 'ARC-L1', 'MIC-L1'],
+    other: ['Aaron Halo', 'Space (General)']
+  },
+  'Pyro': {
+    planets: ['Pyro I', 'Pyro II', 'Pyro III', 'Pyro IV', 'Pyro V', 'Pyro VI'],
+    moons: [],
+    stations: ['Ruin Station'],
+    other: ['Pyro Belt', 'Space (General)']
+  },
+  'Nyx': {
+    planets: ['Delamar'],
+    moons: [],
+    stations: ['Levski'],
+    other: ['Nyx Belt', 'Space (General)']
+  }
+};
+
 const RELIABILITY_METRICS = [
   { id: 'cargo', label: 'Cargo Reliability', description: 'Cargo hauling mission stability', value: 78 },
   { id: 'combat', label: 'Combat Reliability', description: 'Combat mission and bounty stability', value: 83 },
@@ -52,6 +73,9 @@ export default function Signals() {
   const [recentReports, setRecentReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [myShard, setMyShard] = useState('');
+  const [showReportModal, setShowReportModal] = useState(null);
+  const [reportSystem, setReportSystem] = useState('Stanton');
+  const [reportLocation, setReportLocation] = useState('');
 
   useEffect(() => {
     fetchSignalsData();
@@ -85,12 +109,22 @@ export default function Signals() {
   };
 
   const handleReport = async (type) => {
+    setShowReportModal(type);
+    setReportLocation('');
+  };
+
+  const submitReport = async () => {
+    if (!showReportModal || !reportLocation) return;
     try {
       await axios.post(`${API}/signals/report`, {
-        type,
+        type: showReportModal,
+        system: reportSystem,
+        location: reportLocation,
         shard: myShard || null,
         timestamp: new Date().toISOString()
       });
+      setShowReportModal(null);
+      setReportLocation('');
       fetchSignalsData();
     } catch (error) {
       console.error('Failed to submit report:', error);
@@ -113,6 +147,115 @@ export default function Signals() {
 
   return (
     <div className="navcom-page" data-testid="signals-page">
+      {/* Report Location Modal */}
+      {showReportModal && (
+        <div className="mission-modal-overlay" onClick={() => setShowReportModal(null)}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="mission-modal-header">
+              <div>
+                <div className="mission-type-badge">// SUBMIT_REPORT</div>
+                <h2 className="mission-title">
+                  {REPORT_TYPES.find(r => r.id === showReportModal)?.label || 'Report Issue'}
+                </h2>
+              </div>
+              <button className="mission-modal-close" onClick={() => setShowReportModal(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mission-modal-content">
+              <div className="form-group">
+                <label className="nc-label">
+                  <MapPin size={14} />
+                  SYSTEM
+                </label>
+                <div className="nc-toggle-group">
+                  {['Stanton', 'Pyro', 'Nyx'].map(sys => (
+                    <button
+                      key={sys}
+                      className={`nc-toggle ${reportSystem === sys ? 'active' : ''}`}
+                      onClick={() => { setReportSystem(sys); setReportLocation(''); }}
+                    >
+                      {sys}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="nc-label">LOCATION</label>
+                <div className="location-grid">
+                  {LOCATIONS[reportSystem]?.planets.length > 0 && (
+                    <div className="location-group">
+                      <span className="location-group-label">Planets</span>
+                      {LOCATIONS[reportSystem].planets.map(loc => (
+                        <button
+                          key={loc}
+                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                          onClick={() => setReportLocation(loc)}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {LOCATIONS[reportSystem]?.moons.length > 0 && (
+                    <div className="location-group">
+                      <span className="location-group-label">Moons</span>
+                      {LOCATIONS[reportSystem].moons.map(loc => (
+                        <button
+                          key={loc}
+                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                          onClick={() => setReportLocation(loc)}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {LOCATIONS[reportSystem]?.stations.length > 0 && (
+                    <div className="location-group">
+                      <span className="location-group-label">Stations</span>
+                      {LOCATIONS[reportSystem].stations.map(loc => (
+                        <button
+                          key={loc}
+                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                          onClick={() => setReportLocation(loc)}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {LOCATIONS[reportSystem]?.other.length > 0 && (
+                    <div className="location-group">
+                      <span className="location-group-label">Other</span>
+                      {LOCATIONS[reportSystem].other.map(loc => (
+                        <button
+                          key={loc}
+                          className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
+                          onClick={() => setReportLocation(loc)}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button 
+                className="nc-btn nc-btn-primary" 
+                style={{ width: '100%', marginTop: 16 }}
+                onClick={submitReport}
+                disabled={!reportLocation}
+              >
+                SUBMIT REPORT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
