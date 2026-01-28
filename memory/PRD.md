@@ -27,9 +27,13 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] Protected routes (all require login)
 
 ### INTEL Module - COMPLETE
-- [x] Mission recommendations (Cargo, Mining, Chill)
+- [x] Mission recommendations (Cargo, Mining, Chill, Combat, Salvage, FPS)
 - [x] Live UEX Corp API for commodity prices
 - [x] Ship selector (29 ships)
+- [x] **System filtering** - Routes filtered by selected system (Stanton/Pyro/Nyx)
+- [x] **System displayed in results** - "📍 System Name: Location"
+- [x] **Pyro risk adjustment** - LOW risk auto-elevated to MEDIUM in Pyro (full PvP)
+- [x] **System-specific warnings** - Pyro activities include PvP warnings
 - [x] "Thinking/Scanning" animation
 
 ### SIGNALS Module - COMPLETE
