@@ -780,7 +780,7 @@ export default function Contracts() {
                     onChange={e => setNewContract(prev => ({ ...prev, planet: e.target.value, location: '' }))}
                   >
                     <option value="">Planet/Area...</option>
-                    {Object.keys(LOCATIONS['Stanton']).map(planet => (
+                    {newContract.system && Object.keys(LOCATIONS[newContract.system] || {}).map(planet => (
                       <option key={planet} value={planet}>{planet}</option>
                     ))}
                   </select>
@@ -791,12 +791,13 @@ export default function Contracts() {
                     disabled={!newContract.planet}
                   >
                     <option value="">Specific location...</option>
-                    {newContract.planet && LOCATIONS['Stanton'][newContract.planet]?.map(loc => (
+                    {newContract.planet && newContract.system && LOCATIONS[newContract.system]?.[newContract.planet]?.map(loc => (
                       <option key={loc} value={loc}>{loc}</option>
                     ))}
                   </select>
                 </div>
               </div>
+              )}
 
               {/* Meet At for Operations */}
               {isOperations && (
