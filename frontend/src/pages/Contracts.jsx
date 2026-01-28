@@ -84,86 +84,10 @@ const LOCATIONS = {
   }
 };
 
-const MOCK_CONTRACTS = [
-  {
-    id: '1',
-    type: 'security',
-    activity: 'Escort',
-    start_location: 'Port Olisar',
-    end_location: 'Area 18',
-    cargo_value: 'High Value (Whale)',
-    payment_amount: 75000,
-    system: 'Stanton',
-    planet: 'ArcCorp',
-    location: 'Area 18',
-    shard: '360',
-    poster: { handle: 'CaptainVex', reputation: 4.8, is_supporter: true },
-    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    status: 'open'
-  },
-  {
-    id: '2',
-    type: 'rescue',
-    status_select: 'Incapacitated (Revive)',
-    environment: 'Bunker (Hostile)',
-    payment_amount: 15000,
-    system: 'Stanton',
-    planet: 'Crusader',
-    location: 'Daymar',
-    shard: '422',
-    poster: { handle: 'MedRunnerX', reputation: 4.5, is_supporter: false },
-    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    status: 'open'
-  },
-  {
-    id: '3',
-    type: 'transport',
-    load: 'Single Passenger',
-    destination: 'Major City',
-    payment_amount: 8000,
-    system: 'Stanton',
-    planet: 'microTech',
-    location: 'New Babbage',
-    shard: '360',
-    poster: { handle: 'GroundOps', reputation: 4.2, is_supporter: false },
-    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    status: 'open'
-  },
-  {
-    id: '4',
-    type: 'operations',
-    job: 'Mining Crew',
-    role: 'Turret Gunner',
-    compensation_type: 'Equal Split',
-    payment_amount: 0,
-    system: 'Stanton',
-    planet: 'Crusader',
-    location: 'Yela',
-    shard: '512',
-    poster: { handle: 'RockBreaker', reputation: 4.9, is_supporter: true },
-    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    status: 'open'
-  },
-  {
-    id: '5',
-    type: 'security',
-    activity: 'Bunker Clear',
-    threat: 'Critical',
-    payment_amount: 35000,
-    system: 'Stanton',
-    planet: 'Hurston',
-    location: 'HDMS Oparei',
-    shard: '360',
-    poster: { handle: 'ShadowOps', reputation: 4.7, is_supporter: false },
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    status: 'open'
-  }
-];
-
 export default function Contracts() {
   const { user, userShard } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [contracts, setContracts] = useState(MOCK_CONTRACTS);
+  const [contracts, setContracts] = useState([]);
   const [filter, setFilter] = useState('all');
   const [showCreate, setShowCreate] = useState(false);
   const [showReview, setShowReview] = useState(null);
