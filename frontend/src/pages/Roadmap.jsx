@@ -49,8 +49,26 @@ const MOCK_GOALS = [
 ];
 
 export default function Roadmap() {
+  const { user } = useAuth();
   const [goals, setGoals] = useState(MOCK_GOALS);
   const [loading, setLoading] = useState(false);
+  const [contributingGoalId, setContributingGoalId] = useState(null);
+  const [searchParams] = useSearchParams();
+
+  // Check for success redirect from Stripe
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      toast.success('Thank you for your contribution!', {
+        description: 'Your support helps build new features.',
+        duration: 5000,
+      });
+      // Refresh goals to show updated amounts
+      fetchGoals();
+    }
+    if (searchParams.get('canceled') === 'true') {
+      toast.info('Contribution canceled');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchGoals();
