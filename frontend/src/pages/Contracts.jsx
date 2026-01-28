@@ -170,6 +170,7 @@ export default function Contracts() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [copiedHandle, setCopiedHandle] = useState(null);
+  const [myShard, setMyShard] = useState('');
   
   // Bidding system state
   const [myBids, setMyBids] = useState([]);
