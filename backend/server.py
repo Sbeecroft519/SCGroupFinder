@@ -345,6 +345,7 @@ async def login(credentials: UserLogin):
         rsi_handle=user['rsi_handle'],
         is_verified=user.get('is_verified', False),
         is_supporter=user.get('is_supporter', False),
+        is_admin=user.get('is_admin', False),
         theme_id=user.get('theme_id', 'default'),
         reputation=user.get('reputation', 5.0),
         contracts_completed=user.get('contracts_completed', 0),
