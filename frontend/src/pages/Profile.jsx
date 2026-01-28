@@ -156,6 +156,14 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Badges Box */}
+      <div className="badges-box">
+        <span className="badges-label">BADGES</span>
+        <div className="badges-content">
+          {/* PLACEHOLDER: Dynamic earned badges will render here */}
+        </div>
+      </div>
+
       <style>{`
         .profile-page {
           padding: 40px 20px;
