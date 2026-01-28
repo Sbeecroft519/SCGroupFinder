@@ -42,10 +42,39 @@ export default function Register() {
     setStep(2);
   };
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(verificationCode);
-    setCodeCopied(true);
-    setTimeout(() => setCodeCopied(false), 2000);
+  const handleCopyCode = async () => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(verificationCode);
+      } else {
+        // Fallback for browsers/contexts where clipboard API is blocked
+        const textArea = document.createElement('textarea');
+        textArea.value = verificationCode;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (err) {
+      // If all methods fail, show a manual copy message
+      console.warn('Clipboard copy failed:', err);
+      // Select the text for manual copy
+      const codeElement = document.querySelector('[data-testid="verification-code"]');
+      if (codeElement) {
+        const range = document.createRange();
+        range.selectNodeContents(codeElement);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
   };
 
   const handleVerify = async () => {
