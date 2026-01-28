@@ -807,6 +807,58 @@ export default function Settings() {
           line-height: 1.5;
         }
         
+        .avatar-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+          gap: 12px;
+        }
+        
+        .avatar-preset-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 16px 12px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          cursor: pointer;
+          transition: all 0.2s;
+          position: relative;
+        }
+        
+        .avatar-preset-card:hover {
+          border-color: var(--nc-cyan-dim);
+        }
+        
+        .avatar-preset-card.active {
+          border-color: var(--nc-cyan);
+          background: rgba(0, 240, 255, 0.1);
+        }
+        
+        .avatar-preset-img {
+          width: 56px;
+          height: 56px;
+        }
+        
+        .avatar-preset-name {
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          text-align: center;
+          letter-spacing: 0.5px;
+        }
+        
+        .avatar-preset-card.active .avatar-preset-name {
+          color: var(--nc-cyan);
+        }
+        
+        .avatar-check {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          color: var(--nc-cyan);
+        }
+        
         @media (max-width: 768px) {
           .settings-layout {
             grid-template-columns: 1fr;
