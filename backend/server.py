@@ -62,7 +62,6 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    email: str
     rsi_handle: str
     is_verified: bool = False
     is_supporter: bool = False
@@ -70,6 +69,7 @@ class UserResponse(BaseModel):
     reputation: float = 5.0
     contracts_completed: int = 0
     created_at: str
+    avatar_url: Optional[str] = None
 
 class TokenResponse(BaseModel):
     token: str
@@ -104,6 +104,12 @@ class ContractCreate(BaseModel):
     location: Optional[str] = None
     rescue_type: Optional[str] = None
     shard: Optional[str] = None
+
+class ReviewCreate(BaseModel):
+    contract_id: str
+    rating: int  # 1-5 stars
+    comment: Optional[str] = None
+    review_type: str  # 'client_to_merc' or 'merc_to_client'
 
 class GoalResponse(BaseModel):
     id: str
@@ -152,7 +158,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def verify_rsi_handle(request: RSIVerifyRequest):
     """Verify that the user's RSI bio contains the verification code"""
     try:
-        # Scrape the RSI profile page
         async with httpx.AsyncClient(timeout=10.0) as client:
             url = f"https://robertsspaceindustries.com/citizens/{request.rsi_handle}"
             response = await client.get(url, follow_redirects=True)
@@ -160,15 +165,25 @@ async def verify_rsi_handle(request: RSIVerifyRequest):
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="RSI Handle not found")
             
-            # Check if verification code exists in page content
             page_content = response.text
+            
+            # Extract avatar URL from RSI profile
+            avatar_url = None
+            import re
+            avatar_match = re.search(r'<img[^>]*class="[^"]*thumb[^"]*"[^>]*src="([^"]+)"', page_content)
+            if not avatar_match:
+                avatar_match = re.search(r'src="(https://robertsspaceindustries\.com/media/[^"]+)"', page_content)
+            if avatar_match:
+                avatar_url = avatar_match.group(1)
+                if avatar_url.startswith('//'):
+                    avatar_url = 'https:' + avatar_url
+            
             if request.verification_code in page_content:
-                # Update user as verified if they exist
                 await db.users.update_one(
                     {'rsi_handle': request.rsi_handle},
-                    {'$set': {'is_verified': True}}
+                    {'$set': {'is_verified': True, 'avatar_url': avatar_url}}
                 )
-                return {'verified': True, 'message': 'RSI Handle verified successfully'}
+                return {'verified': True, 'message': 'RSI Handle verified successfully', 'avatar_url': avatar_url}
             else:
                 return {'verified': False, 'message': 'Verification code not found in RSI bio'}
     except httpx.TimeoutException:
@@ -225,19 +240,17 @@ async def login(credentials: UserLogin):
     
     token = create_token(user['id'])
     
-    user_response = UserResponse(
+    return TokenResponse(token=token, user=UserResponse(
         id=user['id'],
-        email=user['email'],
         rsi_handle=user['rsi_handle'],
         is_verified=user.get('is_verified', False),
         is_supporter=user.get('is_supporter', False),
         theme_id=user.get('theme_id', 'default'),
         reputation=user.get('reputation', 5.0),
         contracts_completed=user.get('contracts_completed', 0),
-        created_at=user.get('created_at', '')
-    )
-    
-    return TokenResponse(token=token, user=user_response)
+        created_at=user.get('created_at', ''),
+        avatar_url=user.get('avatar_url')
+    ))
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user = Depends(get_current_user)):
@@ -246,14 +259,14 @@ async def get_me(user = Depends(get_current_user)):
     
     return UserResponse(
         id=user['id'],
-        email=user['email'],
         rsi_handle=user['rsi_handle'],
         is_verified=user.get('is_verified', False),
         is_supporter=user.get('is_supporter', False),
         theme_id=user.get('theme_id', 'default'),
         reputation=user.get('reputation', 5.0),
         contracts_completed=user.get('contracts_completed', 0),
-        created_at=user.get('created_at', '')
+        created_at=user.get('created_at', ''),
+        avatar_url=user.get('avatar_url')
     )
 
 
@@ -372,16 +385,37 @@ async def get_signals_status():
         'created_at': {'$gte': yesterday.isoformat()}
     })
     
+    # Fetch RSI status from official feed
+    rsi_status = {'status': 'operational', 'lastIncident': None}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get('https://status.robertsspaceindustries.com/index.xml')
+            if response.status_code == 200:
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(response.text)
+                ns = {'atom': 'http://www.w3.org/2005/Atom'}
+                entries = root.findall('.//atom:entry', ns) or root.findall('.//entry')
+                if entries:
+                    latest = entries[0]
+                    title_el = latest.find('atom:title', ns) or latest.find('title')
+                    updated_el = latest.find('atom:updated', ns) or latest.find('updated')
+                    title = title_el.text if title_el is not None else 'Unknown'
+                    updated = updated_el.text if updated_el is not None else ''
+                    
+                    title_lower = title.lower()
+                    if 'major' in title_lower or 'outage' in title_lower:
+                        rsi_status['status'] = 'outage'
+                    elif 'degraded' in title_lower or 'partial' in title_lower:
+                        rsi_status['status'] = 'degraded'
+                    
+                    rsi_status['lastIncident'] = {'title': title, 'date': updated[:19].replace('T', ' ') + ' UTC'}
+    except Exception as e:
+        logger.error(f"RSI status fetch error: {e}")
+    
     return {
-        'server_status': 'operational',
-        'rsi_status': {
-            'status': 'operational',
-            'lastIncident': {
-                'title': 'Platform Services Disruption',
-                'date': '2025-01-24 13:40 UTC'
-            }
-        },
-        'reports_24h': reports_count or 5
+        'server_status': rsi_status['status'],
+        'rsi_status': rsi_status,
+        'reports_24h': reports_count or 0
     }
 
 @api_router.get("/signals/reports")
@@ -403,6 +437,35 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
     }
     await db.reports.insert_one(report_doc)
     return {'message': 'Report submitted', 'id': report_doc['id']}
+
+
+# ===== UEX Corp Integration =====
+
+@api_router.get("/uex/commodities")
+async def get_uex_commodities():
+    """Fetch live commodity prices from UEX Corp API"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get('https://api.uexcorp.space/2.0/commodities')
+            if response.status_code == 200:
+                return response.json()
+            return {'error': 'UEX API unavailable', 'data': []}
+    except Exception as e:
+        logger.error(f"UEX API error: {e}")
+        return {'error': str(e), 'data': []}
+
+@api_router.get("/uex/prices/{commodity_code}")
+async def get_commodity_prices(commodity_code: str):
+    """Fetch prices for a specific commodity"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f'https://api.uexcorp.space/2.0/commodities/{commodity_code}/prices')
+            if response.status_code == 200:
+                return response.json()
+            return {'error': 'Commodity not found', 'data': []}
+    except Exception as e:
+        logger.error(f"UEX price error: {e}")
+        return {'error': str(e), 'data': []}
 
 
 # ===== Contracts Routes =====
@@ -432,20 +495,142 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'location': contract.location,
         'rescue_type': contract.rescue_type,
         'shard': contract.shard,
+        'poster_id': user['id'],
         'poster': {
             'handle': user['rsi_handle'],
             'reputation': user.get('reputation', 5.0),
-            'is_supporter': user.get('is_supporter', False)
+            'is_supporter': user.get('is_supporter', False),
+            'avatar_url': user.get('avatar_url')
         },
+        'accepted_by': None,
         'status': 'open',
+        'client_review': None,
+        'merc_review': None,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
     await db.contracts.insert_one(contract_doc)
-    
-    # Return without _id
     contract_doc.pop('_id', None)
     return contract_doc
+
+
+@api_router.post("/contracts/{contract_id}/accept")
+async def accept_contract(contract_id: str, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract['status'] != 'open':
+        raise HTTPException(status_code=400, detail="Contract not available")
+    if contract['poster_id'] == user['id']:
+        raise HTTPException(status_code=400, detail="Cannot accept your own contract")
+    
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$set': {
+            'status': 'active',
+            'accepted_by': {
+                'id': user['id'],
+                'handle': user['rsi_handle'],
+                'reputation': user.get('reputation', 5.0),
+                'avatar_url': user.get('avatar_url')
+            }
+        }}
+    )
+    return {'message': 'Contract accepted'}
+
+
+@api_router.post("/contracts/{contract_id}/complete")
+async def complete_contract(contract_id: str, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    is_poster = contract['poster_id'] == user['id']
+    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    
+    if not is_poster and not is_merc:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$set': {'status': 'completed'}}
+    )
+    return {'message': 'Contract marked complete'}
+
+
+@api_router.post("/contracts/{contract_id}/review")
+async def review_contract(contract_id: str, review: ReviewCreate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if review.rating < 1 or review.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    is_poster = contract['poster_id'] == user['id']
+    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    
+    if not is_poster and not is_merc:
+        raise HTTPException(status_code=403, detail="Not authorized to review")
+    
+    review_data = {
+        'rating': review.rating,
+        'comment': review.comment,
+        'reviewer_handle': user['rsi_handle'],
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Client reviews merc, merc reviews client
+    if is_poster:
+        await db.contracts.update_one({'id': contract_id}, {'$set': {'client_review': review_data}})
+        # Update merc's reputation
+        merc_id = contract.get('accepted_by', {}).get('id')
+        if merc_id:
+            await update_user_reputation(merc_id)
+    else:
+        await db.contracts.update_one({'id': contract_id}, {'$set': {'merc_review': review_data}})
+        # Update client's reputation
+        await update_user_reputation(contract['poster_id'])
+    
+    return {'message': 'Review submitted'}
+
+
+async def update_user_reputation(user_id: str):
+    """Recalculate user reputation based on all reviews received"""
+    # Get all reviews where this user was reviewed
+    as_merc = await db.contracts.find(
+        {'accepted_by.id': user_id, 'client_review': {'$ne': None}},
+        {'client_review.rating': 1}
+    ).to_list(100)
+    
+    as_client = await db.contracts.find(
+        {'poster_id': user_id, 'merc_review': {'$ne': None}},
+        {'merc_review.rating': 1}
+    ).to_list(100)
+    
+    ratings = []
+    for c in as_merc:
+        if c.get('client_review', {}).get('rating'):
+            ratings.append(c['client_review']['rating'])
+    for c in as_client:
+        if c.get('merc_review', {}).get('rating'):
+            ratings.append(c['merc_review']['rating'])
+    
+    if ratings:
+        avg_rating = sum(ratings) / len(ratings)
+        await db.users.update_one(
+            {'id': user_id},
+            {'$set': {'reputation': round(avg_rating, 1), 'contracts_completed': len(ratings)}}
+        )
 
 
 # ===== Goals/Roadmap Routes =====
