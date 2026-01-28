@@ -198,6 +198,7 @@ export default function Contracts() {
     job: '',
     role: '',
     compensation_type: 'Flat Fee',
+    meet_at: '',
     // Payment (global)
     payment_amount: '',
     // Location fields
@@ -208,7 +209,7 @@ export default function Contracts() {
 
   const isEscort = newContract.type === 'security' && newContract.activity === 'Escort';
   const isOperations = newContract.type === 'operations';
-  const showPaymentField = !isOperations || newContract.compensation_type === 'Flat Fee';
+  const showPaymentField = isOperations ? newContract.compensation_type === 'Flat Fee' : true;
 
   // Generate title based on contract type and selections
   const generateTitle = (contract) => {
