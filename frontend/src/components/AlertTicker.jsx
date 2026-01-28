@@ -69,43 +69,54 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
     if (!tickerSettings?.[configKey]) return null;
     
     const filteredAlerts = filterAlerts(config.types);
-    if (filteredAlerts.length === 0) return null;
+    const isEmpty = filteredAlerts.length === 0;
 
     return (
-      <div className="alert-ticker" style={{ '--ticker-color': config.color }} key={configKey}>
-        <div className="alert-ticker-label" style={{ background: `${config.color}22`, borderColor: `${config.color}44`, color: config.color }}>
-          <Radio size={12} className="pulse-icon" />
+      <div className="alert-ticker" style={{ '--ticker-color': isEmpty ? '#4a6070' : config.color }} key={configKey}>
+        <div className="alert-ticker-label" style={{ background: isEmpty ? '#1a2530' : `${config.color}22`, borderColor: isEmpty ? '#2a3540' : `${config.color}44`, color: isEmpty ? '#6a7a8a' : config.color }}>
+          <Radio size={12} className={isEmpty ? '' : 'pulse-icon'} />
           <span>{config.label}</span>
         </div>
         <div className="alert-ticker-scroll">
           <div className="alert-ticker-content">
-            {[...filteredAlerts, ...filteredAlerts].map((alert, idx) => {
-              const Icon = config.icons[alert.type] || AlertTriangle;
-              const isOnMyShard = userShard && alert.shard === userShard;
-              
-              return (
-                <div 
-                  key={`${alert.id || idx}-${idx}`} 
-                  className={`alert-ticker-item ${isOnMyShard ? 'my-shard' : ''}`}
-                  style={{ '--alert-color': config.color }}
-                >
-                  <Icon size={14} style={{ color: config.color }} />
-                  <span className="alert-type" style={{ color: config.color }}>
-                    {alert.type.replace('_', ' ').toUpperCase()}
-                  </span>
-                  <span className="alert-location">{alert.location || alert.system}</span>
-                  {alert.details && <span className="alert-details">"{alert.details}"</span>}
-                  {alert.shard ? (
-                    <span className={`alert-shard ${isOnMyShard ? 'same' : ''}`} style={isOnMyShard ? { borderColor: config.color, color: config.color } : {}}>
-                      {isOnMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
-                    </span>
-                  ) : (
-                    <span className="alert-shard global">GLOBAL</span>
-                  )}
-                  <span className="alert-time">{getTimeAgo(alert.created_at)}</span>
+            {isEmpty ? (
+              <>
+                <div className="alert-ticker-item all-clear">
+                  <span style={{ color: '#4a6070' }}>ALL CLEAR — No active {config.label.toLowerCase()} reported</span>
                 </div>
-              );
-            })}
+                <div className="alert-ticker-item all-clear">
+                  <span style={{ color: '#4a6070' }}>ALL CLEAR — No active {config.label.toLowerCase()} reported</span>
+                </div>
+              </>
+            ) : (
+              [...filteredAlerts, ...filteredAlerts].map((alert, idx) => {
+                const Icon = config.icons[alert.type] || AlertTriangle;
+                const isOnMyShard = userShard && alert.shard === userShard;
+                
+                return (
+                  <div 
+                    key={`${alert.id || idx}-${idx}`} 
+                    className={`alert-ticker-item ${isOnMyShard ? 'my-shard' : ''}`}
+                    style={{ '--alert-color': config.color }}
+                  >
+                    <Icon size={14} style={{ color: config.color }} />
+                    <span className="alert-type" style={{ color: config.color }}>
+                      {alert.type.replace('_', ' ').toUpperCase()}
+                    </span>
+                    <span className="alert-location">{alert.location || alert.system}</span>
+                    {alert.details && <span className="alert-details">"{alert.details}"</span>}
+                    {alert.shard ? (
+                      <span className={`alert-shard ${isOnMyShard ? 'same' : ''}`} style={isOnMyShard ? { borderColor: config.color, color: config.color } : {}}>
+                        {isOnMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
+                      </span>
+                    ) : (
+                      <span className="alert-shard global">GLOBAL</span>
+                    )}
+                    <span className="alert-time">{getTimeAgo(alert.created_at)}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
