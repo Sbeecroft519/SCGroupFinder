@@ -529,6 +529,53 @@
   color: var(--nc-gold);
 }
 
+/* ===== Location Grid (Signals) ===== */
+.location-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.location-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.location-group-label {
+  width: 100%;
+  font-family: var(--nc-font-mono);
+  font-size: 10px;
+  color: var(--nc-text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.location-btn {
+  padding: 8px 12px;
+  background: var(--nc-bg-secondary);
+  border: 1px solid var(--nc-border);
+  color: var(--nc-text-secondary);
+  font-family: var(--nc-font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.location-btn:hover {
+  border-color: var(--nc-cyan-dim);
+  color: var(--nc-text-primary);
+}
+
+.location-btn.active {
+  border-color: var(--nc-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--nc-cyan);
+}
+
 /* ===== Roadmap / Supply Drop ===== */
 .goal-card {
   background: var(--nc-bg-card);
