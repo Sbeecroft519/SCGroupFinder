@@ -340,6 +340,83 @@ export default function Settings() {
           margin-bottom: 24px;
         }
         
+        .shard-setting {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+        
+        .shard-setting h3 {
+          font-family: var(--nc-font-display);
+          font-size: 14px;
+          color: var(--nc-text-primary);
+          margin-bottom: 8px;
+        }
+        
+        .shard-setting p {
+          font-family: var(--nc-font-body);
+          font-size: 13px;
+          color: var(--nc-text-muted);
+          margin-bottom: 12px;
+        }
+        
+        .current-shard-display {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        .shard-number {
+          font-family: var(--nc-font-display);
+          font-size: 28px;
+          color: var(--nc-cyan);
+          letter-spacing: 2px;
+        }
+        
+        .shard-global {
+          font-family: var(--nc-font-mono);
+          font-size: 14px;
+          color: var(--nc-orange);
+          letter-spacing: 1px;
+        }
+        
+        .ticker-toggles {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .ticker-toggle-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          border-left: 3px solid var(--ticker-color, var(--nc-cyan));
+        }
+        
+        .ticker-toggle-header {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          color: var(--ticker-color, var(--nc-cyan));
+        }
+        
+        .ticker-toggle-header h4 {
+          font-family: var(--nc-font-display);
+          font-size: 14px;
+          color: var(--nc-text-primary);
+          margin-bottom: 4px;
+        }
+        
+        .ticker-toggle-header p {
+          font-family: var(--nc-font-body);
+          font-size: 12px;
+          color: var(--nc-text-muted);
+        }
+        
         .theme-grid {
           display: flex;
           flex-direction: column;
@@ -466,8 +543,8 @@ export default function Settings() {
         }
         
         .toggle-switch.active {
-          background: rgba(0, 240, 255, 0.2);
-          border-color: var(--nc-cyan);
+          background: color-mix(in srgb, var(--toggle-color, var(--nc-cyan)) 20%, transparent);
+          border-color: var(--toggle-color, var(--nc-cyan));
         }
         
         .toggle-thumb {
@@ -482,7 +559,7 @@ export default function Settings() {
         
         .toggle-switch.active .toggle-thumb {
           left: 26px;
-          background: var(--nc-cyan);
+          background: var(--toggle-color, var(--nc-cyan));
         }
         
         .about-content {
