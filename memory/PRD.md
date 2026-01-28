@@ -35,41 +35,26 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ## What's Been Implemented
 
 ### Jan 27, 2025 - Initial Build
-- **Backend (FastAPI)**
-  - Authentication: Register/Login/Verify with JWT
-  - Ships API with full Golden Truth data
-  - Intel analysis endpoint
-  - Signals status and reporting
-  - Contracts CRUD operations
-  - Goals/roadmap endpoint
-  
-- **Frontend (React)**
-  - Header with nav (INTEL, SIGNALS, CONTRACTS, ROADMAP)
-  - Intel page with ship selection, system/time/activity/risk toggles
-  - Scanning animation for mission analysis
-  - Mission result modal
-  - Signals page with server status, reliability metrics, report buttons, trend charts
-  - Contracts page with filtering, shard input, contract cards
-  - Roadmap page with progress bars and supporter CTA
-  - Login/Register pages with RSI verification flow
-  - Profile page with pilot license card
-  - Settings page with theme selection prep
+- Full MobiGlass UI with all 4 modules (INTEL, SIGNALS, CONTRACTS, ROADMAP)
+- JWT authentication with RSI Handle verification flow
+- Ships API with Golden Truth data (29 ships)
 
-- **Styling**
-  - Full MobiGlass theme implementation
-  - CSS variables for theme engine
-  - Responsive design
-  - Custom fonts: Orbitron, Share Tech Mono, Rajdhani
+### Jan 28, 2025 - Feature Additions
+- **UEX Corp Integration**: Live commodity/mining prices via `/api/uex/commodities`
+- **RSI Status Feed**: Real-time parsing of `status.robertsspaceindustries.com/index.xml`
+- **Bilateral Rating System**: 5-star reviews (Client ↔ Merc), reputation auto-calculation
+- **RSI Avatar Integration**: Profile pictures pulled from RSI during verification
+- **Privacy**: Removed public email display from profiles
 
 ## Prioritized Backlog
 
 ### P0 - Critical
-- [ ] UEX Corp API integration for live cargo prices
-- [ ] RSI Status Feed integration (RSS parse)
-- [ ] Real RSI profile scraping for handle verification
+- [x] UEX Corp API integration for live cargo prices
+- [x] RSI Status Feed integration (RSS parse)
+- [x] RSI profile picture integration
+- [x] Bilateral 5-star rating system
 
 ### P1 - High Priority
-- [ ] Bilateral rating system for contracts
 - [ ] Onboarding carousel for first-time users
 - [ ] Alert ticker for recent reports
 - [ ] Shard-aware report filtering
@@ -77,7 +62,6 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ### P2 - Nice to Have
 - [ ] Manufacturer themes (Drake, Origin, Aegis)
 - [ ] Admin panel for goal management
-- [ ] Mobile responsive improvements
 - [ ] Push notifications
 
 ## Next Tasks
