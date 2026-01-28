@@ -247,7 +247,7 @@ export default function Profile() {
           align-items: center;
           gap: 8px;
           font-family: var(--nc-font-mono);
-          font-size: 11px;
+          font-size: 14px;
           color: var(--nc-cyan);
           letter-spacing: 2px;
           opacity: 0.8;
