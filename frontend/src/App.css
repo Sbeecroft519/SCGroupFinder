@@ -8,6 +8,17 @@
   min-height: calc(100vh - 64px);
 }
 
+/* Mobile bottom padding for bottom nav */
+@media (max-width: 768px) {
+  .navcom-main {
+    padding-bottom: 80px; /* Space for mobile nav */
+  }
+  
+  .navcom-header .navcom-nav {
+    display: none; /* Hide desktop nav on mobile */
+  }
+}
+
 /* ===== Loading Screen ===== */
 .loading-screen {
   display: flex;
