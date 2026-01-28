@@ -110,6 +110,24 @@ export default function Admin() {
         <h1 className="page-title">Administration</h1>
       </div>
 
+      {/* Reset Reports Section */}
+      <div className="nc-card" style={{ marginBottom: 24, padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Activity size={18} className="text-cyan" /> Signals Data Reset
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--nc-text-muted)' }}>
+              Last reset: {lastReset ? new Date(lastReset).toLocaleString() : 'Never'}
+            </p>
+          </div>
+          <button className="nc-btn nc-btn-danger" onClick={handleResetReports} disabled={resetting}>
+            <RefreshCw size={14} className={resetting ? 'spin' : ''} />
+            {resetting ? 'Resetting...' : 'Reset All Reports'}
+          </button>
+        </div>
+      </div>
+
       {/* Stats Row */}
       <div className="grid-4" style={{ marginBottom: 24 }}>
         <div className="nc-stat-card">
