@@ -757,20 +757,23 @@ async def get_signals_status():
                 
                 # Parse RSS items
                 items = root.findall('.//item')
+                
+                # First pass: find game version from any deployment notice
                 for item in items:
-                    title_el = item.find('title')
                     desc_el = item.find('description')
-                    pub_el = item.find('pubDate')
-                    title = title_el.text if title_el is not None else ''
                     desc = desc_el.text if desc_el is not None else ''
-                    pub_date = pub_el.text if pub_el is not None else ''
-                    
-                    # Extract game version from deployment notices
                     version_match = re.search(r'Star Citizen Alpha ([\d\.\-\w]+)', desc)
                     if version_match:
                         rsi_status['gameVersion'] = version_match.group(1)
+                        break
+                
+                # Second pass: find latest unresolved incident
+                for item in items:
+                    title_el = item.find('title')
+                    pub_el = item.find('pubDate')
+                    title = title_el.text if title_el is not None else ''
+                    pub_date = pub_el.text if pub_el is not None else ''
                     
-                    # Determine status from title
                     title_lower = title.lower()
                     if '[resolved]' not in title_lower:
                         if 'outage' in title_lower or 'disruption' in title_lower:
