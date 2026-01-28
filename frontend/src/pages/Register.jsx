@@ -284,6 +284,15 @@ export default function Register() {
           <span className="text-muted">Already have an account?</span>
           <Link to="/login" className="auth-link">Login</Link>
         </div>
+        
+        {/* Community Badge */}
+        <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+          <img 
+            src="https://customer-assets.emergentagent.com/job_space-contracts/artifacts/cs2lc5r9_ola6jl4j_MadeByTheCommunity_White.png" 
+            alt="Made by the Community" 
+            style={{ height: 32, opacity: 0.7 }}
+          />
+        </div>
       </div>
 
       <style>{`
