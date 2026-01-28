@@ -256,10 +256,13 @@ function App() {
                     <div className="shard-instructions">
                       <h4>How to find your shard:</h4>
                       <ol>
+                        <li>When logged in to Star Citizen</li>
                         <li>Press <code>~</code> (tilde) to open console</li>
                         <li>Type <code>r_displayinfo 1</code></li>
                         <li>Look for "Shard" in the info overlay</li>
-                        <li>Enter the number below</li>
+                        <li>Write down the number beside it</li>
+                        <li>Type <code>r_displayinfo 0</code></li>
+                        <li>Enter the shard number below</li>
                       </ol>
                     </div>
                     <input
