@@ -91,6 +91,7 @@ class MissionResponse(BaseModel):
     reward: str
     risk_level: str
     fallback: Optional[dict] = None
+    profit_data: Optional[dict] = None  # For cargo: commodity, route, profit_per_scu, total_profit, roi
 
 class ReportCreate(BaseModel):
     type: str
@@ -327,21 +328,34 @@ async def analyze_mission(request: IntelRequest):
         total_profit = route['profit_per_scu'] * ship_scu
         min_profit = int(total_profit * 0.85)
         max_profit = int(total_profit * 1.15)
+        investment = route['buy_price'] * ship_scu
+        roi = (total_profit / investment * 100) if investment > 0 else 0
         
         note = f" ⚠️ {route.get('note')}" if route.get('note') else ""
         
         return MissionResponse(
-            type='cargo', title=f"Cargo Run: {route['commodity']}",
-            description=f"Haul {route['commodity']} using your {request.ship} ({ship_scu} SCU).{note}",
+            type='cargo', title='Cargo Hauling',
+            description=f"Trade commodities between stations{note}",
             location={
-                'name': f"📦 {route['buy']} → 💰 {route['sell']}",
-                'description': f"Buy at {route['buy_price']:.2f}/unit, sell at {route['sell_price']:.2f}/unit. Profit: {route['profit_per_scu']:.2f}/SCU.",
-                'activities': f"Commodity: {route['commodity']}"
+                'name': f"{route['commodity']} Trade Route",
+                'description': f"{route['buy']} → {route['sell']}",
+                'activities': f"LIVE: {route['commodity']} | Buy at {route['buy']} ({route['buy_price']:.2f} aUEC/SCU) → Sell at {route['sell']} ({route['sell_price']:.2f} aUEC/SCU) | Profit: {route['profit_per_scu']:.2f} aUEC / {ship_scu} SCU"
             },
             duration=time_display, 
-            reward=f"{min_profit:,} - {max_profit:,} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
+            reward=f"{min_profit:,} aUEC - {max_profit:,} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
             risk_level=request.risk, 
-            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no cargo investment needed'}
+            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no cargo investment needed'},
+            profit_data={
+                'commodity': route['commodity'],
+                'route': f"{route['buy']} → {route['sell']}",
+                'buy_price': route['buy_price'],
+                'sell_price': route['sell_price'],
+                'profit_per_scu': round(route['profit_per_scu'], 2),
+                'total_profit': int(total_profit),
+                'investment': int(investment),
+                'roi': round(roi, 1),
+                'ship_scu': ship_scu
+            }
         )
     
     # Mining - specific locations, materials, refinery, sell point
