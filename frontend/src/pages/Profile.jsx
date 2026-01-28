@@ -55,85 +55,97 @@ export default function Profile() {
         {/* Left Column - Citizen ID Card */}
         <div className="card-column">
           <div className="citizen-card">
-        {/* Header */}
-        <div className="card-header">
-          <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
-          <div className="card-label">CITIZEN ID BADGE</div>
-        </div>
-        
-        <div className="card-divider" />
-
-        {/* Body */}
-        <div className="card-body">
-          {/* Left Column - Avatar & Barcode */}
-          <div className="left-col">
-            <div className="avatar-container">
-              <div className="avatar-ring" />
-              {getAvatarContent()}
-            </div>
-            <div className="barcode">
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className="bar" style={{ height: `${20 + Math.random() * 30}px` }} />
-              ))}
-            </div>
+        <div className="card-inner">
+          {/* Header */}
+          <div className="card-header">
+            <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
+            <div className="card-label">CITIZEN RECORD</div>
           </div>
+          
+          <div className="card-divider" />
 
-          {/* Right Column - Data */}
-          <div className="right-col">
-            <div className="rank-section">
-              <span className="label">RANK</span>
-              <span className="rank-value">{rank}</span>
+          {/* Body */}
+          <div className="card-body">
+            {/* Left Column - Avatar & Barcode */}
+            <div className="left-col">
+              <div className="avatar-container">
+                <div className="avatar-ring" />
+                {getAvatarContent()}
+              </div>
+              <div className="barcode">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="bar" style={{ height: `${25 + Math.random() * 35}px` }} />
+                ))}
+              </div>
             </div>
-            
-            <div className="rep-section">
-              <span className="label">REPUTATION</span>
-              <div className="rep-row">
-                <span className="rep-value">{reputation.toFixed(1)}</span>
-                <div className="stars">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className={`star ${i < fullStars ? 'filled' : ''}`}>★</span>
-                  ))}
+
+            {/* Right Column - Data */}
+            <div className="right-col">
+              <div className="rank-section">
+                <span className="label">RANK</span>
+                <span className="rank-value">{rank}</span>
+              </div>
+              
+              <div className="rep-section">
+                <span className="label">REPUTATION</span>
+                <div className="rep-row">
+                  <span className="rep-value">{reputation.toFixed(1)}</span>
+                  <div className="stars">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className={`star ${i < fullStars ? 'filled' : ''}`}>★</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="stats-row">
+                <div className="stat-item">
+                  <span className="stat-label">Completed Contracts:</span>
+                  <span className="stat-value">{user.contracts_completed || 0}</span>
+                </div>
+                <div className="stat-divider" />
+                <div className="stat-item">
+                  <span className="stat-label">Status:</span>
+                  <span className="stat-value">{user.is_verified ? 'VERIFIED' : 'PENDING'}</span>
                 </div>
               </div>
             </div>
-
-            <div className="stats-row">
-              <span>Completed Contracts: {user.contracts_completed || 0}</span>
-              <span className="divider">|</span>
-              <span>Status: <strong>{user.is_verified ? 'VERIFIED' : 'PENDING'}</strong></span>
-            </div>
           </div>
-        </div>
 
-        {/* Footer - Badge Rack */}
-        <div className="card-footer">
-          <div className="badge-rack-label">AWARDS</div>
-          <div className="badge-rack">
-            {user.is_supporter && (
-              <div className="ribbon supporter" title="Supporter">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          {/* Footer - Badge Rack */}
+          <div className="card-footer">
+            <div className="badge-rack-label">BADGE RACK</div>
+            <div className="badge-rack">
+              {user.is_supporter && (
+                <div className="ribbon supporter" title="Supporter">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                  <span className="ribbon-label">SUPPORTER</span>
+                </div>
+              )}
+              <div className="ribbon" title="Pioneer">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg>
+                <span className="ribbon-label">PIONEER</span>
               </div>
-            )}
-            <div className="ribbon pioneer" title="Pioneer">
-              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3"/></svg>
+              {user.contracts_completed >= 1 && (
+                <div className="ribbon" title="First Contract">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span className="ribbon-label">FIRST JOB</span>
+                </div>
+              )}
+              {user.contracts_completed >= 10 && (
+                <div className="ribbon" title="Veteran">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                  <span className="ribbon-label">VETERAN</span>
+                </div>
+              )}
             </div>
-            {user.contracts_completed >= 1 && (
-              <div className="ribbon first-contract" title="First Contract">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-              </div>
-            )}
-            {user.contracts_completed >= 10 && (
-              <div className="ribbon veteran" title="10 Contracts">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Copy Handle Button */}
         <button className="copy-btn" onClick={copyHandle} title="Copy RSI Handle">
           {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'COPIED' : 'COPY HANDLE'}
+          {copied ? 'COPIED' : 'COPY'}
         </button>
       </div>
         </div>
