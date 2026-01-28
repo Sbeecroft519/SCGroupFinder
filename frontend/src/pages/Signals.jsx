@@ -89,13 +89,55 @@ export default function Signals() {
       if (statusRes.data) {
         setServerStatus(statusRes.data.server_status || 'operational');
         setRsiStatus(statusRes.data.rsi_status || { status: 'operational', lastIncident: null });
-        setReports24h(statusRes.data.reports_24h || 5);
+        setReports24h(statusRes.data.reports_24h || 0);
       }
 
-      // Fetch recent reports
-      const reportsRes = await axios.get(`${API}/signals/reports`);
+      // Fetch recent reports and calculate stats
+      const reportsRes = await axios.get(`${API}/signals/reports?days=${trendRange}`);
       if (reportsRes.data) {
-        setRecentReports(reportsRes.data.slice(0, 10));
+        const reports = reportsRes.data;
+        setRecentReports(reports.slice(0, 10));
+        
+        // Calculate stats from actual reports
+        const byType = {};
+        const byLocation = {};
+        const byDate = {};
+        
+        reports.forEach(report => {
+          // Count by type
+          byType[report.type] = (byType[report.type] || 0) + 1;
+          
+          // Count by location
+          if (report.location) {
+            byLocation[report.location] = (byLocation[report.location] || 0) + 1;
+          }
+          
+          // Count by date
+          const dateKey = new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          if (!byDate[dateKey]) {
+            byDate[dateKey] = { reports: 0, pirates: 0 };
+          }
+          byDate[dateKey].reports++;
+          if (report.type === 'pirates' || report.type === 'pvp') {
+            byDate[dateKey].pirates++;
+          }
+        });
+        
+        setReportStats({ byType, byLocation });
+        
+        // Build trend data from actual reports
+        const trend = [];
+        for (let i = trendRange; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateKey = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          trend.push({
+            date: dateKey,
+            reports: byDate[dateKey]?.reports || 0,
+            pirates: byDate[dateKey]?.pirates || 0
+          });
+        }
+        setTrendData(trend);
       }
     } catch (error) {
       console.error('Failed to fetch signals data:', error);
@@ -137,40 +179,55 @@ export default function Signals() {
     }
   };
 
-  // Calculate dynamic reliability based on reports
+  // Calculate dynamic reliability based on ACTUAL reports and server status
   const calculateReliability = () => {
-    const baseReliability = serverStatus === 'operational' ? 85 : serverStatus === 'degraded' ? 60 : 30;
-    const reportPenalty = Math.min(reports24h * 2, 30);
+    const baseReliability = serverStatus === 'operational' ? 90 : serverStatus === 'degraded' ? 65 : 35;
+    
+    // Penalties based on actual report types
+    const lagReports = (reportStats.byType?.lag || 0) + (reportStats.byType?.['30k'] || 0);
+    const bugReports = (reportStats.byType?.mission_bug || 0) + (reportStats.byType?.cargo_issue || 0);
+    const pvpReports = (reportStats.byType?.pirates || 0) + (reportStats.byType?.pvp || 0);
+    
+    // Each report type affects different activities
+    const cargoHits = lagReports * 3 + bugReports * 4 + pvpReports * 2;
+    const combatHits = lagReports * 2 + pvpReports * 1; // PvP doesn't hurt combat reliability
+    const salvageHits = lagReports * 3 + bugReports * 2;
+    const fpsHits = lagReports * 4 + bugReports * 1;
     
     return {
-      cargo: Math.max(20, baseReliability - reportPenalty + Math.floor(Math.random() * 10)),
-      combat: Math.max(20, baseReliability - (reportPenalty * 0.5) + Math.floor(Math.random() * 10)),
-      salvage: Math.max(20, baseReliability - (reportPenalty * 0.7) + Math.floor(Math.random() * 8)),
-      fps: Math.max(20, baseReliability - (reportPenalty * 0.6) + Math.floor(Math.random() * 8))
+      cargo: Math.max(15, Math.min(95, baseReliability - cargoHits)),
+      combat: Math.max(15, Math.min(95, baseReliability - combatHits)),
+      salvage: Math.max(15, Math.min(95, baseReliability - salvageHits)),
+      fps: Math.max(15, Math.min(95, baseReliability - fpsHits))
     };
   };
 
   const reliability = calculateReliability();
 
-  // Generate breakdown data for pie chart
+  // Generate breakdown data for pie chart from ACTUAL reports
   const getBreakdownData = () => {
-    const counts = { lag: 4, mission_bug: 3, cargo_issue: 5, pirates: 8, pvp: 6, '30k': 2 };
-    return Object.entries(counts).map(([type, count]) => ({
+    const { byType } = reportStats;
+    if (!byType || Object.keys(byType).length === 0) {
+      return [{ name: 'No Reports', value: 1, color: '#4a6070' }];
+    }
+    return Object.entries(byType).map(([type, count]) => ({
       name: REPORT_TYPES.find(r => r.id === type)?.label || type,
       value: count,
-      color: REPORT_COLORS[type]
+      color: REPORT_COLORS[type] || '#4a6070'
     }));
   };
 
-  // Generate location data for bar chart
-  const getLocationData = () => [
-    { location: 'Yela', reports: 12 },
-    { location: 'Daymar', reports: 8 },
-    { location: 'GrimHEX', reports: 7 },
-    { location: 'Port Olisar', reports: 5 },
-    { location: 'Hurston', reports: 4 },
-    { location: 'microTech', reports: 3 }
-  ];
+  // Generate location data for bar chart from ACTUAL reports
+  const getLocationData = () => {
+    const { byLocation } = reportStats;
+    if (!byLocation || Object.keys(byLocation).length === 0) {
+      return [{ location: 'No Data', reports: 0 }];
+    }
+    return Object.entries(byLocation)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([location, reports]) => ({ location, reports }));
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
