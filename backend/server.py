@@ -1249,6 +1249,40 @@ async def update_notification_settings(settings: NotificationSettings, user = De
     return {'message': 'Settings updated'}
 
 
+# Avatar preset endpoint
+class AvatarUpdate(BaseModel):
+    avatar_preset: str
+
+@api_router.put("/user/avatar")
+async def update_avatar(data: AvatarUpdate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Map preset to file path
+    preset_files = {
+        'helmet': '/avatars/helmet.svg',
+        'medic': '/avatars/medic.svg',
+        'skull': '/avatars/skull.svg',
+        'cargo': '/avatars/cargo.svg',
+        'target': '/avatars/target.svg',
+        'pilot': '/avatars/pilot.svg',
+        'miner': '/avatars/miner.svg',
+        'commander': '/avatars/commander.svg',
+        'explorer': '/avatars/explorer.svg',
+        'engineer': '/avatars/engineer.svg',
+    }
+    
+    avatar_url = preset_files.get(data.avatar_preset)
+    if not avatar_url:
+        raise HTTPException(status_code=400, detail="Invalid avatar preset")
+    
+    await db.users.update_one(
+        {'id': user['id']},
+        {'$set': {'avatar_preset': data.avatar_preset, 'avatar_url': avatar_url}}
+    )
+    return {'message': 'Avatar updated', 'avatar_url': avatar_url}
+
+
 # ===== Admin Data Reset Routes =====
 
 @api_router.post("/admin/reset-reports")
