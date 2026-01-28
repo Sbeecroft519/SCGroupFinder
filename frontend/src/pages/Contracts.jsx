@@ -1217,6 +1217,96 @@ export default function Contracts() {
           0%, 100% { opacity: 0.5; transform: translateX(0); }
           50% { opacity: 1; transform: translateX(3px); }
         }
+        .status-badge {
+          padding: 4px 10px;
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          letter-spacing: 1px;
+          border: 1px solid;
+        }
+        .status-open { background: rgba(0,240,255,0.1); color: var(--nc-cyan); border-color: var(--nc-cyan-dim); }
+        .status-in_progress { background: rgba(255,153,0,0.2); color: #ff9900; border-color: #ff9900; }
+        .status-pending_completion { background: rgba(255,215,0,0.2); color: #ffd700; border-color: #ffd700; }
+        .status-completed { background: rgba(0,255,136,0.2); color: #00ff88; border-color: #00ff88; }
+        .bids-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .pilot-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+        }
+        .pilot-avatar {
+          width: 56px;
+          height: 56px;
+          background: var(--nc-bg-primary);
+          border: 2px solid var(--nc-cyan-dim);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--nc-text-muted);
+          overflow: hidden;
+        }
+        .pilot-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .pilot-info {
+          flex: 1;
+        }
+        .pilot-info h4 {
+          font-family: var(--nc-font-display);
+          font-size: 16px;
+          color: var(--nc-cyan);
+          margin-bottom: 4px;
+        }
+        .pilot-stats {
+          display: flex;
+          gap: 16px;
+          font-family: var(--nc-font-mono);
+          font-size: 12px;
+          color: var(--nc-text-muted);
+        }
+        .pilot-stats span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .pilot-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .handshake-icon {
+          font-size: 64px;
+          margin-bottom: 16px;
+        }
+        .handshake-handle {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-cyan);
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .handshake-handle .label {
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          letter-spacing: 2px;
+          margin-bottom: 8px;
+        }
+        .handshake-handle .handle {
+          font-family: var(--nc-font-display);
+          font-size: 24px;
+          color: var(--nc-cyan);
+          letter-spacing: 2px;
+        }
       `}</style>
     </div>
   );
