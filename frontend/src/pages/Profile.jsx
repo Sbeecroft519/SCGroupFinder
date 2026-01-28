@@ -136,6 +136,13 @@ export default function Profile() {
           {copied ? 'COPIED' : 'COPY HANDLE'}
         </button>
       </div>
+        </div>
+
+        {/* Right Column - Future Mission History Module */}
+        <div className="history-column">
+          {/* PLACEHOLDER: Mission History / Activity Feed will go here */}
+        </div>
+      </div>
 
       <style>{`
         .profile-page {
