@@ -12,9 +12,11 @@ const REPORT_COLORS = {
   pvp: '#ff6600',
   '30k': '#ff0066'
 };
+
+const REPORT_TYPES = [
   { id: 'lag', label: 'Lag / Desync', icon: Wifi, color: '#ffcc00', requiresLocation: true },
-  { id: 'mission_bug', label: 'Mission Bug', icon: Bug, color: '#ff9933', requiresLocation: false },
-  { id: 'cargo_issue', label: 'Cargo Issue', icon: Package, color: '#00f0ff', requiresLocation: true },
+  { id: 'mission_bug', label: 'Mission Bug', icon: Bug, color: '#ff9933', requiresLocation: false, needsDetails: true },
+  { id: 'cargo_issue', label: 'Cargo Issue', icon: Package, color: '#00f0ff', requiresLocation: true, needsDetails: true },
   { id: 'pirates', label: 'Pirates', icon: Skull, color: '#ff3366', requiresLocation: true, timeSensitive: true },
   { id: 'pvp', label: 'PvP / Griefing', icon: Users, color: '#ff6600', requiresLocation: true, timeSensitive: true },
   { id: '30k', label: '30k Disconnect', icon: Zap, color: '#ff0066', requiresLocation: false }
