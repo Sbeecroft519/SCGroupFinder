@@ -61,6 +61,7 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ### ROADMAP Module - COMPLETE
 - [x] Crowdfunding goals
 - [x] Stripe integration (test key)
+- [x] **Stripe Checkout** - Creates checkout session, redirects to Stripe, handles success/cancel
 - [x] Progress tracking
 
 ### ADMIN Panel - COMPLETE
@@ -74,6 +75,8 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] WebSocket notifications
 - [x] Sound toggle
 - [x] Contract type filters
+- [x] **Avatar Section** - 10 preset role-based avatars (Helmet, Medic, Skull, Cargo, Target, Pilot, Miner, Commander, Explorer, Engineer)
+- [x] **Community Badge** in About section
 
 ### Alert Tickers - COMPLETE
 - [x] Three tickers (Threats, Stability, Issues)
