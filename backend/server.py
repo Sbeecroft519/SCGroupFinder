@@ -854,15 +854,16 @@ async def get_commodity_prices(commodity_code: str):
 
 @api_router.get("/contracts")
 async def get_contracts(type: Optional[str] = None):
-    # Filter out expired contracts (>30 min old and still open)
-    thirty_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+    # Filter out expired contracts (>1 hour old and still open)
+    # Also hide COMPLETED contracts from the feed
+    one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     
     query = {
+        'status': {'$nin': ['completed', 'expired']},  # Hide completed/expired
         '$or': [
-            {'status': {'$ne': 'open'}},  # Non-open contracts
-            {'status': 'open', 'created_at': {'$gte': thirty_min_ago}}  # Open but not expired
-        ],
-        'status': {'$nin': ['completed', 'expired']}  # Hide completed/expired
+            {'status': {'$in': ['in_progress', 'pending_completion']}},  # Show active contracts regardless of age
+            {'status': 'open', 'created_at': {'$gte': one_hour_ago}}  # Open but not expired (1 hour)
+        ]
     }
     if type:
         query['type'] = type
@@ -872,9 +873,9 @@ async def get_contracts(type: Optional[str] = None):
         {'_id': 0}
     ).sort('created_at', -1).limit(50).to_list(50)
     
-    # Mark expired contracts
+    # Mark expired contracts (open and older than 1 hour)
     await db.contracts.update_many(
-        {'status': 'open', 'created_at': {'$lt': thirty_min_ago}},
+        {'status': 'open', 'created_at': {'$lt': one_hour_ago}},
         {'$set': {'status': 'expired'}}
     )
     
