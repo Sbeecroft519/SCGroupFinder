@@ -98,6 +98,7 @@ class ReportCreate(BaseModel):
     system: Optional[str] = None
     location: Optional[str] = None
     shard: Optional[str] = None
+    details: Optional[str] = None
     timestamp: Optional[str] = None
 
 class ContractCreate(BaseModel):
