@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { id: 'roadmap', label: 'ROADMAP', icon: Map, path: '/roadmap' },
 ];
 
-export const Header = ({ user, onLogout }) => {
+export const Header = ({ user, onLogout, userShard, onShardClick }) => {
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -57,6 +57,12 @@ export const Header = ({ user, onLogout }) => {
 
       {/* Avatar Dropdown */}
       <div className="navcom-avatar-area" data-testid="avatar-area">
+        {userShard && (
+          <button className="shard-display" onClick={onShardClick} title="Click to change shard">
+            <span className="shard-label">SHARD</span>
+            <span className="shard-value">{userShard}</span>
+          </button>
+        )}
         {user ? (
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
