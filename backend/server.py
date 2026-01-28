@@ -599,9 +599,11 @@ async def analyze_mission(request: IntelRequest):
                 ]
             },
             'Pyro': {
-                'LOW': [{'location': 'Pyro Belt Edge', 'material': 'Mixed Ores', 'refinery': 'Pyro Station', 'sell': 'Local Buyers', 'yield': '20,000 - 60,000', 'desc': 'Lawless but sparse population at edges.'}],
-                'MEDIUM': [{'location': 'Pyro I Rings', 'material': 'Bexalite Deposits', 'refinery': 'Ruin Station', 'sell': 'Stanton Export', 'yield': '100,000 - 250,000', 'desc': 'High value ore. Pirate patrols common.'}],
-                'HIGH': [{'location': 'Pyro Core Belt', 'material': 'Taranite + Quantanium', 'refinery': 'Mobile Refinery', 'sell': 'Black Market', 'yield': '200,000 - 500,000', 'desc': 'Richest deposits. Expect PvP. Go with fleet.'}]
+                'MEDIUM': [{'location': 'Pyro Belt Edge', 'material': 'Mixed Ores', 'refinery': 'Pyro Station', 'sell': 'Local Buyers', 'yield': '20,000 - 60,000', 'desc': 'Lawless but sparse population at edges. Always watch your back.'}],
+                'HIGH': [
+                    {'location': 'Pyro I Rings', 'material': 'Bexalite Deposits', 'refinery': 'Ruin Station', 'sell': 'Stanton Export', 'yield': '100,000 - 250,000', 'desc': 'High value ore. Pirate patrols common. PvP guaranteed.'},
+                    {'location': 'Pyro Core Belt', 'material': 'Taranite + Quantanium', 'refinery': 'Mobile Refinery', 'sell': 'Black Market', 'yield': '200,000 - 500,000', 'desc': 'Richest deposits. Expect PvP. Go with fleet.'}
+                ]
             },
             'Nyx': {
                 'LOW': [{'location': 'Delamar Fields', 'material': 'Titanium + Copper', 'refinery': 'Levski Refinery', 'sell': 'Levski', 'yield': '25,000 - 70,000', 'desc': 'Quiet mining away from traffic.'}],
@@ -611,20 +613,23 @@ async def analyze_mission(request: IntelRequest):
         }
         
         import random
-        routes = mining_routes.get(request.system, mining_routes['Stanton']).get(request.risk, mining_routes['Stanton']['MEDIUM'])
-        route = random.choice(routes)
+        system_routes = mining_routes.get(request.system, mining_routes['Stanton'])
+        routes = system_routes.get(effective_risk, system_routes.get('MEDIUM', list(system_routes.values())[0]))
+        route = random.choice(routes) if isinstance(routes, list) else routes
+        
+        desc = route['desc'] + pyro_warning
         
         return MissionResponse(
             type='mining', title=f"Mining: {route['material'].split('(')[0].strip()}",
-            description=route['desc'],
+            description=desc,
             location={
-                'name': f"⛏️ {route['location']}",
+                'name': f"📍 {request.system} System: {route['location']}",
                 'description': f"Material: {route['material']}\n🔧 Refine at: {route['refinery']}\n💰 Sell at: {route['sell']}",
                 'activities': f"Expected yield: {route['yield']} aUEC"
             },
             duration=time_display, reward=route['yield'] + ' aUEC',
-            risk_level=request.risk, 
-            fallback={'title': 'Join Mining Crew', 'description': 'Operate lasers on a MOLE for guaranteed profit share'}
+            risk_level=effective_risk, 
+            fallback={'title': 'Join Mining Crew', 'description': f'Operate lasers on a MOLE in {request.system} for guaranteed profit share'}
         )
     
     # Chill - unique interesting locations, Variable reward
@@ -639,8 +644,8 @@ async def analyze_mission(request: IntelRequest):
                 {'name': 'Port Tressler Observatory', 'desc': 'Premium lounge overlooking Crusader. Ship spotting and relaxation.', 'activities': 'Relaxation, Ship Watching'}
             ],
             'Pyro': [
-                {'name': 'Pyro Star Overlook', 'desc': 'Abandoned station with views of the burning star. Eerie and beautiful.', 'activities': 'Photography'},
-                {'name': 'Ruin Station Art Walk', 'desc': 'Player graffiti installations in derelicts. Living museum of verse culture.', 'activities': 'Art, Culture'}
+                {'name': 'Pyro Star Overlook', 'desc': 'Abandoned station with views of the burning star. Eerie and beautiful. Stay armed!', 'activities': 'Photography, Danger Tourism'},
+                {'name': 'Ruin Station Art Walk', 'desc': 'Player graffiti installations in derelicts. Living museum of verse culture. Watch for ambushes.', 'activities': 'Art, Culture'}
             ],
             'Nyx': [
                 {'name': 'Levski Memorial Plaza', 'desc': 'Revolutionary monument. Rich history of the independence movement.', 'activities': 'History, Culture'},
@@ -650,41 +655,81 @@ async def analyze_mission(request: IntelRequest):
         import random
         locs = chill_locations.get(request.system, chill_locations['Stanton'])
         loc = random.choice(locs)
+        
+        # Chill in Pyro still has elevated risk
+        chill_risk = 'MEDIUM' if request.system == 'Pyro' else 'LOW'
+        desc = 'Sightseeing, cave exploration, or scenic spots.'
+        if request.system == 'Pyro':
+            desc += ' ⚠️ PYRO: Even chill activities carry PvP risk!'
+        
         return MissionResponse(
             type='chill', title='Exploration & Touring',
-            description='Sightseeing, cave exploration, or scenic spots.',
-            location={'name': loc['name'], 'description': loc['desc'], 'activities': loc['activities']},
+            description=desc,
+            location={'name': f"📍 {request.system} System: {loc['name']}", 'description': loc['desc'], 'activities': loc['activities']},
             duration=time_display, reward='Variable',
-            risk_level='LOW', fallback={'title': 'Social Hub', 'description': 'Visit a landing zone and meet other pilots'}
+            risk_level=chill_risk, fallback={'title': 'Social Hub', 'description': f'Visit a landing zone in {request.system} and meet other pilots'}
         )
     
     # Combat
     if request.activity == 'combat':
+        combat_desc = 'Engage hostile targets and complete bounty contracts.'
+        if request.system == 'Pyro':
+            combat_desc += ' ⚠️ PYRO: Full PvP - hostile players guaranteed!'
+        combat_desc += pyro_warning
+        
+        combat_locations = {
+            'Stanton': 'Security Post Kareah / Comm Arrays',
+            'Pyro': 'Ruin Station vicinity / Jump point camps',
+            'Nyx': 'Delamar patrol zones'
+        }
+        
         return MissionResponse(
             type='combat', title='Combat Missions',
-            description='Engage hostile targets and complete bounty contracts.',
-            location={'name': f'{request.system} - Security Post', 'description': 'Check bounty boards for VHRT/ERT contracts. Group bounties pay best.', 'activities': 'Bounty Hunting, PvE Combat'},
+            description=combat_desc,
+            location={'name': f"📍 {request.system} System: {combat_locations.get(request.system, 'Security Post')}", 'description': 'Check bounty boards for VHRT/ERT contracts. Group bounties pay best.', 'activities': 'Bounty Hunting, PvE Combat' + (', PvP' if request.system == 'Pyro' else '')},
             duration=time_display, reward='15,000 - 100,000 aUEC',
-            risk_level=request.risk, fallback={'title': 'Mercenary Work', 'description': 'Security contracts from mission givers'}
+            risk_level=effective_risk, fallback={'title': 'Mercenary Work', 'description': f'Security contracts from {request.system} mission givers'}
         )
     
     # Salvage
     if request.activity == 'salvage':
+        salvage_desc = 'Recover materials from derelict ships and debris.'
+        if request.system == 'Pyro':
+            salvage_desc += ' ⚠️ PYRO: Expect combat over salvage rights!'
+        salvage_desc += pyro_warning
+        
+        salvage_locations = {
+            'Stanton': 'Comm Array debris fields / Post-battle wrecks',
+            'Pyro': 'Ruin Station ship graveyard / Ambush aftermath',
+            'Nyx': 'Delamar abandoned outposts'
+        }
+        
         return MissionResponse(
             type='salvage', title='Salvage Operations',
-            description='Recover materials from derelict ships and debris.',
-            location={'name': f'{request.system} - Wreck Sites', 'description': 'Fresh combat wrecks near comm arrays. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Components'},
+            description=salvage_desc,
+            location={'name': f"📍 {request.system} System: {salvage_locations.get(request.system, 'Wreck Sites')}", 'description': 'Fresh combat wrecks near comm arrays. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Components'},
             duration=time_display, reward='20,000 - 80,000 aUEC',
-            risk_level=request.risk, fallback={'title': 'Reclaimer Crew', 'description': 'Join a salvage ship for guaranteed cuts'}
+            risk_level=effective_risk, fallback={'title': 'Reclaimer Crew', 'description': f'Join a salvage ship in {request.system} for guaranteed cuts'}
         )
     
     # FPS
+    fps_desc = 'Ground combat operations and bunker clearing.'
+    if request.system == 'Pyro':
+        fps_desc += ' ⚠️ PYRO: Other players may contest bunkers!'
+    fps_desc += pyro_warning
+    
+    fps_locations = {
+        'Stanton': 'Underground Bunkers (Hurston/microTech)',
+        'Pyro': 'Contested outposts / Ruin Station interior',
+        'Nyx': 'Levski underground / Delamar facilities'
+    }
+    
     return MissionResponse(
         type='fps', title='FPS Contracts',
-        description='Ground combat operations and bunker clearing.',
-        location={'name': f'{request.system} - Underground Bunker', 'description': 'Clear hostile occupants. Watch corners, bring meds and extra ammo.', 'activities': 'Bunker Clearing, Defense'},
+        description=fps_desc,
+        location={'name': f"📍 {request.system} System: {fps_locations.get(request.system, 'Underground Bunker')}", 'description': 'Clear hostile occupants. Watch corners, bring meds and extra ammo.', 'activities': 'Bunker Clearing, Defense'},
         duration=time_display, reward='10,000 - 60,000 aUEC',
-        risk_level=request.risk, fallback={'title': 'Security Detail', 'description': 'Guard duty at outposts - steady pay, less action'}
+        risk_level=effective_risk, fallback={'title': 'Security Detail', 'description': f'Guard duty at {request.system} outposts - steady pay, less action'}
     )
 
 
