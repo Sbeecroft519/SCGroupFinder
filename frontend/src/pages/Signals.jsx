@@ -497,7 +497,7 @@ export default function Signals() {
             <div key={metric.id} className="nc-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <CheckCircle size={16} className={metric.value >= 70 ? 'text-green' : metric.value >= 40 ? 'text-orange' : 'text-red'} />
-                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)' }}>
+                <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-text-primary)' }}>
                   {metric.label}
                 </span>
               </div>
