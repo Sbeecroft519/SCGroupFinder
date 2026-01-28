@@ -75,6 +75,7 @@ class UserResponse(BaseModel):
     rsi_handle: str
     is_verified: bool = False
     is_supporter: bool = False
+    is_admin: bool = False
     theme_id: str = "default"
     reputation: float = 5.0
     contracts_completed: int = 0
