@@ -460,7 +460,7 @@ export default function Profile() {
 
         .badge-rack-label {
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 12px;
           color: var(--nc-text-muted);
           letter-spacing: 2px;
           margin-bottom: 12px;
