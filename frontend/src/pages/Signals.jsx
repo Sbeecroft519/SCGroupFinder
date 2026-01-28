@@ -234,10 +234,11 @@ export default function Signals() {
     }
   };
 
+  // Calculate stats from actual trend data
   const totalReports = trendData.reduce((sum, d) => sum + d.reports, 0);
-  const avgReports = (totalReports / trendData.length).toFixed(1);
-  const peakReports = Math.max(...trendData.map(d => d.reports));
-  const uniqueSystems = 4;
+  const avgReports = trendData.length > 0 ? (totalReports / trendData.length).toFixed(1) : '0.0';
+  const peakReports = trendData.length > 0 ? Math.max(...trendData.map(d => d.reports), 0) : 0;
+  const uniqueLocations = Object.keys(reportStats.byLocation || {}).length;
 
   return (
     <div className="navcom-page" data-testid="signals-page">
