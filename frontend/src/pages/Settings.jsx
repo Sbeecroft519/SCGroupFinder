@@ -35,10 +35,25 @@ export default function Settings() {
   const { user, updateUser, tickerSettings, updateTickerSettings, notificationSettings, updateNotificationSettings, userShard, setShard, setShowShardPrompt } = useAuth();
   const [activeSection, setActiveSection] = useState('alerts');
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar_preset || null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   const handleThemeChange = (themeId) => {
     setSelectedTheme(themeId);
     updateUser({ theme_id: themeId });
+  };
+
+  const handleAvatarChange = async (preset) => {
+    setSavingAvatar(true);
+    try {
+      await axios.put(`${API}/user/avatar`, { avatar_preset: preset.id });
+      setSelectedAvatar(preset.id);
+      updateUser({ avatar_preset: preset.id, avatar_url: preset.file });
+    } catch (err) {
+      console.error('Failed to save avatar:', err);
+    } finally {
+      setSavingAvatar(false);
+    }
   };
 
   const toggleContractType = (typeId) => {
