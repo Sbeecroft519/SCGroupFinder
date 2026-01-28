@@ -411,7 +411,7 @@ export default function Signals() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div className="page-label">// SERVER_HEALTH</div>
-          <h1 className="page-title">Health & Reporting</h1>
+          <h1 className="page-title">Server Health & Reporting</h1>
           <p className="page-subtitle">Real-time server stability and crowd-sourced reports</p>
         </div>
         <button 
