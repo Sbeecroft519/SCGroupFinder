@@ -58,14 +58,28 @@ const MAJOR_LOCATIONS = [
   'Port Tressler', 'Baijini Point', 'Everus Harbor', 'CRU-L1', 'HUR-L1', 'ARC-L1', 'MIC-L1'
 ];
 
-// Location dropdowns
-const SYSTEMS = ['Stanton'];
+// Location dropdowns - All Systems
+const SYSTEMS = ['Stanton', 'Pyro', 'Nyx'];
 const LOCATIONS = {
   'Stanton': {
-    'Crusader': ['Port Olisar', 'Grim HEX', 'Yela', 'Cellin', 'Daymar', 'Orison'],
-    'Hurston': ['Lorville', 'HDMS Oparei', 'HDMS Thedus', 'Aberdeen', 'Arial', 'Magda', 'Ita'],
-    'ArcCorp': ['Area 18', 'Baijini Point', 'Lyria', 'Wala'],
-    'microTech': ['New Babbage', 'Port Tressler', 'Calliope', 'Clio', 'Euterpe']
+    'Crusader': ['Port Olisar', 'Grim HEX', 'Yela', 'Cellin', 'Daymar', 'Orison', 'CRU-L1'],
+    'Hurston': ['Lorville', 'Everus Harbor', 'HDMS Oparei', 'HDMS Thedus', 'Aberdeen', 'Arial', 'Magda', 'Ita'],
+    'ArcCorp': ['Area 18', 'Baijini Point', 'Lyria', 'Wala', 'ARC-L1'],
+    'microTech': ['New Babbage', 'Port Tressler', 'Calliope', 'Clio', 'Euterpe', 'MIC-L1']
+  },
+  'Pyro': {
+    'Pyro I': ['Pyro I Surface'],
+    'Pyro II': ['Pyro II Surface'],
+    'Pyro III': ['Pyro III Surface'],
+    'Pyro IV': ['Checkmate Station'],
+    'Pyro V': ['Pyro V Surface'],
+    'Pyro VI': ['Pyro VI Surface'],
+    'Ruin Station': ['Ruin Station']
+  },
+  'Nyx': {
+    'Delamar': ['Levski'],
+    'Nyx I': ['Nyx I Surface'],
+    'Nyx II': ['Nyx II Surface']
   }
 };
 
