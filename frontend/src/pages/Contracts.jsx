@@ -417,7 +417,7 @@ export default function Contracts() {
       setNewContract({
         type: 'security', activity: '', threat: '', start_location: '', end_location: '',
         cargo_value: '', status_select: '', environment: '', load: '', destination: '',
-        job: '', role: '', compensation_type: 'Flat Fee', payment_amount: '',
+        job: '', role: '', compensation_type: 'Flat Fee', meet_at: '', payment_amount: '',
         system: 'Stanton', planet: '', location: ''
       });
     } catch (error) {
