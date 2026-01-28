@@ -290,36 +290,37 @@ async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
     time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
     
-    # Cargo - use UEX data for profit calculation with specific routes
+    # Cargo - use best profitable routes based on risk
     if request.activity == 'cargo':
-        # Stanton trade routes with real locations
+        # High-profit trade routes (realistic SC economy)
         trade_routes = {
             'Stanton': {
                 'LOW': [
-                    {'commodity': 'Agricium', 'buy': 'Lathan (Shubin SAL-2)', 'sell': 'Area18 TDD', 'buy_price': 25.50, 'sell_price': 27.89, 'profit_per_scu': 2.39},
-                    {'commodity': 'Aluminum', 'buy': 'Euterpe (HDMS-Woodruff)', 'sell': 'Lorville CBD', 'buy_price': 1.15, 'sell_price': 1.28, 'profit_per_scu': 0.13},
-                    {'commodity': 'Titanium', 'buy': 'Daymar (Kudre Ore)', 'sell': 'Port Olisar', 'buy_price': 8.04, 'sell_price': 8.98, 'profit_per_scu': 0.94},
+                    {'commodity': 'Agricium', 'buy': 'Shubin SAL-2 (Lyria)', 'sell': 'Area18 TDD', 'buy_price': 25.50, 'sell_price': 27.89, 'profit_per_scu': 2.39},
+                    {'commodity': 'Titanium', 'buy': 'Lathan (Arial)', 'sell': 'Port Olisar', 'buy_price': 8.04, 'sell_price': 9.12, 'profit_per_scu': 1.08},
+                    {'commodity': 'Stims', 'buy': 'Orison', 'sell': 'GrimHEX', 'buy_price': 2.80, 'sell_price': 3.75, 'profit_per_scu': 0.95},
                 ],
                 'MEDIUM': [
-                    {'commodity': 'Laranite', 'buy': 'Arial (HDMS-Lathan)', 'sell': 'New Babbage TDD', 'buy_price': 28.82, 'sell_price': 31.89, 'profit_per_scu': 3.07},
-                    {'commodity': 'Gold', 'buy': 'Yela (ArcCorp 157)', 'sell': 'Lorville CBD', 'buy_price': 6.07, 'sell_price': 6.68, 'profit_per_scu': 0.61},
-                    {'commodity': 'Fluorine', 'buy': 'Hurston (HDMS-Edmond)', 'sell': 'CRU-L1 Ambitious Dream', 'buy_price': 2.80, 'sell_price': 3.12, 'profit_per_scu': 0.32},
+                    {'commodity': 'Laranite', 'buy': 'Bountiful Harvest (Daymar)', 'sell': 'New Babbage TDD', 'buy_price': 27.50, 'sell_price': 31.89, 'profit_per_scu': 4.39},
+                    {'commodity': 'Agricium', 'buy': 'HDMS-Thedus (Arial)', 'sell': 'Lorville CBD', 'buy_price': 24.12, 'sell_price': 28.50, 'profit_per_scu': 4.38},
+                    {'commodity': 'Titanium', 'buy': 'Kudre Ore (Daymar)', 'sell': 'Area18 TDD', 'buy_price': 7.80, 'sell_price': 9.45, 'profit_per_scu': 1.65},
                 ],
                 'HIGH': [
-                    {'commodity': 'Quantanium (Raw)', 'buy': 'Aaron Halo (Mining)', 'sell': 'CRU-L1 Refinery', 'buy_price': 0, 'sell_price': 88.00, 'profit_per_scu': 88.00, 'note': 'Volatile - 15 min timer'},
-                    {'commodity': 'Slam', 'buy': 'GrimHEX', 'sell': 'Private Buyer', 'buy_price': 12.50, 'sell_price': 42.00, 'profit_per_scu': 29.50, 'note': 'Illegal - Avoid scans'},
-                    {'commodity': 'Medical Supplies', 'buy': 'Orison', 'sell': 'GrimHEX', 'buy_price': 17.15, 'sell_price': 19.89, 'profit_per_scu': 2.74},
+                    {'commodity': 'Quantanium (Refined)', 'buy': 'CRU-L1 Refinery', 'sell': 'Area18 TDD', 'buy_price': 44.00, 'sell_price': 88.50, 'profit_per_scu': 44.50, 'note': 'Refinery wait time required'},
+                    {'commodity': 'WiDoW', 'buy': 'JT (Yela)', 'sell': 'GrimHEX', 'buy_price': 24.00, 'sell_price': 96.00, 'profit_per_scu': 72.00, 'note': 'Illegal - High pirate activity at JT'},
+                    {'commodity': 'Slam', 'buy': 'Nuen Waste (Daymar)', 'sell': 'GrimHEX', 'buy_price': 12.50, 'sell_price': 52.00, 'profit_per_scu': 39.50, 'note': 'Illegal - Avoid scans'},
+                    {'commodity': 'Laranite', 'buy': 'Arial (Contested)', 'sell': 'Lorville CBD', 'buy_price': 26.00, 'sell_price': 32.50, 'profit_per_scu': 6.50, 'note': 'PvP hotspot'},
                 ]
             },
             'Pyro': {
-                'LOW': [{'commodity': 'Scrap', 'buy': 'Pyro Stations', 'sell': 'Any Terminal', 'buy_price': 0.50, 'sell_price': 1.25, 'profit_per_scu': 0.75}],
-                'MEDIUM': [{'commodity': 'Processed Food', 'buy': 'Stanton Import', 'sell': 'Pyro Settlements', 'buy_price': 1.35, 'sell_price': 3.80, 'profit_per_scu': 2.45}],
-                'HIGH': [{'commodity': 'WiDoW', 'buy': 'Pyro Underground', 'sell': 'Black Market', 'buy_price': 96.00, 'sell_price': 156.00, 'profit_per_scu': 60.00, 'note': 'Highly illegal'}]
+                'LOW': [{'commodity': 'Medical Supplies', 'buy': 'Stanton Import', 'sell': 'Pyro Stations', 'buy_price': 17.50, 'sell_price': 35.00, 'profit_per_scu': 17.50}],
+                'MEDIUM': [{'commodity': 'Processed Food', 'buy': 'Stanton Import', 'sell': 'Pyro Settlements', 'buy_price': 1.35, 'sell_price': 8.50, 'profit_per_scu': 7.15}],
+                'HIGH': [{'commodity': 'WiDoW', 'buy': 'Pyro Production', 'sell': 'Stanton Black Market', 'buy_price': 18.00, 'sell_price': 110.00, 'profit_per_scu': 92.00, 'note': 'Extremely dangerous'}]
             },
             'Nyx': {
-                'LOW': [{'commodity': 'Hydrogen', 'buy': 'Delamar Refineries', 'sell': 'Levski', 'buy_price': 1.02, 'sell_price': 1.15, 'profit_per_scu': 0.13}],
-                'MEDIUM': [{'commodity': 'Distilled Spirits', 'buy': 'Levski', 'sell': 'Stanton Export', 'buy_price': 4.95, 'sell_price': 5.56, 'profit_per_scu': 0.61}],
-                'HIGH': [{'commodity': 'Maze', 'buy': 'Underground', 'sell': 'Stanton Black Market', 'buy_price': 42.00, 'sell_price': 89.00, 'profit_per_scu': 47.00, 'note': 'Illegal narcotic'}]
+                'LOW': [{'commodity': 'Hydrogen Fuel', 'buy': 'Delamar Refineries', 'sell': 'Levski', 'buy_price': 1.02, 'sell_price': 1.45, 'profit_per_scu': 0.43}],
+                'MEDIUM': [{'commodity': 'Distilled Spirits', 'buy': 'Levski Production', 'sell': 'Stanton Export', 'buy_price': 4.95, 'sell_price': 6.25, 'profit_per_scu': 1.30}],
+                'HIGH': [{'commodity': 'Maze', 'buy': 'Nyx Underground', 'sell': 'Stanton Black Market', 'buy_price': 42.00, 'sell_price': 115.00, 'profit_per_scu': 73.00, 'note': 'Illegal narcotic'}]
             }
         }
         
