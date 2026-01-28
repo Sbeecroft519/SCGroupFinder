@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Edit2, Trash2, DollarSign, Users, Target, X, Check } from 'lucide-react';
+import { Shield, Plus, Edit2, Trash2, DollarSign, Users, Target, X, Check, RefreshCw, Activity } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -13,6 +13,8 @@ export default function Admin() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [goalForm, setGoalForm] = useState({ title: '', description: '', target_amount: 100 });
+  const [lastReset, setLastReset] = useState(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (user?.is_admin) fetchData();
@@ -21,18 +23,34 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [goalsRes, contribRes, usersRes] = await Promise.all([
+      const [goalsRes, contribRes, usersRes, resetRes] = await Promise.all([
         axios.get(`${API}/admin/goals`),
         axios.get(`${API}/admin/contributions`),
-        axios.get(`${API}/admin/users`)
+        axios.get(`${API}/admin/users`),
+        axios.get(`${API}/admin/last-reset`).catch(() => ({ data: { last_reset: null } }))
       ]);
       setGoals(goalsRes.data || []);
       setContributions(contribRes.data || []);
       setUsers(usersRes.data || []);
+      setLastReset(resetRes.data?.last_reset);
     } catch (error) {
       console.error('Admin fetch error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetReports = async () => {
+    if (!window.confirm('Reset ALL reports? This cannot be undone.')) return;
+    setResetting(true);
+    try {
+      const res = await axios.post(`${API}/admin/reset-reports`);
+      setLastReset(res.data.reset_at);
+      alert('Reports reset successfully');
+    } catch (e) {
+      alert('Reset failed');
+    } finally {
+      setResetting(false);
     }
   };
 
