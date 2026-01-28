@@ -464,7 +464,11 @@ export default function Contracts() {
                     <select 
                       className="nc-input"
                       value={newContract.activity}
-                      onChange={e => setNewContract(prev => ({ ...prev, activity: e.target.value }))}
+                      onChange={e => setNewContract(prev => ({ 
+                        ...prev, 
+                        activity: e.target.value,
+                        start_location: '', end_location: '', cargo_value: '', threat: ''
+                      }))}
                     >
                       <option value="">Select activity...</option>
                       {CONTRACT_OPTIONS.security.activity.map(opt => (
@@ -472,19 +476,68 @@ export default function Contracts() {
                       ))}
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="nc-label">THREAT LEVEL</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.threat}
-                      onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
-                    >
-                      <option value="">Select threat level...</option>
-                      {CONTRACT_OPTIONS.security.threat.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
+                  
+                  {/* Escort-specific fields */}
+                  {newContract.activity === 'Escort' && (
+                    <>
+                      <div className="form-group">
+                        <label className="nc-label">START LOCATION</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.start_location}
+                          onChange={e => setNewContract(prev => ({ ...prev, start_location: e.target.value }))}
+                        >
+                          <option value="">Select start...</option>
+                          {MAJOR_LOCATIONS.map(loc => (
+                            <option key={loc} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="nc-label">END LOCATION</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.end_location}
+                          onChange={e => setNewContract(prev => ({ ...prev, end_location: e.target.value }))}
+                        >
+                          <option value="">Select destination...</option>
+                          {MAJOR_LOCATIONS.filter(l => l !== newContract.start_location).map(loc => (
+                            <option key={loc} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="nc-label">CARGO VALUE</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.cargo_value}
+                          onChange={e => setNewContract(prev => ({ ...prev, cargo_value: e.target.value }))}
+                        >
+                          <option value="">Select cargo value...</option>
+                          {CONTRACT_OPTIONS.security.cargo_value.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Non-Escort: Standard threat field */}
+                  {newContract.activity && newContract.activity !== 'Escort' && (
+                    <div className="form-group">
+                      <label className="nc-label">THREAT LEVEL</label>
+                      <select 
+                        className="nc-input"
+                        value={newContract.threat}
+                        onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
+                      >
+                        <option value="">Select threat level...</option>
+                        {CONTRACT_OPTIONS.security.threat.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </>
               )}
 
