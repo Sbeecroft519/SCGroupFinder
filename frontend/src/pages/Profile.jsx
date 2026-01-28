@@ -147,28 +147,47 @@ export default function Profile() {
       <style>{`
         .profile-page {
           padding: 40px 20px;
-          display: flex;
-          justify-content: center;
-          align-items: flex-start;
           min-height: calc(100vh - 140px);
+        }
+
+        .profile-grid {
+          display: grid;
+          grid-template-columns: 60% 40%;
+          gap: 24px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .card-column {
+          display: flex;
+          justify-content: flex-start;
+        }
+
+        .history-column {
+          /* Future: Mission History module */
         }
 
         .citizen-card {
           width: 100%;
-          max-width: 480px;
+          max-width: 580px;
+          aspect-ratio: 1.6;
           background: var(--nc-bg-secondary);
-          border: 2px solid var(--nc-cyan);
-          box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), inset 0 0 60px rgba(0, 240, 255, 0.03);
-          clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+          border: 1px solid rgba(0, 240, 255, 0.3);
+          outline: 1px solid rgba(0, 240, 255, 0.15);
+          outline-offset: 4px;
+          box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), inset 0 0 80px rgba(0, 240, 255, 0.03);
+          clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
           position: relative;
-          padding: 24px;
+          padding: 20px 24px;
+          display: flex;
+          flex-direction: column;
         }
 
         .citizen-card::before {
           content: '';
           position: absolute;
           inset: 0;
-          background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.02) 2px, rgba(0, 240, 255, 0.02) 4px);
+          background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.015) 2px, rgba(0, 240, 255, 0.015) 4px);
           pointer-events: none;
         }
 
@@ -176,66 +195,69 @@ export default function Profile() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .citizen-name {
-          font-family: var(--nc-font-display);
-          font-size: 28px;
+          font-family: 'Orbitron', var(--nc-font-display), sans-serif;
+          font-size: 22px;
           font-weight: 700;
           color: var(--nc-cyan);
-          letter-spacing: 3px;
-          text-shadow: 0 0 10px var(--nc-cyan);
+          letter-spacing: 4px;
+          text-shadow: 0 0 12px var(--nc-cyan);
         }
 
         .card-label {
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 9px;
           color: var(--nc-text-muted);
-          letter-spacing: 1px;
-          opacity: 0.6;
+          letter-spacing: 1.5px;
+          opacity: 0.5;
         }
 
         .card-divider {
           height: 1px;
-          background: var(--nc-cyan);
+          background: linear-gradient(90deg, var(--nc-cyan), transparent);
           opacity: 0.4;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .card-body {
           display: flex;
-          gap: 24px;
+          gap: 20px;
+          flex: 1;
         }
 
         .left-col {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 16px;
+          justify-content: center;
+          gap: 12px;
+          min-width: 100px;
         }
 
         .avatar-container {
-          width: 100px;
-          height: 100px;
+          width: 80px;
+          height: 80px;
           border-radius: 50%;
-          border: 2px solid var(--nc-cyan);
+          border: 1px solid var(--nc-cyan);
           display: flex;
           align-items: center;
           justify-content: center;
           position: relative;
-          background: rgba(0, 240, 255, 0.05);
+          background: rgba(0, 240, 255, 0.03);
         }
 
         .avatar-ring {
           position: absolute;
-          inset: -8px;
-          border: 2px solid var(--nc-cyan);
+          inset: -6px;
+          border: 1px solid var(--nc-cyan);
           border-radius: 50%;
           border-top-color: transparent;
           border-left-color: transparent;
           animation: spin 4s linear infinite;
-          opacity: 0.6;
+          opacity: 0.5;
         }
 
         @keyframes spin {
@@ -243,21 +265,21 @@ export default function Profile() {
         }
 
         .avatar-icon {
-          width: 60px;
-          height: 60px;
+          width: 48px;
+          height: 48px;
           object-fit: contain;
         }
 
         .avatar-icon.rsi-avatar {
-          width: 80px;
-          height: 80px;
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
           object-fit: cover;
         }
 
         .avatar-initials {
           font-family: var(--nc-font-display);
-          font-size: 32px;
+          font-size: 24px;
           color: var(--nc-cyan);
         }
 
@@ -265,12 +287,12 @@ export default function Profile() {
           display: flex;
           gap: 2px;
           align-items: flex-end;
-          height: 50px;
-          opacity: 0.6;
+          height: 35px;
+          opacity: 0.5;
         }
 
         .bar {
-          width: 3px;
+          width: 2px;
           background: var(--nc-cyan);
         }
 
@@ -278,36 +300,38 @@ export default function Profile() {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          justify-content: center;
+          gap: 8px;
         }
 
         .label {
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 9px;
           color: var(--nc-text-muted);
-          letter-spacing: 1px;
+          letter-spacing: 1.5px;
           display: block;
-          margin-bottom: 2px;
+          margin-bottom: 1px;
+          opacity: 0.7;
         }
 
         .rank-section .rank-value {
-          font-family: var(--nc-font-display);
-          font-size: 26px;
+          font-family: 'Orbitron', var(--nc-font-display), sans-serif;
+          font-size: 20px;
           font-weight: 700;
           color: #ffd700;
-          letter-spacing: 2px;
-          text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+          letter-spacing: 3px;
+          text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
         }
 
         .rep-row {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
         .rep-value {
-          font-family: var(--nc-font-display);
-          font-size: 32px;
+          font-family: 'Orbitron', var(--nc-font-display), sans-serif;
+          font-size: 26px;
           font-weight: 700;
           color: var(--nc-cyan);
         }
@@ -318,7 +342,7 @@ export default function Profile() {
         }
 
         .star {
-          font-size: 16px;
+          font-size: 14px;
           color: var(--nc-text-muted);
           opacity: 0.3;
         }
@@ -331,16 +355,16 @@ export default function Profile() {
 
         .stats-row {
           font-family: var(--nc-font-mono);
-          font-size: 12px;
+          font-size: 11px;
           color: var(--nc-text-muted);
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
-          margin-top: 8px;
+          margin-top: 4px;
         }
 
         .stats-row .divider {
-          opacity: 0.4;
+          opacity: 0.3;
         }
 
         .stats-row strong {
@@ -348,60 +372,61 @@ export default function Profile() {
         }
 
         .card-footer {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid rgba(0, 240, 255, 0.2);
+          margin-top: auto;
+          padding-top: 12px;
+          border-top: 1px solid rgba(0, 240, 255, 0.15);
         }
 
         .badge-rack-label {
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 9px;
           color: var(--nc-text-muted);
-          letter-spacing: 1px;
-          margin-bottom: 10px;
+          letter-spacing: 1.5px;
+          margin-bottom: 8px;
+          opacity: 0.7;
         }
 
         .badge-rack {
           display: flex;
-          gap: 10px;
+          gap: 8px;
         }
 
         .ribbon {
-          width: 36px;
-          height: 36px;
+          width: 30px;
+          height: 30px;
           border: 1px solid var(--nc-cyan);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--nc-cyan);
           clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-          background: rgba(0, 240, 255, 0.1);
+          background: rgba(0, 240, 255, 0.08);
         }
 
         .ribbon svg {
-          width: 18px;
-          height: 18px;
+          width: 14px;
+          height: 14px;
         }
 
         .ribbon.supporter {
           color: #ffd700;
           border-color: #ffd700;
-          background: rgba(255, 215, 0, 0.1);
+          background: rgba(255, 215, 0, 0.08);
         }
 
         .copy-btn {
           position: absolute;
-          bottom: 24px;
-          right: 24px;
+          bottom: 16px;
+          right: 20px;
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
+          gap: 5px;
+          padding: 6px 10px;
           background: transparent;
-          border: 1px solid var(--nc-border);
+          border: 1px solid rgba(0, 240, 255, 0.3);
           color: var(--nc-text-muted);
           font-family: var(--nc-font-mono);
-          font-size: 10px;
+          font-size: 9px;
           letter-spacing: 0.5px;
           cursor: pointer;
           transition: all 0.2s;
@@ -412,9 +437,19 @@ export default function Profile() {
           color: var(--nc-cyan);
         }
 
+        @media (max-width: 900px) {
+          .profile-grid {
+            grid-template-columns: 1fr;
+          }
+          .card-column {
+            justify-content: center;
+          }
+        }
+
         @media (max-width: 500px) {
           .citizen-card {
-            padding: 20px;
+            aspect-ratio: auto;
+            padding: 16px;
           }
 
           .card-body {
@@ -432,16 +467,12 @@ export default function Profile() {
           }
 
           .citizen-name {
-            font-size: 22px;
-          }
-
-          .rank-section .rank-value {
-            font-size: 22px;
+            font-size: 18px;
           }
 
           .copy-btn {
             position: static;
-            margin-top: 20px;
+            margin-top: 12px;
             width: 100%;
             justify-content: center;
           }
