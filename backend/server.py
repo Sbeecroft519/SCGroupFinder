@@ -290,73 +290,123 @@ async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
     time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
     
-    # Cargo - use best profitable routes based on risk
+    # Cargo - fetch LIVE UEX data for best routes
     if request.activity == 'cargo':
-        # High-profit trade routes (realistic SC economy)
-        trade_routes = {
-            'Stanton': {
-                'LOW': [
-                    {'commodity': 'Agricium', 'buy': 'Shubin SAL-2 (Lyria)', 'sell': 'Area18 TDD', 'buy_price': 25.50, 'sell_price': 27.89, 'profit_per_scu': 2.39},
-                    {'commodity': 'Titanium', 'buy': 'Lathan (Arial)', 'sell': 'Port Olisar', 'buy_price': 8.04, 'sell_price': 9.12, 'profit_per_scu': 1.08},
-                    {'commodity': 'Stims', 'buy': 'Orison', 'sell': 'GrimHEX', 'buy_price': 2.80, 'sell_price': 3.75, 'profit_per_scu': 0.95},
-                ],
-                'MEDIUM': [
-                    {'commodity': 'Laranite', 'buy': 'Bountiful Harvest (Daymar)', 'sell': 'New Babbage TDD', 'buy_price': 27.50, 'sell_price': 31.89, 'profit_per_scu': 4.39},
-                    {'commodity': 'Agricium', 'buy': 'HDMS-Thedus (Arial)', 'sell': 'Lorville CBD', 'buy_price': 24.12, 'sell_price': 28.50, 'profit_per_scu': 4.38},
-                    {'commodity': 'Titanium', 'buy': 'Kudre Ore (Daymar)', 'sell': 'Area18 TDD', 'buy_price': 7.80, 'sell_price': 9.45, 'profit_per_scu': 1.65},
-                ],
-                'HIGH': [
-                    {'commodity': 'Quantanium (Refined)', 'buy': 'CRU-L1 Refinery', 'sell': 'Area18 TDD', 'buy_price': 44.00, 'sell_price': 88.50, 'profit_per_scu': 44.50, 'note': 'Refinery wait time required'},
-                    {'commodity': 'WiDoW', 'buy': 'JT (Yela)', 'sell': 'GrimHEX', 'buy_price': 24.00, 'sell_price': 96.00, 'profit_per_scu': 72.00, 'note': 'Illegal - High pirate activity at JT'},
-                    {'commodity': 'Slam', 'buy': 'Nuen Waste (Daymar)', 'sell': 'GrimHEX', 'buy_price': 12.50, 'sell_price': 52.00, 'profit_per_scu': 39.50, 'note': 'Illegal - Avoid scans'},
-                    {'commodity': 'Laranite', 'buy': 'Arial (Contested)', 'sell': 'Lorville CBD', 'buy_price': 26.00, 'sell_price': 32.50, 'profit_per_scu': 6.50, 'note': 'PvP hotspot'},
-                ]
-            },
-            'Pyro': {
-                'LOW': [{'commodity': 'Medical Supplies', 'buy': 'Stanton Import', 'sell': 'Pyro Stations', 'buy_price': 17.50, 'sell_price': 35.00, 'profit_per_scu': 17.50}],
-                'MEDIUM': [{'commodity': 'Processed Food', 'buy': 'Stanton Import', 'sell': 'Pyro Settlements', 'buy_price': 1.35, 'sell_price': 8.50, 'profit_per_scu': 7.15}],
-                'HIGH': [{'commodity': 'WiDoW', 'buy': 'Pyro Production', 'sell': 'Stanton Black Market', 'buy_price': 18.00, 'sell_price': 110.00, 'profit_per_scu': 92.00, 'note': 'Extremely dangerous'}]
-            },
-            'Nyx': {
-                'LOW': [{'commodity': 'Hydrogen Fuel', 'buy': 'Delamar Refineries', 'sell': 'Levski', 'buy_price': 1.02, 'sell_price': 1.45, 'profit_per_scu': 0.43}],
-                'MEDIUM': [{'commodity': 'Distilled Spirits', 'buy': 'Levski Production', 'sell': 'Stanton Export', 'buy_price': 4.95, 'sell_price': 6.25, 'profit_per_scu': 1.30}],
-                'HIGH': [{'commodity': 'Maze', 'buy': 'Nyx Underground', 'sell': 'Stanton Black Market', 'buy_price': 42.00, 'sell_price': 115.00, 'profit_per_scu': 73.00, 'note': 'Illegal narcotic'}]
+        best_route = None
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                # Fetch all commodity prices
+                prices_resp = await client.get('https://uexcorp.space/api/2.0/commodities_prices_all')
+                if prices_resp.status_code == 200:
+                    prices_data = prices_resp.json()
+                    prices = prices_data.get('data', prices_data) if isinstance(prices_data, dict) else prices_data
+                    
+                    # Group by commodity - find buy and sell locations
+                    commodity_prices = {}
+                    for p in prices:
+                        cname = p.get('commodity_name')
+                        if not cname:
+                            continue
+                        if cname not in commodity_prices:
+                            commodity_prices[cname] = {'buys': [], 'sells': []}
+                        
+                        if p.get('price_buy') and p.get('price_buy') > 0 and p.get('status_buy') == 1:
+                            commodity_prices[cname]['buys'].append({
+                                'terminal': p.get('terminal_name'),
+                                'price': p.get('price_buy'),
+                                'stock': p.get('scu_buy', 0)
+                            })
+                        if p.get('price_sell') and p.get('price_sell') > 0 and p.get('status_sell') == 1:
+                            commodity_prices[cname]['sells'].append({
+                                'terminal': p.get('terminal_name'),
+                                'price': p.get('price_sell'),
+                                'stock': p.get('scu_sell_stock', 0)
+                            })
+                    
+                    # Calculate best routes
+                    routes = []
+                    for commodity, data in commodity_prices.items():
+                        if not data['buys'] or not data['sells']:
+                            continue
+                        # Best buy (lowest price)
+                        best_buy = min(data['buys'], key=lambda x: x['price'])
+                        # Best sell (highest price)
+                        best_sell = max(data['sells'], key=lambda x: x['price'])
+                        
+                        profit_per_scu = best_sell['price'] - best_buy['price']
+                        if profit_per_scu > 100:  # Minimum viable profit
+                            roi = (profit_per_scu / best_buy['price']) * 100 if best_buy['price'] > 0 else 0
+                            routes.append({
+                                'commodity': commodity,
+                                'buy_terminal': best_buy['terminal'],
+                                'buy_price': best_buy['price'],
+                                'sell_terminal': best_sell['terminal'],
+                                'sell_price': best_sell['price'],
+                                'profit_per_scu': profit_per_scu,
+                                'roi': roi,
+                                'total_profit': profit_per_scu * ship_scu,
+                                'investment': best_buy['price'] * ship_scu
+                            })
+                    
+                    # Sort by total profit and filter by risk
+                    routes.sort(key=lambda x: x['total_profit'], reverse=True)
+                    
+                    # Filter by risk level
+                    illegal_commodities = ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin']
+                    high_value = ['Laranite', 'Agricium', 'Bexalite', 'Quantanium', 'Taranite']
+                    
+                    if request.risk == 'LOW':
+                        # Safe, stable commodities - lower profit but consistent
+                        routes = [r for r in routes if r['commodity'] not in illegal_commodities and r['roi'] < 50]
+                    elif request.risk == 'HIGH':
+                        # High risk = illegal or high-value targets
+                        routes = [r for r in routes if r['commodity'] in illegal_commodities or r['commodity'] in high_value or r['roi'] > 30]
+                    else:
+                        # Medium - avoid illegal but allow decent profit
+                        routes = [r for r in routes if r['commodity'] not in illegal_commodities]
+                    
+                    if routes:
+                        best_route = routes[0]
+        except Exception as e:
+            logger.error(f"UEX API error: {e}")
+        
+        # Fallback routes if API fails
+        if not best_route:
+            fallback_routes = {
+                'LOW': {'commodity': 'Medical Supplies', 'buy_terminal': 'Orison - Providence Platform', 'buy_price': 1715, 'sell_terminal': 'GrimHEX', 'sell_price': 2150, 'profit_per_scu': 435},
+                'MEDIUM': {'commodity': 'Laranite', 'buy_terminal': 'HDMS-Lathan (Arial)', 'buy_price': 2788, 'sell_terminal': 'TDD New Babbage', 'sell_price': 3156, 'profit_per_scu': 368},
+                'HIGH': {'commodity': 'WiDoW', 'buy_terminal': 'Jumptown (Yela)', 'buy_price': 2400, 'sell_terminal': 'GrimHEX', 'sell_price': 11200, 'profit_per_scu': 8800}
             }
-        }
+            best_route = fallback_routes.get(request.risk, fallback_routes['MEDIUM'])
+            best_route['total_profit'] = best_route['profit_per_scu'] * ship_scu
+            best_route['investment'] = best_route['buy_price'] * ship_scu
+            best_route['roi'] = (best_route['profit_per_scu'] / best_route['buy_price']) * 100
         
-        import random
-        routes = trade_routes.get(request.system, trade_routes['Stanton']).get(request.risk, trade_routes['Stanton']['MEDIUM'])
-        route = random.choice(routes)
-        
-        total_profit = route['profit_per_scu'] * ship_scu
-        min_profit = int(total_profit * 0.85)
-        max_profit = int(total_profit * 1.15)
-        investment = route['buy_price'] * ship_scu
-        roi = (total_profit / investment * 100) if investment > 0 else 0
-        
-        note = f" ⚠️ {route.get('note')}" if route.get('note') else ""
+        note = ""
+        if best_route.get('commodity') in ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin']:
+            note = " ⚠️ ILLEGAL - Scan risk, pirate activity"
         
         return MissionResponse(
             type='cargo', title='Cargo Hauling',
-            description=f"Trade commodities between stations{note}",
+            description=f"Trade {best_route['commodity']} for maximum profit{note}",
             location={
-                'name': f"{route['commodity']} Trade Route",
-                'description': f"{route['buy']} → {route['sell']}",
-                'activities': f"LIVE: {route['commodity']} | Buy at {route['buy']} ({route['buy_price']:.2f} aUEC/SCU) → Sell at {route['sell']} ({route['sell_price']:.2f} aUEC/SCU) | Profit: {route['profit_per_scu']:.2f} aUEC / {ship_scu} SCU"
+                'name': f"{best_route['commodity']} Trade Route",
+                'description': f"{best_route['buy_terminal']} → {best_route['sell_terminal']}",
+                'activities': f"Buy at {best_route['buy_price']:,.0f} aUEC/SCU, Sell at {best_route['sell_price']:,.0f} aUEC/SCU"
             },
             duration=time_display, 
-            reward=f"{min_profit:,} aUEC - {max_profit:,} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
+            reward=f"{best_route['total_profit']:,.0f} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
             risk_level=request.risk, 
-            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no cargo investment needed'},
+            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no investment needed'},
             profit_data={
-                'commodity': route['commodity'],
-                'route': f"{route['buy']} → {route['sell']}",
-                'buy_price': route['buy_price'],
-                'sell_price': route['sell_price'],
-                'profit_per_scu': round(route['profit_per_scu'], 2),
-                'total_profit': int(total_profit),
-                'investment': int(investment),
-                'roi': round(roi, 1),
+                'commodity': best_route['commodity'],
+                'route': f"{best_route['buy_terminal']} → {best_route['sell_terminal']}",
+                'buy_price': best_route['buy_price'],
+                'sell_price': best_route['sell_price'],
+                'profit_per_scu': round(best_route['profit_per_scu'], 0),
+                'total_profit': int(best_route['total_profit']),
+                'investment': int(best_route['investment']),
+                'roi': round(best_route['roi'], 1),
                 'ship_scu': ship_scu
             }
         )
