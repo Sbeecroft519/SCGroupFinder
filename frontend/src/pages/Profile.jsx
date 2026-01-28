@@ -172,15 +172,22 @@ export default function Profile() {
           max-width: 580px;
           aspect-ratio: 1.6;
           background: var(--nc-bg-secondary);
-          border: 1px solid rgba(0, 240, 255, 0.3);
-          outline: 1px solid rgba(0, 240, 255, 0.15);
-          outline-offset: 4px;
+          border: 2px solid var(--nc-cyan);
           box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), inset 0 0 80px rgba(0, 240, 255, 0.03);
           clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
           position: relative;
           padding: 20px 24px;
           display: flex;
           flex-direction: column;
+        }
+
+        .citizen-card::after {
+          content: '';
+          position: absolute;
+          inset: 6px;
+          border: 1px solid rgba(0, 240, 255, 0.4);
+          clip-path: polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+          pointer-events: none;
         }
 
         .citizen-card::before {
