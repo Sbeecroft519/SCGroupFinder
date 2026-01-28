@@ -2,12 +2,8 @@ import { useState, useEffect } from 'react';
 import { Map, Target, Rocket, Users, Shield, Star, ExternalLink, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
-import { loadStripe } from '@stripe/stripe-js';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-
-// Initialize Stripe with test key
-const stripePromise = loadStripe('pk_test_51IabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
 
 const MOCK_GOALS = [
   {
