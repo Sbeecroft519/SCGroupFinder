@@ -678,6 +678,10 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.reports.insert_one(report_doc)
+    
+    # Broadcast via WebSocket for real-time notifications
+    await broadcast_alert(report_doc)
+    
     return {'message': 'Report submitted', 'id': report_doc['id']}
 
 
