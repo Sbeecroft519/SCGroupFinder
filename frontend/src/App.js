@@ -312,6 +312,8 @@ function App() {
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             </Routes>
           </main>
+          {/* Mobile Bottom Navigation - only shown when logged in */}
+          {user && <MobileNav />}
         </BrowserRouter>
       </div>
     </AuthContext.Provider>
