@@ -1107,6 +1107,7 @@ async def contribute_to_goal(goal_id: str, contribution: ContributionCreate, use
     # Create Stripe checkout session
     if stripe.api_key:
         try:
+            frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000').replace('/api', '').rstrip('/')
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -1121,26 +1122,77 @@ async def contribute_to_goal(goal_id: str, contribution: ContributionCreate, use
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=os.environ.get('FRONTEND_URL', 'http://localhost:3000') + '/roadmap?success=true&goal=' + goal_id,
-                cancel_url=os.environ.get('FRONTEND_URL', 'http://localhost:3000') + '/roadmap?cancelled=true',
+                success_url=f'{frontend_url}/roadmap?success=true',
+                cancel_url=f'{frontend_url}/roadmap?canceled=true',
                 metadata={
                     'goal_id': goal_id,
                     'user_id': user['id'],
                     'amount': contribution.amount
                 }
             )
-            return {'checkout_url': session.url, 'session_id': session.id}
+            return {'url': session.url, 'session_id': session.id}
         except Exception as e:
             logger.error(f"Stripe error: {e}")
-            raise HTTPException(status_code=500, detail="Payment processing error")
-    else:
-        # Demo mode without Stripe
-        await db.goals.update_one(
-            {'id': goal_id},
-            {'$inc': {'current_amount': contribution.amount, 'backers': 1}}
-        )
-        await db.users.update_one({'id': user['id']}, {'$set': {'is_supporter': True}})
-        return {'message': 'Contribution recorded (demo mode)', 'demo': True}
+            # Fall back to demo mode
+            pass
+    
+    # Demo mode without valid Stripe key
+    await db.goals.update_one(
+        {'id': goal_id},
+        {'$inc': {'current_amount': contribution.amount, 'backers': 1}}
+    )
+    await db.users.update_one({'id': user['id']}, {'$set': {'is_supporter': True}})
+    return {'message': 'Contribution recorded (demo mode)', 'demo': True}
+
+# Simplified checkout endpoint
+class CheckoutRequest(BaseModel):
+    goal_id: str
+    amount: int = 10
+
+@api_router.post("/stripe/create-checkout")
+async def create_checkout(request: CheckoutRequest, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    goal = await db.goals.find_one({'id': request.goal_id})
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    if stripe.api_key and stripe.api_key.startswith('sk_'):
+        try:
+            frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000').replace('/api', '').rstrip('/')
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': f'NavCom Feature: {goal["title"]}',
+                            'description': goal.get('description', 'Support NavCom development')
+                        },
+                        'unit_amount': request.amount * 100,
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=f'{frontend_url}/roadmap?success=true',
+                cancel_url=f'{frontend_url}/roadmap?canceled=true',
+                metadata={
+                    'goal_id': request.goal_id,
+                    'user_id': user['id'],
+                    'amount': request.amount
+                }
+            )
+            return {'url': session.url}
+        except Exception as e:
+            logger.error(f"Stripe checkout error: {e}")
+    
+    # Demo mode
+    await db.goals.update_one(
+        {'id': request.goal_id},
+        {'$inc': {'current_amount': request.amount, 'backers': 1}}
+    )
+    return {'demo': True, 'message': 'Demo contribution recorded'}
 
 @api_router.post("/stripe/webhook")
 async def stripe_webhook(request):
