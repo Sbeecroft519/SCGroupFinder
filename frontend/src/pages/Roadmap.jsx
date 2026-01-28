@@ -97,6 +97,35 @@ export default function Roadmap() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   };
 
+  const handleContribute = async (goalId) => {
+    if (!user) {
+      toast.error('Please log in to contribute');
+      return;
+    }
+    
+    setContributingGoalId(goalId);
+    try {
+      const response = await axios.post(`${API}/stripe/create-checkout`, {
+        goal_id: goalId,
+        amount: 10 // Default $10 contribution
+      });
+      
+      if (response.data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.url;
+      } else if (response.data.demo) {
+        // Demo mode - no real Stripe
+        toast.success('Demo: Contribution would be processed here');
+        fetchGoals();
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error('Failed to start checkout');
+    } finally {
+      setContributingGoalId(null);
+    }
+  };
+
   return (
     <div className="navcom-page" data-testid="roadmap-page">
       {/* Page Header */}
