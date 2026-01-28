@@ -152,15 +152,15 @@ export default function Profile() {
 
         .profile-grid {
           display: grid;
-          grid-template-columns: 60% 40%;
+          grid-template-columns: 1fr;
           gap: 24px;
-          max-width: 1200px;
+          max-width: 700px;
           margin: 0 auto;
         }
 
         .card-column {
           display: flex;
-          justify-content: flex-start;
+          justify-content: center;
         }
 
         .history-column {
@@ -169,32 +169,47 @@ export default function Profile() {
 
         .citizen-card {
           width: 100%;
-          max-width: 580px;
-          aspect-ratio: 1.6;
-          background: var(--nc-bg-secondary);
-          border: 2px solid var(--nc-cyan);
-          box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), inset 0 0 80px rgba(0, 240, 255, 0.03);
-          clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+          max-width: 620px;
+          aspect-ratio: 1.1;
+          background: #020b14;
           position: relative;
-          padding: 20px 24px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .citizen-card::after {
-          content: '';
-          position: absolute;
-          inset: 6px;
-          border: 1px solid rgba(0, 240, 255, 0.4);
-          clip-path: polygon(0 8px, 8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
-          pointer-events: none;
+          padding: 0;
+          clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
         }
 
         .citizen-card::before {
           content: '';
           position: absolute;
           inset: 0;
-          background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.015) 2px, rgba(0, 240, 255, 0.015) 4px);
+          background: linear-gradient(135deg, var(--nc-cyan) 0%, var(--nc-cyan) 100%);
+          clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+          z-index: 0;
+        }
+
+        .citizen-card::after {
+          content: '';
+          position: absolute;
+          inset: 2px;
+          background: #020b14;
+          clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+          z-index: 1;
+        }
+
+        .card-inner {
+          position: relative;
+          z-index: 2;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          padding: 20px 24px;
+        }
+
+        .card-inner::before {
+          content: '';
+          position: absolute;
+          inset: 8px;
+          border: 1px solid rgba(0, 240, 255, 0.25);
+          clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
           pointer-events: none;
         }
 
@@ -202,53 +217,66 @@ export default function Profile() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
+          padding: 0 8px;
         }
 
         .citizen-name {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 22px;
+          font-size: 32px;
           font-weight: 700;
           color: var(--nc-cyan);
-          letter-spacing: 4px;
-          text-shadow: 0 0 12px var(--nc-cyan);
+          letter-spacing: 6px;
+          text-shadow: 0 0 20px var(--nc-cyan);
         }
 
         .card-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           font-family: var(--nc-font-mono);
-          font-size: 9px;
-          color: var(--nc-text-muted);
-          letter-spacing: 1.5px;
-          opacity: 0.5;
+          font-size: 11px;
+          color: var(--nc-cyan);
+          letter-spacing: 2px;
+          opacity: 0.8;
+        }
+
+        .card-label::before {
+          content: '';
+          width: 8px;
+          height: 8px;
+          background: #3b82f6;
+          border-radius: 50%;
         }
 
         .card-divider {
           height: 1px;
-          background: linear-gradient(90deg, var(--nc-cyan), transparent);
-          opacity: 0.4;
-          margin-bottom: 16px;
+          background: var(--nc-cyan);
+          opacity: 0.3;
+          margin: 0 8px 20px;
         }
 
         .card-body {
-          display: flex;
-          gap: 20px;
+          display: grid;
+          grid-template-columns: 30% 70%;
+          gap: 16px;
           flex: 1;
+          padding: 0 8px;
         }
 
         .left-col {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 24px;
-          min-width: 100px;
+          gap: 20px;
         }
 
         .avatar-container {
-          width: 80px;
-          height: 80px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
-          border: 1px solid var(--nc-cyan);
+          border: 2px solid var(--nc-cyan);
+          box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -258,89 +286,102 @@ export default function Profile() {
 
         .avatar-ring {
           position: absolute;
-          inset: -6px;
+          inset: -10px;
           border: 1px solid var(--nc-cyan);
           border-radius: 50%;
-          border-top-color: transparent;
-          border-left-color: transparent;
-          animation: spin 4s linear infinite;
-          opacity: 0.5;
+          opacity: 0.4;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        .avatar-ring::after {
+          content: '';
+          position: absolute;
+          inset: -8px;
+          border: 1px solid var(--nc-cyan);
+          border-radius: 50%;
+          opacity: 0.2;
         }
 
         .avatar-icon {
-          width: 48px;
-          height: 48px;
+          width: 70px;
+          height: 70px;
           object-fit: contain;
+          filter: drop-shadow(0 0 8px var(--nc-cyan));
         }
 
         .avatar-icon.rsi-avatar {
-          width: 64px;
-          height: 64px;
+          width: 90px;
+          height: 90px;
           border-radius: 50%;
           object-fit: cover;
         }
 
         .avatar-initials {
           font-family: var(--nc-font-display);
-          font-size: 24px;
+          font-size: 36px;
           color: var(--nc-cyan);
+          text-shadow: 0 0 10px var(--nc-cyan);
         }
 
         .barcode {
           display: flex;
-          gap: 2px;
+          gap: 3px;
           align-items: flex-end;
-          height: 35px;
-          opacity: 0.5;
+          height: 60px;
         }
 
         .bar {
-          width: 2px;
+          width: 4px;
           background: var(--nc-cyan);
+          opacity: 0.7;
         }
 
         .right-col {
-          flex: 1;
           display: flex;
           flex-direction: column;
-          justify-content: center;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 6px;
+          border-left: 1px solid rgba(0, 240, 255, 0.2);
+          padding-left: 20px;
         }
 
         .label {
           font-family: var(--nc-font-mono);
-          font-size: 9px;
+          font-size: 11px;
           color: var(--nc-text-muted);
-          letter-spacing: 1.5px;
+          letter-spacing: 2px;
           display: block;
-          margin-bottom: 1px;
-          opacity: 0.7;
+          margin-bottom: 2px;
+        }
+
+        .rank-section {
+          margin-bottom: 8px;
         }
 
         .rank-section .rank-value {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 20px;
+          font-size: 36px;
           font-weight: 700;
           color: #ffd700;
-          letter-spacing: 3px;
-          text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+          letter-spacing: 4px;
+          text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .rep-section {
+          margin-bottom: 12px;
         }
 
         .rep-row {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
         }
 
         .rep-value {
           font-family: 'Orbitron', var(--nc-font-display), sans-serif;
-          font-size: 26px;
+          font-size: 32px;
           font-weight: 700;
           color: var(--nc-cyan);
+          text-shadow: 0 0 10px var(--nc-cyan);
         }
 
         .stars {
@@ -349,82 +390,107 @@ export default function Profile() {
         }
 
         .star {
-          font-size: 22px;
-          color: #665500;
-          opacity: 0.4;
+          font-size: 20px;
+          color: #334455;
         }
 
         .star.filled {
           color: #ffd700;
-          opacity: 1;
           text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
         }
 
         .stats-row {
-          font-family: var(--nc-font-mono);
-          font-size: 11px;
-          color: var(--nc-text-muted);
           display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 4px;
+          align-items: center;
+          gap: 16px;
+          font-family: var(--nc-font-mono);
+          font-size: 13px;
+          color: var(--nc-text-muted);
+          margin-top: 8px;
         }
 
-        .stats-row .divider {
-          opacity: 0.3;
+        .stats-row .stat-item {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
         }
 
-        .stats-row strong {
+        .stats-row .stat-label {
+          font-size: 10px;
+          letter-spacing: 1px;
+          opacity: 0.6;
+        }
+
+        .stats-row .stat-value {
           color: var(--nc-cyan);
+          font-size: 14px;
+        }
+
+        .stats-row .stat-divider {
+          width: 1px;
+          height: 30px;
+          background: rgba(0, 240, 255, 0.3);
         }
 
         .card-footer {
           margin-top: auto;
-          padding-top: 12px;
-          border-top: 1px solid rgba(0, 240, 255, 0.15);
+          padding: 16px 8px 0;
+          border-top: 1px solid rgba(0, 240, 255, 0.2);
         }
 
         .badge-rack-label {
           font-family: var(--nc-font-mono);
-          font-size: 9px;
+          font-size: 10px;
           color: var(--nc-text-muted);
-          letter-spacing: 1.5px;
-          margin-bottom: 8px;
-          opacity: 0.7;
+          letter-spacing: 2px;
+          margin-bottom: 12px;
         }
 
         .badge-rack {
           display: flex;
-          gap: 8px;
+          gap: 12px;
+          justify-content: flex-start;
         }
 
         .ribbon {
-          width: 30px;
-          height: 30px;
+          width: 50px;
+          height: 50px;
           border: 1px solid var(--nc-cyan);
+          border-radius: 50%;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           color: var(--nc-cyan);
-          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-          background: rgba(0, 240, 255, 0.08);
+          background: rgba(0, 240, 255, 0.05);
+          position: relative;
         }
 
         .ribbon svg {
-          width: 14px;
-          height: 14px;
+          width: 20px;
+          height: 20px;
+        }
+
+        .ribbon-label {
+          font-size: 6px;
+          font-family: var(--nc-font-mono);
+          letter-spacing: 0.5px;
+          margin-top: 2px;
+          text-align: center;
+          max-width: 40px;
         }
 
         .ribbon.supporter {
           color: #ffd700;
           border-color: #ffd700;
-          background: rgba(255, 215, 0, 0.08);
+          background: rgba(255, 215, 0, 0.05);
         }
 
         .copy-btn {
           position: absolute;
-          bottom: 16px;
-          right: 20px;
+          top: 20px;
+          right: 24px;
+          z-index: 3;
           display: flex;
           align-items: center;
           gap: 5px;
@@ -444,28 +510,24 @@ export default function Profile() {
           color: var(--nc-cyan);
         }
 
-        @media (max-width: 900px) {
-          .profile-grid {
-            grid-template-columns: 1fr;
-          }
-          .card-column {
-            justify-content: center;
-          }
-        }
-
-        @media (max-width: 500px) {
+        @media (max-width: 600px) {
           .citizen-card {
             aspect-ratio: auto;
-            padding: 16px;
           }
 
           .card-body {
-            flex-direction: column;
-            align-items: center;
+            grid-template-columns: 1fr;
             text-align: center;
           }
 
+          .left-col {
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+          }
+
           .right-col {
+            border-left: none;
+            padding-left: 0;
             align-items: center;
           }
 
@@ -473,15 +535,16 @@ export default function Profile() {
             justify-content: center;
           }
 
+          .badge-rack {
+            justify-content: center;
+          }
+
           .citizen-name {
-            font-size: 18px;
+            font-size: 24px;
           }
 
           .copy-btn {
-            position: static;
-            margin-top: 12px;
-            width: 100%;
-            justify-content: center;
+            display: none;
           }
         }
       `}</style>
