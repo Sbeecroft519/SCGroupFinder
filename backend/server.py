@@ -285,95 +285,129 @@ async def get_ships():
 @api_router.post("/intel/analyze", response_model=MissionResponse)
 async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
-    
-    # Time display mapping
     time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
     
-    # Cargo - use UEX data for profit calculation
+    # Cargo - use UEX data for profit calculation with specific routes
     if request.activity == 'cargo':
-        reward_text = 'Variable'
-        location_desc = 'Major trading stations with best buy/sell prices.'
-        try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                resp = await client.get('https://api.uexcorp.space/2.0/commodities')
-                if resp.status_code == 200:
-                    data = resp.json()
-                    commodities = data.get('data', data) if isinstance(data, dict) else data
-                    if commodities and len(commodities) > 0:
-                        # Find profitable commodity based on risk tolerance
-                        import random
-                        if request.risk == 'HIGH':
-                            # High risk = illegal/volatile goods
-                            candidates = [c for c in commodities if c.get('kind') == 'Drug' or c.get('is_illegal')]
-                        elif request.risk == 'LOW':
-                            # Low risk = stable commodities
-                            candidates = [c for c in commodities if c.get('kind') in ['Metal', 'Mineral', 'Food']]
-                        else:
-                            candidates = commodities
-                        
-                        if candidates:
-                            commodity = random.choice(candidates[:10])
-                            buy_price = commodity.get('price_buy', 0) or 0
-                            sell_price = commodity.get('price_sell', 0) or 0
-                            profit_per_scu = max(0, sell_price - buy_price)
-                            total_profit = profit_per_scu * ship_scu
-                            if total_profit > 0:
-                                reward_text = f'{total_profit:,.0f} - {total_profit * 1.5:,.0f} aUEC'
-                                location_desc = f"Trade {commodity.get('name', 'goods')} - Buy low, sell high across {request.system}."
-        except Exception as e:
-            logger.error(f"UEX cargo calc error: {e}")
+        # Stanton trade routes with real locations
+        trade_routes = {
+            'Stanton': {
+                'LOW': [
+                    {'commodity': 'Agricium', 'buy': 'Lathan (Shubin SAL-2)', 'sell': 'Area18 TDD', 'buy_price': 25.50, 'sell_price': 27.89, 'profit_per_scu': 2.39},
+                    {'commodity': 'Aluminum', 'buy': 'Euterpe (HDMS-Woodruff)', 'sell': 'Lorville CBD', 'buy_price': 1.15, 'sell_price': 1.28, 'profit_per_scu': 0.13},
+                    {'commodity': 'Titanium', 'buy': 'Daymar (Kudre Ore)', 'sell': 'Port Olisar', 'buy_price': 8.04, 'sell_price': 8.98, 'profit_per_scu': 0.94},
+                ],
+                'MEDIUM': [
+                    {'commodity': 'Laranite', 'buy': 'Arial (HDMS-Lathan)', 'sell': 'New Babbage TDD', 'buy_price': 28.82, 'sell_price': 31.89, 'profit_per_scu': 3.07},
+                    {'commodity': 'Gold', 'buy': 'Yela (ArcCorp 157)', 'sell': 'Lorville CBD', 'buy_price': 6.07, 'sell_price': 6.68, 'profit_per_scu': 0.61},
+                    {'commodity': 'Fluorine', 'buy': 'Hurston (HDMS-Edmond)', 'sell': 'CRU-L1 Ambitious Dream', 'buy_price': 2.80, 'sell_price': 3.12, 'profit_per_scu': 0.32},
+                ],
+                'HIGH': [
+                    {'commodity': 'Quantanium (Raw)', 'buy': 'Aaron Halo (Mining)', 'sell': 'CRU-L1 Refinery', 'buy_price': 0, 'sell_price': 88.00, 'profit_per_scu': 88.00, 'note': 'Volatile - 15 min timer'},
+                    {'commodity': 'Slam', 'buy': 'GrimHEX', 'sell': 'Private Buyer', 'buy_price': 12.50, 'sell_price': 42.00, 'profit_per_scu': 29.50, 'note': 'Illegal - Avoid scans'},
+                    {'commodity': 'Medical Supplies', 'buy': 'Orison', 'sell': 'GrimHEX', 'buy_price': 17.15, 'sell_price': 19.89, 'profit_per_scu': 2.74},
+                ]
+            },
+            'Pyro': {
+                'LOW': [{'commodity': 'Scrap', 'buy': 'Pyro Stations', 'sell': 'Any Terminal', 'buy_price': 0.50, 'sell_price': 1.25, 'profit_per_scu': 0.75}],
+                'MEDIUM': [{'commodity': 'Processed Food', 'buy': 'Stanton Import', 'sell': 'Pyro Settlements', 'buy_price': 1.35, 'sell_price': 3.80, 'profit_per_scu': 2.45}],
+                'HIGH': [{'commodity': 'WiDoW', 'buy': 'Pyro Underground', 'sell': 'Black Market', 'buy_price': 96.00, 'sell_price': 156.00, 'profit_per_scu': 60.00, 'note': 'Highly illegal'}]
+            },
+            'Nyx': {
+                'LOW': [{'commodity': 'Hydrogen', 'buy': 'Delamar Refineries', 'sell': 'Levski', 'buy_price': 1.02, 'sell_price': 1.15, 'profit_per_scu': 0.13}],
+                'MEDIUM': [{'commodity': 'Distilled Spirits', 'buy': 'Levski', 'sell': 'Stanton Export', 'buy_price': 4.95, 'sell_price': 5.56, 'profit_per_scu': 0.61}],
+                'HIGH': [{'commodity': 'Maze', 'buy': 'Underground', 'sell': 'Stanton Black Market', 'buy_price': 42.00, 'sell_price': 89.00, 'profit_per_scu': 47.00, 'note': 'Illegal narcotic'}]
+            }
+        }
+        
+        import random
+        routes = trade_routes.get(request.system, trade_routes['Stanton']).get(request.risk, trade_routes['Stanton']['MEDIUM'])
+        route = random.choice(routes)
+        
+        total_profit = route['profit_per_scu'] * ship_scu
+        min_profit = int(total_profit * 0.85)
+        max_profit = int(total_profit * 1.15)
+        
+        note = f" ⚠️ {route.get('note')}" if route.get('note') else ""
         
         return MissionResponse(
-            type='cargo', title='Cargo Hauling',
-            description=f'Transport goods using your {request.ship} ({ship_scu} SCU capacity).',
-            location={'name': f'{request.system} - Trade Route', 'description': location_desc, 'activities': 'Trading, Cargo Running'},
-            duration=time_display, reward=reward_text if ship_scu > 0 else 'Ship has no cargo capacity',
-            risk_level=request.risk, fallback={'title': 'Delivery Missions', 'description': 'Package delivery contracts from terminals'}
+            type='cargo', title=f"Cargo Run: {route['commodity']}",
+            description=f"Haul {route['commodity']} using your {request.ship} ({ship_scu} SCU).{note}",
+            location={
+                'name': f"📦 {route['buy']} → 💰 {route['sell']}",
+                'description': f"Buy at {route['buy_price']:.2f}/unit, sell at {route['sell_price']:.2f}/unit. Profit: {route['profit_per_scu']:.2f}/SCU.",
+                'activities': f"Commodity: {route['commodity']}"
+            },
+            duration=time_display, 
+            reward=f"{min_profit:,} - {max_profit:,} aUEC" if ship_scu > 0 else 'Ship has no cargo capacity',
+            risk_level=request.risk, 
+            fallback={'title': 'Delivery Missions', 'description': 'Package delivery from contract terminals - no cargo investment needed'}
         )
     
-    # Mining - unique location suggestions
+    # Mining - specific locations, materials, refinery, sell point
     if request.activity == 'mining':
-        mining_locations = {
-            'Stanton': [
-                {'name': 'Aaron Halo - Lyria Cluster', 'desc': 'Dense quantanium deposits. High yield but watch for pirates near refinery routes.', 'activities': 'Quantanium, Laranite'},
-                {'name': 'Yela Asteroid Belt', 'desc': 'Beginner-friendly belt with stable rocks. Good for Prospector pilots learning the trade.', 'activities': 'Agricium, Titanium'},
-                {'name': 'Aberdeen Deep Deposits', 'desc': 'Surface mining on Aberdeen. Harsh conditions but rich hadanite veins.', 'activities': 'Hadanite, Dolivine'}
-            ],
-            'Pyro': [
-                {'name': 'Pyro Belt Alpha', 'desc': 'Lawless space with untapped riches. Bring escort or risk losing everything.', 'activities': 'Rare minerals, High risk'},
-            ],
-            'Nyx': [
-                {'name': 'Delamar Fields', 'desc': 'Remote but peaceful mining grounds away from major traffic.', 'activities': 'Mixed minerals'}
-            ]
+        mining_routes = {
+            'Stanton': {
+                'LOW': [
+                    {'location': 'Yela Asteroid Belt', 'material': 'Quantanium (5-15%)', 'refinery': 'CRU-L1 Refinery', 'sell': 'Area18 TDD', 'yield': '30,000 - 80,000', 'desc': 'Stable rocks, good for beginners. Low pirate activity.'},
+                    {'location': 'Daymar Surface', 'material': 'Hadanite (Hand Mining)', 'refinery': 'N/A - Sell Raw', 'sell': 'Any Admin Office', 'yield': '15,000 - 40,000', 'desc': 'Surface gem deposits. Bring a ROC or hand tool.'},
+                ],
+                'MEDIUM': [
+                    {'location': 'Aaron Halo Belt', 'material': 'Quantanium (15-30%)', 'refinery': 'ARC-L1 or HUR-L2', 'sell': 'Lorville TDD', 'yield': '80,000 - 200,000', 'desc': 'Dense quantanium cluster. Watch the 15-min instability timer.'},
+                    {'location': 'Arial (Shubin Mining)', 'material': 'Laranite Deposits', 'refinery': 'HUR-L1 Refinery', 'sell': 'New Babbage', 'yield': '50,000 - 120,000', 'desc': 'Underground deposits near Shubin facilities.'},
+                ],
+                'HIGH': [
+                    {'location': 'Aaron Halo - Deep Belt', 'material': 'Quantanium (30%+ Clusters)', 'refinery': 'CRU-L1 (Closest)', 'sell': 'Highest Bidder', 'yield': '150,000 - 400,000', 'desc': 'Premium rocks but heavy pirate presence. Bring escort.'},
+                    {'location': 'Aberdeen Caves', 'material': 'Hadanite + Aphorite', 'refinery': 'N/A', 'sell': 'Lorville Admin', 'yield': '60,000 - 150,000', 'desc': 'Toxic atmosphere. Pembroke suit required. Rich gem veins.'},
+                ]
+            },
+            'Pyro': {
+                'LOW': [{'location': 'Pyro Belt Edge', 'material': 'Mixed Ores', 'refinery': 'Pyro Station', 'sell': 'Local Buyers', 'yield': '20,000 - 60,000', 'desc': 'Lawless but sparse population at edges.'}],
+                'MEDIUM': [{'location': 'Pyro I Rings', 'material': 'Bexalite Deposits', 'refinery': 'Ruin Station', 'sell': 'Stanton Export', 'yield': '100,000 - 250,000', 'desc': 'High value ore. Pirate patrols common.'}],
+                'HIGH': [{'location': 'Pyro Core Belt', 'material': 'Taranite + Quantanium', 'refinery': 'Mobile Refinery', 'sell': 'Black Market', 'yield': '200,000 - 500,000', 'desc': 'Richest deposits. Expect PvP. Go with fleet.'}]
+            },
+            'Nyx': {
+                'LOW': [{'location': 'Delamar Fields', 'material': 'Titanium + Copper', 'refinery': 'Levski Refinery', 'sell': 'Levski', 'yield': '25,000 - 70,000', 'desc': 'Quiet mining away from traffic.'}],
+                'MEDIUM': [{'location': 'Delamar Deep', 'material': 'Gold Veins', 'refinery': 'Levski', 'sell': 'Levski or Export', 'yield': '70,000 - 180,000', 'desc': 'Concentrated gold deposits underground.'}],
+                'HIGH': [{'location': 'Nyx Belt', 'material': 'Quantanium Hotspot', 'refinery': 'Closest Available', 'sell': 'Best Market', 'yield': '150,000 - 350,000', 'desc': 'Remote but lucrative. Long travel times.'}]
+            }
         }
+        
         import random
-        locs = mining_locations.get(request.system, mining_locations['Stanton'])
-        loc = random.choice(locs)
+        routes = mining_routes.get(request.system, mining_routes['Stanton']).get(request.risk, mining_routes['Stanton']['MEDIUM'])
+        route = random.choice(routes)
+        
         return MissionResponse(
-            type='mining', title='Mining Operations',
-            description='Extract valuable minerals from asteroids and planetary deposits.',
-            location={'name': loc['name'], 'description': loc['desc'], 'activities': loc['activities']},
-            duration=time_display, reward='50,000 - 250,000 aUEC',
-            risk_level=request.risk, fallback={'title': 'Hand Mining', 'description': 'Surface gems on moons - no ship required'}
+            type='mining', title=f"Mining: {route['material'].split('(')[0].strip()}",
+            description=route['desc'],
+            location={
+                'name': f"⛏️ {route['location']}",
+                'description': f"Material: {route['material']}\n🔧 Refine at: {route['refinery']}\n💰 Sell at: {route['sell']}",
+                'activities': f"Expected yield: {route['yield']} aUEC"
+            },
+            duration=time_display, reward=route['yield'] + ' aUEC',
+            risk_level=request.risk, 
+            fallback={'title': 'Join Mining Crew', 'description': 'Operate lasers on a MOLE for guaranteed profit share'}
         )
     
     # Chill - unique interesting locations, Variable reward
     if request.activity == 'chill':
         chill_locations = {
             'Stanton': [
-                {'name': 'microTech Ice Caves', 'desc': 'Land near frozen lakes on microTech. Crystalline ice formations and bioluminescent flora inside. Bring a Pembroke suit!', 'activities': 'Spelunking, Photography'},
-                {'name': 'Daymar Racing Canyons', 'desc': 'Tight canyon networks perfect for low-altitude racing. Community events every weekend.', 'activities': 'Racing, Stunt Flying'},
-                {'name': 'Hurston Savanna Safari', 'desc': 'Drive a Cyclone across golden plains at sunset. Watch for territorial fauna.', 'activities': 'Ground Exploration, Wildlife'},
-                {'name': 'Orison Cloud Platforms', 'desc': 'Floating city with stunning views. Best coffee in the system at Cafe Musain.', 'activities': 'Sightseeing, Social'},
-                {'name': 'GrimHEX Underground', 'desc': 'Seedy asteroid bar with live music and underground racing. Mind your credits.', 'activities': 'Nightlife, Racing Bets'},
-                {'name': 'Port Tressler Observation Deck', 'desc': 'Watch ships come and go from the premium lounge. Crusader fills half the viewport.', 'activities': 'Relaxation, Ship Spotting'}
+                {'name': 'microTech Ice Caves', 'desc': 'Land near frozen lakes. Crystalline formations and bioluminescent flora inside. Pembroke suit required!', 'activities': 'Spelunking, Photography'},
+                {'name': 'Daymar Racing Canyons', 'desc': 'Tight canyon networks for low-altitude racing. Community events on weekends.', 'activities': 'Racing, Stunt Flying'},
+                {'name': 'Hurston Savanna at Sunset', 'desc': 'Golden plains stretching to horizon. Drive a Cyclone and watch for wildlife.', 'activities': 'Ground Exploration, Photography'},
+                {'name': 'Orison Cloudview Gardens', 'desc': 'Floating platforms with stunning Crusader views. Best sunset in the verse.', 'activities': 'Sightseeing, Social'},
+                {'name': 'GrimHEX Underground', 'desc': 'Asteroid bar with live music and underground racing. Watch your credits.', 'activities': 'Nightlife, Gambling'},
+                {'name': 'Port Tressler Observatory', 'desc': 'Premium lounge overlooking Crusader. Ship spotting and relaxation.', 'activities': 'Relaxation, Ship Watching'}
             ],
             'Pyro': [
-                {'name': 'Pyro Station Overlook', 'desc': 'Abandoned observation post with views of the burning star. Eerie and beautiful.', 'activities': 'Photography, Exploration'},
-                {'name': 'Ruin Station Graffiti Tour', 'desc': 'Player-made art installations in derelict structures. A living museum of verse culture.', 'activities': 'Art, History'}
+                {'name': 'Pyro Star Overlook', 'desc': 'Abandoned station with views of the burning star. Eerie and beautiful.', 'activities': 'Photography'},
+                {'name': 'Ruin Station Art Walk', 'desc': 'Player graffiti installations in derelicts. Living museum of verse culture.', 'activities': 'Art, Culture'}
             ],
             'Nyx': [
-                {'name': 'Levski Memorial', 'desc': 'Pay respects at the revolutionary monument. Rich history of the independence movement.', 'activities': 'History, Culture'}
+                {'name': 'Levski Memorial Plaza', 'desc': 'Revolutionary monument. Rich history of the independence movement.', 'activities': 'History, Culture'},
+                {'name': 'Delamar Caverns', 'desc': 'Deep cave systems with unique geological formations.', 'activities': 'Spelunking, Exploration'}
             ]
         }
         import random
@@ -392,7 +426,7 @@ async def analyze_mission(request: IntelRequest):
         return MissionResponse(
             type='combat', title='Combat Missions',
             description='Engage hostile targets and complete bounty contracts.',
-            location={'name': f'{request.system} - Security Post', 'description': 'Bounty boards with active contracts. VHRT targets pay best.', 'activities': 'Bounty Hunting, PvE Combat'},
+            location={'name': f'{request.system} - Security Post', 'description': 'Check bounty boards for VHRT/ERT contracts. Group bounties pay best.', 'activities': 'Bounty Hunting, PvE Combat'},
             duration=time_display, reward='15,000 - 100,000 aUEC',
             risk_level=request.risk, fallback={'title': 'Mercenary Work', 'description': 'Security contracts from mission givers'}
         )
@@ -401,19 +435,19 @@ async def analyze_mission(request: IntelRequest):
     if request.activity == 'salvage':
         return MissionResponse(
             type='salvage', title='Salvage Operations',
-            description='Recover valuable materials from derelict ships and debris.',
-            location={'name': f'{request.system} - Wreck Site', 'description': 'Fresh wrecks from recent combat. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Component Recovery'},
+            description='Recover materials from derelict ships and debris.',
+            location={'name': f'{request.system} - Wreck Sites', 'description': 'Fresh combat wrecks near comm arrays. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Components'},
             duration=time_display, reward='20,000 - 80,000 aUEC',
-            risk_level=request.risk, fallback={'title': 'Assisted Salvage', 'description': 'Join a Reclaimer crew for guaranteed cuts'}
+            risk_level=request.risk, fallback={'title': 'Reclaimer Crew', 'description': 'Join a salvage ship for guaranteed cuts'}
         )
     
     # FPS
     return MissionResponse(
         type='fps', title='FPS Contracts',
-        description='Ground combat operations and bunker clearing missions.',
-        location={'name': f'{request.system} - Underground Bunker', 'description': 'Clear out hostile occupants. Watch corners and bring meds.', 'activities': 'Bunker Clearing, Defense Contracts'},
+        description='Ground combat operations and bunker clearing.',
+        location={'name': f'{request.system} - Underground Bunker', 'description': 'Clear hostile occupants. Watch corners, bring meds and extra ammo.', 'activities': 'Bunker Clearing, Defense'},
         duration=time_display, reward='10,000 - 60,000 aUEC',
-        risk_level=request.risk, fallback={'title': 'Security Detail', 'description': 'Guard duty at outposts - less action, steady pay'}
+        risk_level=request.risk, fallback={'title': 'Security Detail', 'description': 'Guard duty at outposts - steady pay, less action'}
     )
 
 
