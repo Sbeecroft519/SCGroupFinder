@@ -4,6 +4,7 @@ import axios from 'axios';
 import './App.css';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
+import QuickActionsFAB from './components/QuickActionsFAB';
 import AlertTicker from './components/AlertTicker';
 import OnboardingCarousel from './components/OnboardingCarousel';
 import Intel from './pages/Intel';
