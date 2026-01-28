@@ -315,6 +315,8 @@ function App() {
           </main>
           {/* Mobile Bottom Navigation - only shown when logged in */}
           {user && <MobileNav />}
+          {/* Quick Actions FAB - only shown when logged in on mobile */}
+          {user && <QuickActionsFAB />}
         </BrowserRouter>
       </div>
     </AuthContext.Provider>
