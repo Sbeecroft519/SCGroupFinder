@@ -1162,6 +1162,27 @@ async def update_notification_settings(settings: NotificationSettings, user = De
     return {'message': 'Settings updated'}
 
 
+# ===== Admin Data Reset Routes =====
+
+@api_router.post("/admin/reset-reports")
+async def admin_reset_reports(admin = Depends(require_admin)):
+    """Reset all reports and update reset timestamp"""
+    await db.reports.delete_many({})
+    reset_time = datetime.now(timezone.utc).isoformat()
+    await db.settings.update_one(
+        {'key': 'last_reset'},
+        {'$set': {'key': 'last_reset', 'value': reset_time}},
+        upsert=True
+    )
+    return {'message': 'Reports reset', 'reset_at': reset_time}
+
+@api_router.get("/admin/last-reset")
+async def admin_get_last_reset(admin = Depends(require_admin)):
+    """Get last reset timestamp"""
+    setting = await db.settings.find_one({'key': 'last_reset'}, {'_id': 0})
+    return {'last_reset': setting['value'] if setting else None}
+
+
 # ===== Root Route =====
 
 @api_router.get("/")
@@ -1208,24 +1229,6 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
-
-@api_router.post("/admin/reset-reports")
-async def admin_reset_reports(admin = Depends(require_admin)):
-    """Reset all reports and update reset timestamp"""
-    await db.reports.delete_many({})
-    reset_time = datetime.now(timezone.utc).isoformat()
-    await db.settings.update_one(
-        {'key': 'last_reset'},
-        {'$set': {'key': 'last_reset', 'value': reset_time}},
-        upsert=True
-    )
-    return {'message': 'Reports reset', 'reset_at': reset_time}
-
-@api_router.get("/admin/last-reset")
-async def admin_get_last_reset(admin = Depends(require_admin)):
-    """Get last reset timestamp"""
-    setting = await db.settings.find_one({'key': 'last_reset'}, {'_id': 0})
-    return {'last_reset': setting['value'] if setting else None}
 
 # ===== Contract Bidding System =====
 
