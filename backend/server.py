@@ -1106,6 +1106,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    # Create admin account if not exists
+    admin = await db.users.find_one({'email': ADMIN_EMAIL})
+    if not admin:
+        admin_password = 'Nv$C0m_Adm1n_2025!'
+        admin_user = {
+            'id': str(uuid.uuid4()),
+            'email': ADMIN_EMAIL,
+            'password_hash': hash_password(admin_password),
+            'rsi_handle': 'Mowri',
+            'is_verified': True,
+            'is_admin': True,
+            'is_supporter': True,
+            'theme_id': 'default',
+            'reputation': 5.0,
+            'contracts_completed': 0,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(admin_user)
+        logger.info(f"Admin account created: {ADMIN_EMAIL}")
+    else:
+        # Ensure existing admin has is_admin flag
+        await db.users.update_one({'email': ADMIN_EMAIL}, {'$set': {'is_admin': True}})
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
