@@ -752,23 +752,35 @@ async def get_signals_status():
             response = await client.get('https://status.robertsspaceindustries.com/index.xml')
             if response.status_code == 200:
                 import xml.etree.ElementTree as ET
+                import re
                 root = ET.fromstring(response.text)
-                ns = {'atom': 'http://www.w3.org/2005/Atom'}
-                entries = root.findall('.//atom:entry', ns) or root.findall('.//entry')
-                if entries:
-                    latest = entries[0]
-                    title_el = latest.find('atom:title', ns) or latest.find('title')
-                    updated_el = latest.find('atom:updated', ns) or latest.find('updated')
-                    title = title_el.text if title_el is not None else 'Unknown'
-                    updated = updated_el.text if updated_el is not None else ''
+                
+                # Parse RSS items
+                items = root.findall('.//item')
+                for item in items:
+                    title_el = item.find('title')
+                    desc_el = item.find('description')
+                    pub_el = item.find('pubDate')
+                    title = title_el.text if title_el is not None else ''
+                    desc = desc_el.text if desc_el is not None else ''
+                    pub_date = pub_el.text if pub_el is not None else ''
                     
+                    # Extract game version from deployment notices
+                    version_match = re.search(r'Star Citizen Alpha ([\d\.\-\w]+)', desc)
+                    if version_match:
+                        rsi_status['gameVersion'] = version_match.group(1)
+                    
+                    # Determine status from title
                     title_lower = title.lower()
-                    if 'major' in title_lower or 'outage' in title_lower:
-                        rsi_status['status'] = 'outage'
-                    elif 'degraded' in title_lower or 'partial' in title_lower:
-                        rsi_status['status'] = 'degraded'
-                    
-                    rsi_status['lastIncident'] = {'title': title, 'date': updated[:19].replace('T', ' ') + ' UTC'}
+                    if '[resolved]' not in title_lower:
+                        if 'outage' in title_lower or 'disruption' in title_lower:
+                            rsi_status['status'] = 'degraded'
+                        
+                        rsi_status['lastIncident'] = {
+                            'title': title,
+                            'date': pub_date
+                        }
+                        break
     except Exception as e:
         logger.error(f"RSI status fetch error: {e}")
     
