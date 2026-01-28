@@ -87,6 +87,7 @@ export default function Signals() {
   const [reportLocation, setReportLocation] = useState('');
   const [reportShard, setReportShard] = useState('');
   const [reportConfirmed, setReportConfirmed] = useState(false);
+  const [reportDetails, setReportDetails] = useState('');
 
   useEffect(() => {
     fetchSignalsData();
@@ -125,6 +126,7 @@ export default function Signals() {
     setReportLocation('');
     setReportShard(myShard);
     setReportConfirmed(false);
+    setReportDetails('');
   };
 
   const submitReport = async () => {
@@ -138,16 +140,53 @@ export default function Signals() {
         system: reportSystem,
         location: reportLocation || null,
         shard: reportShard || null,
+        details: reportDetails || null,
         timestamp: new Date().toISOString()
       });
       setShowReportModal(null);
       setReportLocation('');
       setReportConfirmed(false);
+      setReportDetails('');
       fetchSignalsData();
     } catch (error) {
       console.error('Failed to submit report:', error);
     }
   };
+
+  // Calculate dynamic reliability based on reports
+  const calculateReliability = () => {
+    const baseReliability = serverStatus === 'operational' ? 85 : serverStatus === 'degraded' ? 60 : 30;
+    const reportPenalty = Math.min(reports24h * 2, 30);
+    
+    return {
+      cargo: Math.max(20, baseReliability - reportPenalty + Math.floor(Math.random() * 10)),
+      combat: Math.max(20, baseReliability - (reportPenalty * 0.5) + Math.floor(Math.random() * 10)),
+      salvage: Math.max(20, baseReliability - (reportPenalty * 0.7) + Math.floor(Math.random() * 8)),
+      fps: Math.max(20, baseReliability - (reportPenalty * 0.6) + Math.floor(Math.random() * 8))
+    };
+  };
+
+  const reliability = calculateReliability();
+
+  // Generate breakdown data for pie chart
+  const getBreakdownData = () => {
+    const counts = { lag: 4, mission_bug: 3, cargo_issue: 5, pirates: 8, pvp: 6, '30k': 2 };
+    return Object.entries(counts).map(([type, count]) => ({
+      name: REPORT_TYPES.find(r => r.id === type)?.label || type,
+      value: count,
+      color: REPORT_COLORS[type]
+    }));
+  };
+
+  // Generate location data for bar chart
+  const getLocationData = () => [
+    { location: 'Yela', reports: 12 },
+    { location: 'Daymar', reports: 8 },
+    { location: 'GrimHEX', reports: 7 },
+    { location: 'Port Olisar', reports: 5 },
+    { location: 'Hurston', reports: 4 },
+    { location: 'microTech', reports: 3 }
+  ];
 
   const getStatusColor = (status) => {
     switch (status) {
