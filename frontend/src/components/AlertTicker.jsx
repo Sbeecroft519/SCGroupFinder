@@ -7,19 +7,19 @@ const TICKER_CONFIG = {
   threats: {
     types: ['pirates', 'pvp'],
     label: 'LIVE THREATS',
-    color: '#ff3366',
+    color: '#ff2222',
     icons: { pirates: Skull, pvp: Users }
   },
   stability: {
     types: ['lag', '30k'],
     label: 'STABILITY',
-    color: '#ffcc00',
+    color: '#ffaa00',
     icons: { lag: Wifi, '30k': Zap }
   },
   issues: {
     types: ['mission_bug', 'cargo_issue'],
     label: 'ISSUES',
-    color: '#00f0ff',
+    color: '#00ccff',
     icons: { mission_bug: Bug, cargo_issue: Package }
   }
 };
