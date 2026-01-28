@@ -608,7 +608,7 @@ export default function Signals() {
             <div className="nc-stat-label">SYSTEMS</div>
           </div>
           <div className="nc-stat-card">
-            <div className="nc-stat-value">{uniqueSystems}</div>
+            <div className="nc-stat-value">{uniqueLocations}</div>
             <div className="nc-stat-label">HOTSPOTS</div>
           </div>
         </div>
