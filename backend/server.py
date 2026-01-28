@@ -32,8 +32,15 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'navcom-secret-key-change-in-productio
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_HOURS = 24 * 7  # 1 week
 
+# Stripe Configuration
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+
+# Socket.IO for real-time notifications
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+
 # Create the main app
 app = FastAPI(title="NavCom API", version="2.0.0")
+socket_app = socketio.ASGIApp(sio, app)
 
 # Create router with /api prefix
 api_router = APIRouter(prefix="/api")
