@@ -192,6 +192,64 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user = await db.users.find_one({'id': user_id}, {'_id': 0})
     return user
 
+async def require_admin(user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not user.get('is_admin', False):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+# Admin email constant
+ADMIN_EMAIL = "beecroft519@outlook.com"
+
+
+# ===== Socket.IO Events =====
+
+@sio.event
+async def connect(sid, environ):
+    logger.info(f"Client connected: {sid}")
+
+@sio.event
+async def disconnect(sid):
+    logger.info(f"Client disconnected: {sid}")
+
+@sio.event
+async def join_shard(sid, data):
+    """Join a shard room for targeted notifications"""
+    shard = data.get('shard')
+    if shard:
+        sio.enter_room(sid, f'shard_{shard}')
+        logger.info(f"Client {sid} joined shard {shard}")
+
+@sio.event
+async def leave_shard(sid, data):
+    """Leave a shard room"""
+    shard = data.get('shard')
+    if shard:
+        sio.leave_room(sid, f'shard_{shard}')
+
+@sio.event
+async def subscribe_contracts(sid, data):
+    """Subscribe to contract type notifications"""
+    contract_types = data.get('types', [])
+    for ctype in contract_types:
+        sio.enter_room(sid, f'contract_{ctype}')
+        logger.info(f"Client {sid} subscribed to {ctype} contracts")
+
+async def broadcast_alert(alert_data):
+    """Broadcast alert to relevant shard rooms"""
+    shard = alert_data.get('shard')
+    if shard:
+        await sio.emit('new_alert', alert_data, room=f'shard_{shard}')
+    await sio.emit('new_alert', alert_data)  # Also broadcast globally
+
+async def broadcast_contract(contract_data):
+    """Broadcast new contract to relevant subscribers"""
+    contract_type = contract_data.get('type')
+    if contract_type:
+        await sio.emit('new_contract', contract_data, room=f'contract_{contract_type}')
+    await sio.emit('new_contract', contract_data)  # Also broadcast globally
+
 
 # ===== Auth Routes =====
 
