@@ -211,10 +211,18 @@ export default function Roadmap() {
                 <button 
                   className="nc-btn nc-btn-secondary" 
                   style={{ marginTop: 16 }}
+                  onClick={() => handleContribute(goal.id)}
+                  disabled={contributingGoalId === goal.id}
                   data-testid={`fund-${goal.id}`}
                 >
-                  <Rocket size={14} />
-                  FUND THIS FEATURE
+                  {contributingGoalId === goal.id ? (
+                    <>Loading...</>
+                  ) : (
+                    <>
+                      <Rocket size={14} />
+                      FUND THIS FEATURE
+                    </>
+                  )}
                 </button>
               )}
             </div>
