@@ -88,7 +88,9 @@ export default function Contracts() {
   const { user, userShard } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contracts, setContracts] = useState([]);
+  const [myContracts, setMyContracts] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('feed'); // 'feed' or 'my'
   const [showCreate, setShowCreate] = useState(false);
   const [showReview, setShowReview] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
