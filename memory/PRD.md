@@ -111,7 +111,11 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
-## Bug Fixes Applied This Session (Jan 28, 2026)
+## Bug Fixes Applied This Session (Jan 29, 2026)
+1. **myShard state fix verified**: The `myShard is not defined` runtime error on Contracts page was previously fixed (state variable present at line 97). Verified working.
+2. **Onboarding disclaimer slide completed**: Added JSX to render the "Made by the Community" badge on the new "About NavCom" slide.
+
+## Bug Fixes Applied Previous Session (Jan 28, 2026)
 1. **Admin endpoints registration bug**: `/admin/reset-reports` and `/admin/last-reset` were defined after `app.include_router()` causing 404s. Moved endpoints before router inclusion.
 2. **RSI avatar not displaying**: Updated admin user's avatar_url in database. Verified scraping works with "Mowri" handle.
 
