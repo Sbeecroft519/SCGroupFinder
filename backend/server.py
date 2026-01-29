@@ -1391,7 +1391,7 @@ async def startup_event():
     # Create admin account if not exists
     admin = await db.users.find_one({'email': ADMIN_EMAIL})
     if not admin:
-        admin_password = 'Nv$C0m_Adm1n_2025!'
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'changeme-in-production')
         admin_user = {
             'id': str(uuid.uuid4()),
             'email': ADMIN_EMAIL,
