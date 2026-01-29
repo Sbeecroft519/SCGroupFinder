@@ -12,16 +12,11 @@ const THEMES = [
 ];
 
 const AVATAR_PRESETS = [
-  { id: 'helmet', name: 'Pilot Helmet', file: '/avatars/helmet.svg' },
-  { id: 'medic', name: 'Combat Medic', file: '/avatars/medic.svg' },
-  { id: 'skull', name: 'Pirate', file: '/avatars/skull.svg' },
-  { id: 'cargo', name: 'Hauler', file: '/avatars/cargo.svg' },
-  { id: 'target', name: 'Bounty Hunter', file: '/avatars/target.svg' },
-  { id: 'pilot', name: 'Fighter Pilot', file: '/avatars/pilot.svg' },
-  { id: 'miner', name: 'Miner', file: '/avatars/miner.svg' },
-  { id: 'commander', name: 'Commander', file: '/avatars/commander.svg' },
-  { id: 'explorer', name: 'Explorer', file: '/avatars/explorer.svg' },
-  { id: 'engineer', name: 'Engineer', file: '/avatars/engineer.svg' },
+  { id: 'pilot', name: 'Pilot', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/ud2yrip4_Pilot%20Helmet%20Icon.jpg' },
+  { id: 'medic', name: 'Combat Medic', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y3sjh1kj_medic%20icon.jpg' },
+  { id: 'pirate', name: 'Pirate', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/9jq4a6p0_pirate%20icon.jpg' },
+  { id: 'hauler', name: 'Hauler', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y9kqdygi_hauler%20icon.jpg' },
+  { id: 'miner', name: 'Miner', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/7i1hxlzx_mining%20icon.jpg' },
 ];
 
 const CONTRACT_TYPES = [
