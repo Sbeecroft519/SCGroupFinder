@@ -1200,6 +1200,72 @@ export default function Contracts() {
         </div>
       )}
 
+      {/* Merc Profile Modal */}
+      {showMercProfile && (
+        <div className="mission-modal-overlay" onClick={() => setShowMercProfile(null)}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="mission-modal-header">
+              <div>
+                <div className="mission-type-badge">// PILOT_DOSSIER</div>
+                <h2 className="mission-title">Mercenary Profile</h2>
+              </div>
+              <button className="mission-modal-close" onClick={() => setShowMercProfile(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mission-modal-content">
+              <div className="merc-profile">
+                <div className="merc-profile-header">
+                  <div className="merc-profile-avatar">
+                    {showMercProfile.avatar_url ? (
+                      <img src={showMercProfile.avatar_url} alt="" />
+                    ) : (
+                      <Users size={48} />
+                    )}
+                  </div>
+                  <div className="merc-profile-name">
+                    <h3>{showMercProfile.handle || 'Unknown Pilot'}</h3>
+                    <span className="merc-profile-badge">MERCENARY</span>
+                  </div>
+                </div>
+                
+                <div className="merc-profile-stats">
+                  <div className="stat-box">
+                    <span className="stat-label">REPUTATION</span>
+                    <span className="stat-value">
+                      <Star size={16} fill="#FFD700" style={{ marginRight: 4 }} />
+                      {showMercProfile.reputation?.toFixed(1) || '5.0'}
+                    </span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-label">CONTRACTS</span>
+                    <span className="stat-value">{showMercProfile.contracts_completed || 0}</span>
+                  </div>
+                </div>
+
+                {showMercProfile.bio && (
+                  <div className="merc-profile-bio">
+                    <span className="bio-label">// ABOUT</span>
+                    <p>{showMercProfile.bio}</p>
+                  </div>
+                )}
+
+                <div className="merc-profile-actions">
+                  <button 
+                    className="nc-btn nc-btn-secondary"
+                    onClick={() => {
+                      handleCopyHandle(showMercProfile.handle);
+                    }}
+                  >
+                    <Copy size={14} /> Copy RSI Handle
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .payment-amount {
           font-family: var(--nc-font-mono);
