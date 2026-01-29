@@ -850,7 +850,31 @@ export default function Contracts() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* View Mode Toggle */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="nc-toggle-group" data-testid="view-mode-toggle">
+          <button
+            className={`nc-toggle ${viewMode === 'feed' ? 'active' : ''}`}
+            onClick={() => setViewMode('feed')}
+          >
+            Contract Feed
+          </button>
+          <button
+            className={`nc-toggle ${viewMode === 'my' ? 'active' : ''}`}
+            onClick={() => setViewMode('my')}
+          >
+            My Contracts {myContracts.filter(c => 
+              (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
+              (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
+            ).length > 0 && (
+              <span className="pending-rating-badge">!</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Tabs - Only show on Feed view */}
+      {viewMode === 'feed' && (
       <div style={{ marginBottom: 24 }}>
         <div className="nc-toggle-group" data-testid="contract-filter">
           <button
@@ -870,8 +894,10 @@ export default function Contracts() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* Legend */}
+      {/* Legend - Only show on Feed view */}
+      {viewMode === 'feed' && (
       <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 12, height: 12, background: 'var(--nc-red)', borderRadius: 2 }} />
