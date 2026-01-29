@@ -1600,5 +1600,23 @@ async def get_user_bids(user = Depends(get_current_user)):
     ).to_list(20)
     return bids
 
+@api_router.get("/user/my-contracts")
+async def get_user_contracts(user = Depends(get_current_user)):
+    """Get user's contracts (posted or accepted) including completed ones for rating"""
+    if not user:
+        return []
+    
+    contracts = await db.contracts.find(
+        {
+            '$or': [
+                {'poster_id': user['id']},
+                {'accepted_by.id': user['id']}
+            ]
+        },
+        {'_id': 0}
+    ).sort('created_at', -1).limit(50).to_list(50)
+    
+    return contracts
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
