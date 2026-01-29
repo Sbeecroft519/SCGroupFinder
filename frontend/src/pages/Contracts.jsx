@@ -204,6 +204,7 @@ export default function Contracts() {
   useEffect(() => {
     fetchContracts();
     fetchUserStatus();
+    fetchMyContracts();
   }, [filter]);
 
   const fetchContracts = async () => {
@@ -212,9 +213,20 @@ export default function Contracts() {
       const response = await axios.get(`${API}/contracts`, { params });
       if (response.data && response.data.length > 0) {
         setContracts(response.data);
+      } else {
+        setContracts([]);
       }
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
+    }
+  };
+
+  const fetchMyContracts = async () => {
+    try {
+      const response = await axios.get(`${API}/user/my-contracts`);
+      setMyContracts(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch my contracts:', error);
     }
   };
 
