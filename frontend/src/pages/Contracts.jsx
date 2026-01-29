@@ -1439,6 +1439,57 @@ export default function Contracts() {
         </div>
       )}
 
+      {/* Merc Accepted Notification Modal */}
+      {acceptedBidNotification && (
+        <div className="mission-modal-overlay">
+          <div className="mission-modal" style={{ maxWidth: 480, textAlign: 'center' }}>
+            <div className="mission-modal-header" style={{ justifyContent: 'center', background: 'rgba(0, 255, 136, 0.1)' }}>
+              <div>
+                <div className="mission-type-badge" style={{ color: 'var(--nc-green)' }}>// BID_ACCEPTED</div>
+                <h2 className="mission-title" style={{ color: 'var(--nc-green)' }}>You've Been Hired!</h2>
+              </div>
+            </div>
+            <div className="mission-modal-content">
+              <div className="accepted-notification-icon">✓</div>
+              <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 16, fontSize: 15 }}>
+                Your bid for <strong style={{ color: 'var(--nc-cyan)' }}>{acceptedBidNotification.contract?.title}</strong> has been accepted.
+              </p>
+              <p style={{ color: 'var(--nc-text-muted)', marginBottom: 24, fontSize: 13 }}>
+                Add the client to your party in Star Citizen immediately. For rescue missions, the client may be incapacitated and unable to invite you.
+              </p>
+              <div className="client-handle-box">
+                <span className="label">CLIENT RSI HANDLE</span>
+                <div className="client-info">
+                  {acceptedBidNotification.client_avatar && (
+                    <img src={acceptedBidNotification.client_avatar} alt="" className="client-avatar" />
+                  )}
+                  <span className="handle">{acceptedBidNotification.client_handle || 'Unknown'}</span>
+                </div>
+                <button 
+                  className="nc-btn nc-btn-primary"
+                  onClick={() => handleCopyHandle(acceptedBidNotification.client_handle)}
+                  style={{ marginTop: 12 }}
+                >
+                  <Copy size={14} /> Copy Handle
+                </button>
+              </div>
+              <div style={{ marginTop: 24, padding: 12, background: 'rgba(255, 153, 0, 0.1)', border: '1px solid rgba(255, 153, 0, 0.3)' }}>
+                <p style={{ color: '#ff9900', fontSize: 12, fontFamily: 'var(--nc-font-mono)', margin: 0 }}>
+                  ⚠️ IMPORTANT: Write down this handle before closing! The client may be unable to look you up if incapacitated.
+                </p>
+              </div>
+              <button 
+                className="nc-btn nc-btn-secondary"
+                onClick={() => acknowledgeAcceptedBid(acceptedBidNotification.bid_id)}
+                style={{ width: '100%', marginTop: 24 }}
+              >
+                I've Copied the Handle - Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Merc Profile Modal */}
       {showMercProfile && (
         <div className="mission-modal-overlay" onClick={() => setShowMercProfile(null)}>
