@@ -908,8 +908,10 @@ export default function Contracts() {
           <span className="font-mono text-muted" style={{ fontSize: 11 }}>GLOBAL</span>
         </div>
       </div>
+      )}
 
-      {/* Contracts Feed */}
+      {/* Contracts Feed - Only show on Feed view */}
+      {viewMode === 'feed' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {filteredContracts.map(contract => {
           const type = getContractType(contract.type);
