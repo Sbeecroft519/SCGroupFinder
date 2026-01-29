@@ -33,6 +33,7 @@ const CONTRACT_TYPES = [
 ];
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user, updateUser, tickerSettings, updateTickerSettings, notificationSettings, updateNotificationSettings, userShard, setShard, setShowShardPrompt } = useAuth();
   const [activeSection, setActiveSection] = useState('alerts');
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
