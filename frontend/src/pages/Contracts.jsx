@@ -1113,19 +1113,27 @@ export default function Contracts() {
                 <div className="bids-list">
                   {contractBids.filter(b => b.status === 'pending').map(bid => (
                     <div key={bid.id} className="pilot-card">
-                      <div className="pilot-avatar">
+                      <div 
+                        className="pilot-avatar clickable"
+                        onClick={() => setShowMercProfile(bid.bidder)}
+                        title="View Profile"
+                      >
                         {bid.bidder?.avatar_url ? (
                           <img src={bid.bidder.avatar_url} alt="" />
                         ) : (
                           <Users size={32} />
                         )}
                       </div>
-                      <div className="pilot-info">
+                      <div 
+                        className="pilot-info clickable"
+                        onClick={() => setShowMercProfile(bid.bidder)}
+                      >
                         <h4>{bid.bidder?.handle || 'Unknown'}</h4>
                         <div className="pilot-stats">
                           <span><Star size={12} fill="#FFD700" /> {bid.bidder?.reputation?.toFixed(1) || '5.0'}</span>
                           <span>{bid.bidder?.contracts_completed || 0} contracts</span>
                         </div>
+                        <span className="view-profile-hint">Click to view profile</span>
                       </div>
                       <div className="pilot-actions">
                         <button 
