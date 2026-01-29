@@ -406,6 +406,7 @@ export default function Contracts() {
       setReviewRating(5);
       setReviewComment('');
       fetchContracts();
+      fetchMyContracts();
     } catch (error) {
       console.error('Failed to submit review:', error);
     }
