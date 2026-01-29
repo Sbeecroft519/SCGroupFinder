@@ -1599,3 +1599,6 @@ async def get_user_bids(user = Depends(get_current_user)):
         {'_id': 0}
     ).to_list(20)
     return bids
+
+# Include router AFTER all routes are defined
+app.include_router(api_router)
