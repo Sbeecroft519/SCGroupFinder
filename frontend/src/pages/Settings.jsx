@@ -116,6 +116,19 @@ export default function Settings() {
             <span>About</span>
             <ChevronRight size={16} className="nav-arrow" />
           </button>
+          
+          {/* Admin link - only visible for admin users */}
+          {user?.is_admin && (
+            <button 
+              className="settings-nav-item admin-link"
+              onClick={() => navigate('/admin')}
+              data-testid="admin-link"
+            >
+              <Shield size={18} />
+              <span>Admin Panel</span>
+              <ChevronRight size={16} className="nav-arrow" />
+            </button>
+          )}
         </div>
 
         {/* Content */}
