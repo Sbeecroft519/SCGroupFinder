@@ -103,6 +103,7 @@ export default function Contracts() {
   const [contractBids, setContractBids] = useState([]);
   const [showHandshakeModal, setShowHandshakeModal] = useState(null);
   const [hasActiveContract, setHasActiveContract] = useState(false);
+  const [showMercProfile, setShowMercProfile] = useState(null);
 
   // Handle ?action=create from QuickActions FAB
   useEffect(() => {
