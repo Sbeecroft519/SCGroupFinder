@@ -1133,6 +1133,170 @@ export default function Contracts() {
           </div>
         )}
       </div>
+      )}
+
+      {/* My Contracts View */}
+      {viewMode === 'my' && (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Pending Ratings Section */}
+        {myContracts.filter(c => 
+          (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
+          (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
+        ).length > 0 && (
+          <div className="pending-ratings-section">
+            <h3 style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-gold)', marginBottom: 12, letterSpacing: 2 }}>
+              // PENDING_RATINGS
+            </h3>
+            {myContracts.filter(c => 
+              (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
+              (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
+            ).map(contract => {
+              const type = getContractType(contract.type);
+              const isClient = contract.poster_id === user?.id;
+              return (
+                <div key={contract.id} className="contract-card pending-rating" data-testid={`my-contract-${contract.id}`}>
+                  <div className="contract-header">
+                    <div className="contract-type">
+                      <span className="contract-type-icon">{type.icon}</span>
+                      <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                      <span className="status-badge status-completed">COMPLETED</span>
+                    </div>
+                  </div>
+                  <h3 className="contract-title">{contract.title}</h3>
+                  <div className="contract-meta">
+                    <span style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}>
+                      {isClient ? `Merc: ${contract.accepted_by?.handle}` : `Client: ${contract.poster?.handle}`}
+                    </span>
+                  </div>
+                  <div className="contract-actions">
+                    <button 
+                      className="nc-btn nc-btn-gold" 
+                      onClick={() => setShowReview({ id: contract.id, isClient })}
+                    >
+                      <Star size={14} /> Rate {isClient ? 'Mercenary' : 'Client'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* All My Contracts */}
+        <h3 style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-cyan)', marginBottom: 12, letterSpacing: 2 }}>
+          // ALL_MY_CONTRACTS
+        </h3>
+        {myContracts.map(contract => {
+          const type = getContractType(contract.type);
+          const isClient = contract.poster_id === user?.id;
+          return (
+            <div key={contract.id} className={`contract-card ${contract.status}`} data-testid={`my-contract-${contract.id}`}>
+              <div className="contract-header">
+                <div className="contract-type">
+                  <span className="contract-type-icon">{type.icon}</span>
+                  <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                  <span className={`status-badge status-${contract.status}`}>
+                    {contract.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                  <span style={{ 
+                    marginLeft: 8, 
+                    fontSize: 10, 
+                    color: 'var(--nc-text-muted)',
+                    fontFamily: 'var(--nc-font-mono)'
+                  }}>
+                    {isClient ? '(POSTED)' : '(ACCEPTED)'}
+                  </span>
+                </div>
+              </div>
+              <h3 className="contract-title">{contract.title}</h3>
+              <div className="contract-meta">
+                <span style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}>
+                  {isClient 
+                    ? (contract.accepted_by ? `Merc: ${contract.accepted_by.handle}` : 'Awaiting merc...') 
+                    : `Client: ${contract.poster?.handle}`
+                  }
+                </span>
+              </div>
+              
+              {/* Contract Actions based on status */}
+              <div className="contract-actions">
+                {/* Poster can manage bids on open contracts */}
+                {isClient && contract.status === 'open' && (
+                  <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
+                    <Users size={14} /> Manage Bids
+                  </button>
+                )}
+                
+                {/* In Progress - Mark Complete */}
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion') && (
+                  <>
+                    <button
+                      className="nc-btn nc-btn-secondary"
+                      onClick={() => handleCopyHandle(
+                        isClient ? contract.accepted_by?.handle : contract.poster?.handle
+                      )}
+                    >
+                      <Copy size={14} /> Copy Handle
+                    </button>
+                    <button 
+                      className="nc-btn nc-btn-primary" 
+                      onClick={() => handleMarkComplete(contract.id)}
+                    >
+                      <Check size={14} /> 
+                      {contract.status === 'pending_completion' ? 'Confirm Complete' : 'Mark Complete'}
+                    </button>
+                  </>
+                )}
+                
+                {/* Completed - Show Rating if not yet rated */}
+                {contract.status === 'completed' && (
+                  <>
+                    {isClient && !contract.client_review && (
+                      <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: true })}>
+                        <Star size={14} /> Rate Mercenary
+                      </button>
+                    )}
+                    {!isClient && !contract.merc_review && (
+                      <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: false })}>
+                        <Star size={14} /> Rate Client
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              {/* Reviews Display */}
+              {(contract.client_review || contract.merc_review) && (
+                <div className="contract-reviews">
+                  {contract.client_review && (
+                    <div className="review-badge">
+                      <Star size={12} fill="#FFD700" /> Client rated: {contract.client_review.rating}/5
+                    </div>
+                  )}
+                  {contract.merc_review && (
+                    <div className="review-badge">
+                      <Star size={12} fill="#FFD700" /> Merc rated: {contract.merc_review.rating}/5
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {myContracts.length === 0 && (
+          <div className="nc-card" style={{ textAlign: 'center', padding: 48 }}>
+            <Users size={48} className="text-muted" style={{ marginBottom: 16, opacity: 0.5 }} />
+            <h3 className="font-display text-muted" style={{ fontSize: 16, marginBottom: 8 }}>
+              No Contracts Yet
+            </h3>
+            <p className="text-muted" style={{ fontSize: 14 }}>
+              Post a contract or apply for one to get started!
+            </p>
+          </div>
+        )}
+      </div>
+      )}
 
       {/* Manage Bids Modal */}
       {showBidsModal && (
