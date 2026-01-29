@@ -106,6 +106,7 @@ export default function Contracts() {
   const [showHandshakeModal, setShowHandshakeModal] = useState(null);
   const [hasActiveContract, setHasActiveContract] = useState(false);
   const [showMercProfile, setShowMercProfile] = useState(null);
+  const [acceptedBidNotification, setAcceptedBidNotification] = useState(null);
 
   // Handle ?action=create from QuickActions FAB
   useEffect(() => {
@@ -115,6 +116,37 @@ export default function Contracts() {
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
+
+  // Check for accepted bids (merc notification)
+  useEffect(() => {
+    const checkAcceptedBids = async () => {
+      try {
+        const response = await axios.get(`${API}/user/accepted-bids`);
+        if (response.data && response.data.length > 0) {
+          // Show notification for the first unacknowledged accepted bid
+          setAcceptedBidNotification(response.data[0]);
+        }
+      } catch (e) {
+        console.debug('Failed to check accepted bids:', e);
+      }
+    };
+    
+    if (user) {
+      checkAcceptedBids();
+      // Poll every 10 seconds for accepted bids
+      const interval = setInterval(checkAcceptedBids, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const acknowledgeAcceptedBid = async (bidId) => {
+    try {
+      await axios.post(`${API}/user/accepted-bids/${bidId}/acknowledge`);
+      setAcceptedBidNotification(null);
+    } catch (e) {
+      console.error('Failed to acknowledge bid:', e);
+    }
+  };
 
   // New contract form state
   const [newContract, setNewContract] = useState({
