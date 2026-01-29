@@ -350,6 +350,58 @@ export default function Settings() {
                 </label>
               </div>
 
+              {/* Desktop Notifications */}
+              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
+                Desktop Notifications
+              </h3>
+              <div className="desktop-notif-section" style={{ 
+                background: 'var(--nc-bg-secondary)', 
+                border: '1px solid var(--nc-border)', 
+                padding: 16,
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <Bell size={16} />
+                      <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>Browser Push Notifications</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--nc-text-muted)' }}>
+                      Receive alerts even when NavCom is in the background
+                    </span>
+                  </div>
+                  {desktopNotifPermission === 'granted' ? (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 6, 
+                      color: 'var(--nc-green)', 
+                      fontFamily: 'var(--nc-font-mono)', 
+                      fontSize: 11 
+                    }}>
+                      <Check size={14} /> ENABLED
+                    </div>
+                  ) : desktopNotifPermission === 'denied' ? (
+                    <div style={{ 
+                      color: 'var(--nc-red)', 
+                      fontFamily: 'var(--nc-font-mono)', 
+                      fontSize: 11 
+                    }}>
+                      BLOCKED (check browser settings)
+                    </div>
+                  ) : (
+                    <button 
+                      className="nc-btn nc-btn-primary" 
+                      onClick={requestDesktopPermission}
+                      style={{ padding: '8px 16px', fontSize: 12 }}
+                      data-testid="enable-desktop-notif"
+                    >
+                      Enable
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Alert Types Section */}
               <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
                 Alert Types
