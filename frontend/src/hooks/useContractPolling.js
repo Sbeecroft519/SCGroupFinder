@@ -2,9 +2,70 @@ import { useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
+// Request notification permission
+const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.log('This browser does not support desktop notifications');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
+
+// Send desktop notification
+const sendDesktopNotification = (contract) => {
+  if (Notification.permission !== 'granted') return;
+  
+  const typeEmojis = {
+    security: '🛡️',
+    rescue: '🚑',
+    transport: '📦',
+    operations: '🤝'
+  };
+  
+  const emoji = typeEmojis[contract.type] || '📋';
+  const title = `${emoji} New ${contract.type.charAt(0).toUpperCase() + contract.type.slice(1)} Contract`;
+  
+  const notification = new Notification(title, {
+    body: contract.title || 'A new contract is available!',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: `contract-${contract.id}`,
+    requireInteraction: false,
+    silent: false
+  });
+  
+  // Auto-close after 8 seconds
+  setTimeout(() => notification.close(), 8000);
+  
+  // Click to focus the app
+  notification.onclick = () => {
+    window.focus();
+    notification.close();
+  };
+};
+
 export const useContractPolling = (API, enabled, onNewContract) => {
   const lastContractIds = useRef(new Set());
   const isFirstLoad = useRef(true);
+  const permissionRequested = useRef(false);
+
+  // Request permission on mount if enabled
+  useEffect(() => {
+    if (enabled && !permissionRequested.current) {
+      permissionRequested.current = true;
+      requestNotificationPermission();
+    }
+  }, [enabled]);
 
   const checkForNewContracts = useCallback(async () => {
     if (!enabled) return;
