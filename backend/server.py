@@ -1618,5 +1618,47 @@ async def get_user_contracts(user = Depends(get_current_user)):
     
     return contracts
 
+@api_router.get("/user/accepted-bids")
+async def get_accepted_bids(user = Depends(get_current_user)):
+    """Get bids that were recently accepted - for merc notification"""
+    if not user:
+        return []
+    
+    # Find bids where user is the bidder and status changed to accepted
+    # Also return the contract info with client details
+    accepted_bids = await db.contract_bids.find(
+        {'bidder_id': user['id'], 'status': 'accepted', 'notified': {'$ne': True}},
+        {'_id': 0}
+    ).to_list(10)
+    
+    # Get contract details for each accepted bid
+    result = []
+    for bid in accepted_bids:
+        contract = await db.contracts.find_one(
+            {'id': bid['contract_id']},
+            {'_id': 0}
+        )
+        if contract:
+            result.append({
+                'bid_id': bid['id'],
+                'contract': contract,
+                'client_handle': contract.get('poster', {}).get('handle'),
+                'client_avatar': contract.get('poster', {}).get('avatar_url')
+            })
+    
+    return result
+
+@api_router.post("/user/accepted-bids/{bid_id}/acknowledge")
+async def acknowledge_accepted_bid(bid_id: str, user = Depends(get_current_user)):
+    """Mark an accepted bid as notified so it doesn't show again"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    await db.contract_bids.update_one(
+        {'id': bid_id, 'bidder_id': user['id']},
+        {'$set': {'notified': True}}
+    )
+    return {'success': True}
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
