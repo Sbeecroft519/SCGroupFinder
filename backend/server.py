@@ -1124,7 +1124,7 @@ async def contribute_to_goal(goal_id: str, contribution: ContributionCreate, use
     # Create Stripe checkout session
     if stripe.api_key:
         try:
-            frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000').replace('/api', '').rstrip('/')
+            frontend_url = os.environ['FRONTEND_URL']
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
