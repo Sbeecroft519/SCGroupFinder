@@ -1824,6 +1824,56 @@ export default function Contracts() {
           border-color: var(--nc-gold);
           background: rgba(255, 215, 0, 0.05);
         }
+        .accepted-notification-icon {
+          width: 80px;
+          height: 80px;
+          border: 3px solid var(--nc-green);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 40px;
+          color: var(--nc-green);
+          margin: 0 auto 24px;
+          animation: pulse-success 1.5s ease-out infinite;
+        }
+        @keyframes pulse-success {
+          0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+          70% { box-shadow: 0 0 0 20px rgba(0, 255, 136, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+        .client-handle-box {
+          background: var(--nc-bg-secondary);
+          border: 2px solid var(--nc-green);
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .client-handle-box .label {
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          letter-spacing: 2px;
+          margin-bottom: 12px;
+        }
+        .client-handle-box .client-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .client-handle-box .client-avatar {
+          width: 48px;
+          height: 48px;
+          border: 2px solid var(--nc-cyan);
+          object-fit: cover;
+        }
+        .client-handle-box .handle {
+          font-family: var(--nc-font-display);
+          font-size: 28px;
+          color: var(--nc-green);
+          letter-spacing: 2px;
+        }
       `}</style>
     </div>
   );
