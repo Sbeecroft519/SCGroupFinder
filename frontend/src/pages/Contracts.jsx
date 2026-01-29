@@ -1713,6 +1713,34 @@ export default function Contracts() {
           display: flex;
           justify-content: center;
         }
+        .pending-rating-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          background: var(--nc-gold);
+          color: var(--nc-bg-primary);
+          font-size: 12px;
+          font-weight: bold;
+          border-radius: 50%;
+          margin-left: 8px;
+          animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-badge {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+        .pending-ratings-section {
+          background: rgba(255, 215, 0, 0.05);
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+        .contract-card.pending-rating {
+          border-color: var(--nc-gold);
+          background: rgba(255, 215, 0, 0.05);
+        }
       `}</style>
     </div>
   );
