@@ -1177,7 +1177,7 @@ async def create_checkout(request: CheckoutRequest, user = Depends(get_current_u
     
     if stripe.api_key and stripe.api_key.startswith('sk_'):
         try:
-            frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000').replace('/api', '').rstrip('/')
+            frontend_url = os.environ['FRONTEND_URL']
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
