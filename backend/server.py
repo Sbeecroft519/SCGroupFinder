@@ -1378,9 +1378,6 @@ async def root():
     return {"message": "NavCom API v2.0.0", "status": "operational"}
 
 
-# Include router and setup middleware
-app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
