@@ -1327,18 +1327,16 @@ async def update_avatar(data: AvatarUpdate, user = Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
-    # Map preset to file path
+    # Map preset to file URL
     preset_files = {
-        'helmet': '/avatars/helmet.svg',
-        'medic': '/avatars/medic.svg',
-        'skull': '/avatars/skull.svg',
-        'cargo': '/avatars/cargo.svg',
-        'target': '/avatars/target.svg',
-        'pilot': '/avatars/pilot.svg',
-        'miner': '/avatars/miner.svg',
-        'commander': '/avatars/commander.svg',
-        'explorer': '/avatars/explorer.svg',
-        'engineer': '/avatars/engineer.svg',
+        'pilot': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/ud2yrip4_Pilot%20Helmet%20Icon.jpg',
+        'medic': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y3sjh1kj_medic%20icon.jpg',
+        'pirate': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/9jq4a6p0_pirate%20icon.jpg',
+        'hauler': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y9kqdygi_hauler%20icon.jpg',
+        'miner': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/7i1hxlzx_mining%20icon.jpg',
+        'bounty': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/2bvh7efg_bounty%20hunter%20icon.jpg',
+        'engineer': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/3k5fmash_engineer%20icon.jpg',
+        'explorer': 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/rdo3h8bq_explorer%20icon.jpg',
     }
     
     avatar_url = preset_files.get(data.avatar_preset)
