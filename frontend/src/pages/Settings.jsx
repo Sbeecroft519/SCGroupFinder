@@ -17,6 +17,9 @@ const AVATAR_PRESETS = [
   { id: 'pirate', name: 'Pirate', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/9jq4a6p0_pirate%20icon.jpg' },
   { id: 'hauler', name: 'Hauler', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y9kqdygi_hauler%20icon.jpg' },
   { id: 'miner', name: 'Miner', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/7i1hxlzx_mining%20icon.jpg' },
+  { id: 'bounty', name: 'Bounty Hunter', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/2bvh7efg_bounty%20hunter%20icon.jpg' },
+  { id: 'engineer', name: 'Engineer', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/3k5fmash_engineer%20icon.jpg' },
+  { id: 'explorer', name: 'Explorer', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/rdo3h8bq_explorer%20icon.jpg' },
 ];
 
 const CONTRACT_TYPES = [
