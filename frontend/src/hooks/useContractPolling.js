@@ -37,8 +37,6 @@ const sendDesktopNotification = (contract) => {
   
   const notification = new Notification(title, {
     body: contract.title || 'A new contract is available!',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
     tag: `contract-${contract.id}`,
     requireInteraction: false,
     silent: false
