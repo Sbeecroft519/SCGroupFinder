@@ -37,6 +37,25 @@ export default function Settings() {
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar_preset || null);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [desktopNotifPermission, setDesktopNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  );
+
+  const requestDesktopPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Your browser does not support desktop notifications');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setDesktopNotifPermission(permission);
+    if (permission === 'granted') {
+      // Send a test notification
+      new Notification('NavCom Notifications Enabled', {
+        body: 'You will now receive desktop alerts for new contracts!',
+        tag: 'navcom-test'
+      });
+    }
+  };
 
   const handleThemeChange = (themeId) => {
     setSelectedTheme(themeId);
