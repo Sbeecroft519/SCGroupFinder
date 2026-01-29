@@ -1393,6 +1393,119 @@ export default function Contracts() {
           color: var(--nc-cyan);
           letter-spacing: 2px;
         }
+        .pilot-avatar.clickable,
+        .pilot-info.clickable {
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pilot-avatar.clickable:hover {
+          border-color: var(--nc-cyan);
+          box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+        .pilot-info.clickable:hover h4 {
+          color: var(--nc-cyan);
+        }
+        .view-profile-hint {
+          font-size: 10px;
+          color: var(--nc-cyan-dim);
+          font-family: var(--nc-font-mono);
+          margin-top: 4px;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+        .pilot-info.clickable:hover .view-profile-hint {
+          opacity: 1;
+        }
+        .merc-profile {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .merc-profile-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .merc-profile-avatar {
+          width: 80px;
+          height: 80px;
+          border: 2px solid var(--nc-cyan);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--nc-text-muted);
+          overflow: hidden;
+          background: var(--nc-bg-primary);
+        }
+        .merc-profile-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .merc-profile-name h3 {
+          font-family: var(--nc-font-display);
+          font-size: 24px;
+          color: var(--nc-cyan);
+          margin-bottom: 4px;
+        }
+        .merc-profile-badge {
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-green);
+          background: rgba(0, 255, 136, 0.1);
+          padding: 2px 8px;
+          letter-spacing: 2px;
+        }
+        .merc-profile-stats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .stat-box {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 16px;
+          text-align: center;
+        }
+        .stat-label {
+          display: block;
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          letter-spacing: 2px;
+          margin-bottom: 8px;
+        }
+        .stat-value {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: var(--nc-font-display);
+          font-size: 24px;
+          color: var(--nc-text-primary);
+        }
+        .merc-profile-bio {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 16px;
+        }
+        .bio-label {
+          display: block;
+          font-family: var(--nc-font-mono);
+          font-size: 10px;
+          color: var(--nc-cyan);
+          letter-spacing: 2px;
+          margin-bottom: 8px;
+        }
+        .merc-profile-bio p {
+          color: var(--nc-text-secondary);
+          font-size: 14px;
+          line-height: 1.6;
+          margin: 0;
+        }
+        .merc-profile-actions {
+          display: flex;
+          justify-content: center;
+        }
       `}</style>
     </div>
   );
