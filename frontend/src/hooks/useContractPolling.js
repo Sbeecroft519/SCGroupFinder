@@ -88,10 +88,14 @@ export const useContractPolling = (API, enabled, onNewContract) => {
       
       if (newContracts.length > 0) {
         newContracts.forEach(contract => {
+          // In-app toast notification
           toast.info(`New ${contract.type} contract available!`, {
             description: contract.title,
             duration: 5000,
           });
+          
+          // Desktop push notification
+          sendDesktopNotification(contract);
         });
         
         if (onNewContract) {
