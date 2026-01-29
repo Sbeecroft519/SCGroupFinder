@@ -16,13 +16,13 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - **Real-time**: Socket.IO
 - **Payments**: Stripe
 
-## What's Been Implemented (Jan 28, 2026)
+## What's Been Implemented (Jan 29, 2026)
 
 ### Core Features - COMPLETE
 - [x] MobiGlass UI theme
 - [x] JWT authentication with RSI Handle verification
 - [x] RSI profile avatar scraping (verified with handle "Mowri")
-- [x] 5-slide onboarding carousel
+- [x] 6-slide onboarding carousel (including new disclaimer slide)
 - [x] Session-based shard management
 - [x] Protected routes (all require login)
 - [x] **Mobile Bottom Navigation** - Fixed nav bar at bottom (<768px) with Intel, Signals, Contracts, Roadmap, Profile
