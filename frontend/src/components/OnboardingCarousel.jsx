@@ -104,10 +104,20 @@ export default function OnboardingCarousel({ onComplete, onSetShard }) {
             </div>
           )}
           
-          {!slide.icon && (
+          {!slide.icon && !slide.showCommunityBadge && (
             <div className="onboarding-logo">
               <span className="logo-text">NAVCOM</span>
               <span className="logo-subtitle">MISSION ADVISOR</span>
+            </div>
+          )}
+
+          {slide.showCommunityBadge && (
+            <div className="community-badge-container">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_space-contracts/artifacts/cs2lc5r9_ola6jl4j_MadeByTheCommunity_White.png" 
+                alt="Made by the Community" 
+                className="community-badge-img"
+              />
             </div>
           )}
 
