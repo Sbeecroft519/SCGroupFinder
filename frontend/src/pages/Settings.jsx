@@ -504,6 +504,18 @@ export default function Settings() {
           color: var(--nc-cyan);
         }
         
+        .settings-nav-item.admin-link {
+          margin-top: 16px;
+          border-top: 1px solid var(--nc-border);
+          padding-top: 20px;
+          color: var(--nc-gold, #ffd700);
+        }
+        
+        .settings-nav-item.admin-link:hover {
+          background: rgba(255, 215, 0, 0.1);
+          color: var(--nc-gold, #ffd700);
+        }
+        
         .nav-arrow {
           margin-left: auto;
           opacity: 0;
