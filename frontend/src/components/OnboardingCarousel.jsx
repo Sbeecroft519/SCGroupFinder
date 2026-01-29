@@ -326,6 +326,14 @@ export default function OnboardingCarousel({ onComplete, onSetShard }) {
           70% { box-shadow: 0 0 0 20px rgba(0, 240, 255, 0); }
           100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
         }
+        .community-badge-container {
+          margin-bottom: 24px;
+        }
+        .community-badge-img {
+          max-width: 200px;
+          height: auto;
+          opacity: 0.9;
+        }
       `}</style>
     </div>
   );
