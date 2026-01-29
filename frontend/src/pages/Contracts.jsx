@@ -1039,11 +1039,22 @@ export default function Contracts() {
                   </>
                 )}
                 
-                {/* Completed - Show Rating */}
-                {contract.status === 'completed' && !contract.client_review && !contract.merc_review && (
-                  <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id })}>
-                    <Star size={14} /> Rate Experience
-                  </button>
+                {/* Completed - Show Rating for each party */}
+                {contract.status === 'completed' && (
+                  <>
+                    {/* Client can rate merc if they haven't yet */}
+                    {contract.poster_id === user?.id && !contract.client_review && (
+                      <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: true })}>
+                        <Star size={14} /> Rate Mercenary
+                      </button>
+                    )}
+                    {/* Merc can rate client if they haven't yet */}
+                    {contract.accepted_by?.id === user?.id && !contract.merc_review && (
+                      <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: false })}>
+                        <Star size={14} /> Rate Client
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               
