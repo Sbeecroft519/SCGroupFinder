@@ -24,10 +24,31 @@ const getRank = (contracts) => {
 };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
+  const { userId } = useParams();
   const [copied, setCopied] = useState(false);
+  const [profileUser, setProfileUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // If viewing another user's profile, fetch their data
+  useEffect(() => {
+    if (userId && userId !== currentUser?.id) {
+      setLoading(true);
+      axios.get(`${API}/users/${userId}/profile`).then(res => {
+        setProfileUser(res.data);
+      }).catch(() => {
+        setProfileUser(null);
+      }).finally(() => setLoading(false));
+    } else {
+      setProfileUser(null);
+    }
+  }, [userId, currentUser?.id]);
+
+  const user = profileUser || currentUser;
+  const isOwnProfile = !userId || userId === currentUser?.id;
 
   if (!user) return null;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#00f0ff' }}>Loading...</div>;
 
   const rank = getRank(user.contracts_completed || 0);
   const reputation = user.reputation || 5.0;
