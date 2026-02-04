@@ -1658,6 +1658,45 @@ async def get_user_bids(user = Depends(get_current_user)):
     ).to_list(20)
     return bids
 
+
+@api_router.get("/users/{user_id}/mission-history")
+async def get_user_mission_history(user_id: str):
+    """Get user's mission history and stats"""
+    user = await db.users.find_one({'id': user_id}, {'_id': 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get mission history records
+    missions = await db.mission_history.find(
+        {'user_id': user_id},
+        {'_id': 0}
+    ).sort('completed_at', -1).limit(50).to_list(50)
+    
+    # Calculate earnings breakdown
+    now = datetime.now(timezone.utc)
+    week_ago = (now - timedelta(days=7)).isoformat()
+    month_ago = (now - timedelta(days=30)).isoformat()
+    
+    earnings_week = sum(m.get('payout_received', 0) for m in missions if m.get('completed_at', '') >= week_ago)
+    earnings_month = sum(m.get('payout_received', 0) for m in missions if m.get('completed_at', '') >= month_ago)
+    
+    # Calculate average rating
+    ratings = [m.get('rating_received') for m in missions if m.get('rating_received')]
+    avg_rating = sum(ratings) / len(ratings) if ratings else 0
+    
+    return {
+        'summary': {
+            'total_completed': user.get('total_missions_completed', user.get('contracts_completed', 0)),
+            'total_earnings': user.get('total_earnings', 0),
+            'success_rate': 100,  # All completed = success
+            'average_rating': round(avg_rating, 1),
+            'missions_by_type': user.get('missions_by_type', {}),
+            'earnings_week': earnings_week,
+            'earnings_month': earnings_month
+        },
+        'missions': missions
+    }
+
 @api_router.get("/user/my-contracts")
 async def get_user_contracts(user = Depends(get_current_user)):
     """Get user's contracts (posted or accepted) including completed ones for rating"""
