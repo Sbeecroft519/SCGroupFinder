@@ -963,6 +963,8 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'planet': contract.planet,
         'location': contract.location,
         'shard': contract.shard,
+        # Category
+        'category': contract.category or 'OTHER',
         'poster_id': user['id'],
         'poster_handle': user['rsi_handle'],
         'poster': {
