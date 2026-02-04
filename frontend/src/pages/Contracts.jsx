@@ -615,6 +615,7 @@ export default function Contracts() {
     setManifest([]);
     setIsMultiCrew(false);
     setBasePayout(50000);
+    setDuration(60);
   };
 
   const handleAcceptContract = async (contractId) => {
