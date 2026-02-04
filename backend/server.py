@@ -433,7 +433,8 @@ async def get_me(user = Depends(get_current_user)):
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
-        avatar_preset=user.get('avatar_preset')
+        avatar_preset=user.get('avatar_preset'),
+        badges=user.get('badges', [])
     )
 
 
