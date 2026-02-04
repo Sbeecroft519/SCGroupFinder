@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp, ArrowRight } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp, ArrowRight, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -9,6 +9,22 @@ const CONTRACT_TYPES = [
   { id: 'rescue', label: 'Rescue', icon: '🚑', color: '#00ff88' },
   { id: 'transport', label: 'Transport', icon: '📦', color: '#ffcc00' },
   { id: 'operations', label: 'Operations', icon: '🤝', color: '#ff9933' }
+];
+
+// Preset roles for multi-crew contracts
+const PRESET_ROLES = [
+  'Pilot',
+  'Co-Pilot',
+  'Turret Gunner',
+  'Marine / FPS',
+  'Medic',
+  'Engineer / Repair',
+  'Cargo Handler',
+  'Mining Operator',
+  'Salvage Operator',
+  'Scout',
+  'Security',
+  'Navigator'
 ];
 
 // Structured dropdown options by contract type
@@ -84,8 +100,174 @@ const LOCATIONS = {
   }
 };
 
+// Manifest Builder Component for Multi-Crew Contracts
+const ManifestBuilder = ({ manifest, onChange, basePayout, onBasePayoutChange }) => {
+  const [selectedRole, setSelectedRole] = useState(PRESET_ROLES[0]);
+  const [quickFillCount, setQuickFillCount] = useState(1);
+
+  const addRoles = () => {
+    const newSlots = Array.from({ length: quickFillCount }, () => ({
+      role: selectedRole,
+      payout: basePayout,
+      status: 'OPEN',
+      applicant_id: null,
+      bids: []
+    }));
+    onChange([...manifest, ...newSlots]);
+    setQuickFillCount(1);
+  };
+
+  const removeSlot = (index) => {
+    onChange(manifest.filter((_, i) => i !== index));
+  };
+
+  const updateSlotPayout = (index, newPayout) => {
+    const updated = manifest.map((slot, i) =>
+      i === index ? { ...slot, payout: parseInt(newPayout) || 0 } : slot
+    );
+    onChange(updated);
+  };
+
+  const totalPayout = manifest.reduce((sum, slot) => sum + slot.payout, 0);
+
+  return (
+    <div style={{
+      background: 'rgba(0, 240, 255, 0.03)',
+      border: '1px solid rgba(0, 240, 255, 0.2)',
+      padding: '20px',
+      marginTop: '10px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+        <Users size={18} color="var(--nc-cyan)" />
+        <span style={{ color: 'var(--nc-cyan)', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px' }}>
+          CREW MANIFEST BUILDER
+        </span>
+      </div>
+
+      <div className="form-group">
+        <label className="nc-label">BASE PAYOUT PER MEMBER (aUEC)</label>
+        <input
+          type="number"
+          value={basePayout}
+          onChange={(e) => onBasePayoutChange(parseInt(e.target.value) || 0)}
+          className="nc-input"
+          style={{ width: '200px' }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          value={selectedRole}
+          onChange={(e) => setSelectedRole(e.target.value)}
+          className="nc-input"
+          style={{ width: '180px' }}
+        >
+          {PRESET_ROLES.map(role => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </select>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ color: 'rgba(255,255,255,0.6)' }}>×</span>
+          <input
+            type="number"
+            min="1"
+            max="20"
+            value={quickFillCount}
+            onChange={(e) => setQuickFillCount(Math.max(1, parseInt(e.target.value) || 1))}
+            className="nc-input"
+            style={{ width: '60px', textAlign: 'center' }}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={addRoles}
+          className="nc-btn nc-btn-primary"
+          style={{ padding: '10px 16px', fontSize: '12px' }}
+        >
+          <Plus size={14} />
+          ADD ROLE{quickFillCount > 1 ? 'S' : ''}
+        </button>
+      </div>
+
+      {manifest.length > 0 && (
+        <>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', letterSpacing: '1px', marginBottom: '10px' }}>
+            CREW ROSTER ({manifest.length} SLOTS)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
+            {manifest.map((slot, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 15px',
+                  background: 'rgba(0, 240, 255, 0.05)',
+                  border: '1px solid rgba(0, 240, 255, 0.15)'
+                }}
+              >
+                <span style={{ color: 'var(--nc-cyan)', fontWeight: 'bold' }}>{slot.role}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="number"
+                    value={slot.payout}
+                    onChange={(e) => updateSlotPayout(index, e.target.value)}
+                    className="nc-input"
+                    style={{ width: '100px', textAlign: 'right', padding: '6px 10px' }}
+                  />
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>aUEC</span>
+                  <button
+                    type="button"
+                    onClick={() => removeSlot(index)}
+                    style={{
+                      background: 'rgba(255, 77, 77, 0.2)',
+                      border: '1px solid rgba(255, 77, 77, 0.5)',
+                      color: '#ff4d4d',
+                      width: '28px',
+                      height: '28px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{
+            marginTop: '15px',
+            padding: '10px 15px',
+            background: 'rgba(0, 240, 255, 0.05)',
+            borderTop: '1px solid rgba(0, 240, 255, 0.2)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '13px'
+          }}>
+            <span>TOTAL CREW: {manifest.length}</span>
+            <span style={{ color: 'var(--nc-gold)' }}>TOTAL PAYOUT: {totalPayout.toLocaleString()} aUEC</span>
+          </div>
+        </>
+      )}
+
+      {manifest.length === 0 && (
+        <div style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '30px', fontSize: '13px' }}>
+          No crew slots defined. Select a role and click ADD to build your manifest.
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Contracts() {
   const { user, userShard } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contracts, setContracts] = useState([]);
   const [myContracts, setMyContracts] = useState([]);
@@ -107,6 +289,11 @@ export default function Contracts() {
   const [hasActiveContract, setHasActiveContract] = useState(false);
   const [showMercProfile, setShowMercProfile] = useState(null);
   const [acceptedBidNotification, setAcceptedBidNotification] = useState(null);
+  
+  // Multi-crew state
+  const [isMultiCrew, setIsMultiCrew] = useState(false);
+  const [manifest, setManifest] = useState([]);
+  const [basePayout, setBasePayout] = useState(50000);
 
   // Handle ?action=create from QuickActions FAB
   useEffect(() => {
@@ -179,7 +366,7 @@ export default function Contracts() {
 
   const isEscort = newContract.type === 'security' && newContract.activity === 'Escort';
   const isOperations = newContract.type === 'operations';
-  const showPaymentField = isOperations ? newContract.compensation_type === 'Flat Fee' : true;
+  const showPaymentField = !isMultiCrew && (isOperations ? newContract.compensation_type === 'Flat Fee' : true);
 
   // Generate title based on contract type and selections
   const generateTitle = (contract) => {
@@ -211,6 +398,11 @@ export default function Contracts() {
 
   // Check if contract form is valid
   const isContractValid = () => {
+    // Multi-crew validation
+    if (isMultiCrew) {
+      return manifest.length > 0;
+    }
+    
     // Payment validation (except for split compensation)
     if (showPaymentField && (!newContract.payment_amount || isNaN(parseInt(newContract.payment_amount)))) {
       return false;
@@ -365,46 +557,59 @@ export default function Contracts() {
     
     const paymentAmount = showPaymentField ? parseInt(newContract.payment_amount) || 0 : 0;
 
+    const contractData = {
+      type: newContract.type,
+      title: isMultiCrew ? `Multi-Crew: ${newContract.type.charAt(0).toUpperCase() + newContract.type.slice(1)} Operation` : title,
+      description: isMultiCrew ? `Multi-crew ${newContract.type} operation requiring ${manifest.length} crew members.` : null,
+      // Include structured fields
+      activity: newContract.activity,
+      threat: newContract.threat,
+      // Escort fields
+      start_location: newContract.start_location,
+      end_location: newContract.end_location,
+      cargo_value: newContract.cargo_value,
+      // Other type fields
+      status_select: newContract.status_select,
+      environment: newContract.environment,
+      load: newContract.load,
+      destination: newContract.destination,
+      job: newContract.job,
+      role: newContract.role,
+      compensation_type: newContract.compensation_type,
+      meet_at: newContract.meet_at,
+      // Payment
+      payment_amount: paymentAmount,
+      // Location
+      system: newContract.system,
+      planet: newContract.planet,
+      location: locationStr,
+      shard: myShard,
+      // Multi-crew
+      is_multi_crew: isMultiCrew,
+      manifest: isMultiCrew ? manifest : null
+    };
+
     try {
-      const response = await axios.post(`${API}/contracts`, {
-        type: newContract.type,
-        title,
-        // Include structured fields
-        activity: newContract.activity,
-        threat: newContract.threat,
-        // Escort fields
-        start_location: newContract.start_location,
-        end_location: newContract.end_location,
-        cargo_value: newContract.cargo_value,
-        // Other type fields
-        status_select: newContract.status_select,
-        environment: newContract.environment,
-        load: newContract.load,
-        destination: newContract.destination,
-        job: newContract.job,
-        role: newContract.role,
-        compensation_type: newContract.compensation_type,
-        meet_at: newContract.meet_at,
-        // Payment
-        payment_amount: paymentAmount,
-        // Location
-        system: newContract.system,
-        planet: newContract.planet,
-        location: locationStr,
-        shard: myShard
-      });
+      const response = await axios.post(`${API}/contracts`, contractData);
       setContracts(prev => [response.data, ...prev]);
       setShowCreate(false);
       // Reset form
-      setNewContract({
-        type: 'security', activity: '', threat: '', start_location: '', end_location: '',
-        cargo_value: '', status_select: '', environment: '', load: '', destination: '',
-        job: '', role: '', compensation_type: 'Flat Fee', meet_at: '', payment_amount: '',
-        system: 'Stanton', planet: '', location: ''
-      });
+      resetForm();
     } catch (error) {
       console.error('Failed to create contract:', error);
     }
+  };
+  
+  const resetForm = () => {
+    setNewContract({
+      type: 'security', activity: '', threat: '', start_location: '', end_location: '',
+      cargo_value: '', status_select: '', environment: '', load: '', destination: '',
+      job: '', role: '', compensation_type: 'Flat Fee', meet_at: '', payment_amount: '',
+      system: 'Stanton', planet: '', location: ''
+    });
+    setManifest([]);
+    setIsMultiCrew(false);
+    setBasePayout(50000);
   };
 
   const handleAcceptContract = async (contractId) => {
@@ -461,6 +666,23 @@ export default function Contracts() {
   });
 
   const isMyShardContract = (contract) => myShard && contract.shard === myShard;
+  
+  const getContractPayout = (contract) => {
+    if (contract.is_multi_crew && contract.manifest) {
+      return contract.manifest.reduce((sum, slot) => sum + slot.payout, 0);
+    }
+    return contract.payment_amount || contract.payout || 0;
+  };
+
+  const getCrewStatus = (contract) => {
+    if (!contract.is_multi_crew || !contract.manifest) return null;
+    const filled = contract.manifest.filter(s => s.status === 'FILLED').length;
+    return `${filled}/${contract.manifest.length}`;
+  };
+
+  const navigateToContract = (contractId) => {
+    navigate(`/contracts/${contractId}`);
+  };
 
   const canAccept = (contract) => user && contract.status === 'open' && contract.poster_id !== user.id;
   const canComplete = (contract) => user && contract.status === 'active' && 
@@ -520,7 +742,7 @@ export default function Contracts() {
       {/* Create Contract Modal */}
       {showCreate && (
         <div className="mission-modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: '90vh', overflow: 'auto' }}>
             <div className="mission-modal-header">
               <div>
                 <div className="mission-type-badge">// NEW_BEACON</div>
@@ -553,288 +775,341 @@ export default function Contracts() {
                 </div>
               </div>
 
-              {/* SECURITY Options */}
-              {newContract.type === 'security' && (
+              {/* Multi-Crew Toggle */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '15px',
+                background: 'rgba(0, 240, 255, 0.05)',
+                border: '1px solid rgba(0, 240, 255, 0.2)',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '14px' }}>
+                  <Users size={18} color="var(--nc-cyan)" />
+                  <span>MULTI-CREW CONTRACT</span>
+                </div>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  onClick={() => setIsMultiCrew(!isMultiCrew)}
+                  data-testid="multi-crew-toggle"
+                >
+                  {isMultiCrew ? (
+                    <ToggleRight size={32} color="var(--nc-cyan)" />
+                  ) : (
+                    <ToggleLeft size={32} color="rgba(255,255,255,0.4)" />
+                  )}
+                </button>
+              </div>
+
+              {/* Multi-Crew Manifest Builder */}
+              {isMultiCrew && (
+                <ManifestBuilder
+                  manifest={manifest}
+                  onChange={setManifest}
+                  basePayout={basePayout}
+                  onBasePayoutChange={setBasePayout}
+                />
+              )}
+
+              {/* Single-crew fields only show when not multi-crew */}
+              {!isMultiCrew && (
                 <>
-                  <div className="form-group">
-                    <label className="nc-label">ACTIVITY</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.activity}
-                      onChange={e => setNewContract(prev => ({ 
-                        ...prev, 
-                        activity: e.target.value,
-                        start_location: '', end_location: '', cargo_value: '', threat: ''
-                      }))}
-                    >
-                      <option value="">Select activity...</option>
-                      {CONTRACT_OPTIONS.security.activity.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Escort-specific fields */}
-                  {newContract.activity === 'Escort' && (
+                  {/* SECURITY Options */}
+                  {newContract.type === 'security' && (
                     <>
                       <div className="form-group">
-                        <label className="nc-label">START LOCATION</label>
+                        <label className="nc-label">ACTIVITY</label>
                         <select 
                           className="nc-input"
-                          value={newContract.start_location}
-                          onChange={e => setNewContract(prev => ({ ...prev, start_location: e.target.value }))}
+                          value={newContract.activity}
+                          onChange={e => setNewContract(prev => ({ 
+                            ...prev, 
+                            activity: e.target.value,
+                            start_location: '', end_location: '', cargo_value: '', threat: ''
+                          }))}
                         >
-                          <option value="">Select start...</option>
-                          {MAJOR_LOCATIONS.map(loc => (
-                            <option key={loc} value={loc}>{loc}</option>
+                          <option value="">Select activity...</option>
+                          {CONTRACT_OPTIONS.security.activity.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Escort-specific fields */}
+                      {newContract.activity === 'Escort' && (
+                        <>
+                          <div className="form-group">
+                            <label className="nc-label">START LOCATION</label>
+                            <select 
+                              className="nc-input"
+                              value={newContract.start_location}
+                              onChange={e => setNewContract(prev => ({ ...prev, start_location: e.target.value }))}
+                            >
+                              <option value="">Select start...</option>
+                              {MAJOR_LOCATIONS.map(loc => (
+                                <option key={loc} value={loc}>{loc}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="nc-label">END LOCATION</label>
+                            <select 
+                              className="nc-input"
+                              value={newContract.end_location}
+                              onChange={e => setNewContract(prev => ({ ...prev, end_location: e.target.value }))}
+                            >
+                              <option value="">Select destination...</option>
+                              {MAJOR_LOCATIONS.filter(l => l !== newContract.start_location).map(loc => (
+                                <option key={loc} value={loc}>{loc}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="nc-label">CARGO VALUE</label>
+                            <select 
+                              className="nc-input"
+                              value={newContract.cargo_value}
+                              onChange={e => setNewContract(prev => ({ ...prev, cargo_value: e.target.value }))}
+                            >
+                              <option value="">Select cargo value...</option>
+                              {CONTRACT_OPTIONS.security.cargo_value.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Non-Escort: Standard threat field */}
+                      {newContract.activity && newContract.activity !== 'Escort' && (
+                        <div className="form-group">
+                          <label className="nc-label">THREAT LEVEL</label>
+                          <select 
+                            className="nc-input"
+                            value={newContract.threat}
+                            onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
+                          >
+                            <option value="">Select threat level...</option>
+                            {CONTRACT_OPTIONS.security.threat.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* RESCUE Options */}
+                  {newContract.type === 'rescue' && (
+                    <>
+                      <div className="form-group">
+                        <label className="nc-label">STATUS</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.status_select}
+                          onChange={e => setNewContract(prev => ({ ...prev, status_select: e.target.value }))}
+                        >
+                          <option value="">Select status...</option>
+                          {CONTRACT_OPTIONS.rescue.status.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </select>
                       </div>
                       <div className="form-group">
-                        <label className="nc-label">END LOCATION</label>
+                        <label className="nc-label">ENVIRONMENT</label>
                         <select 
                           className="nc-input"
-                          value={newContract.end_location}
-                          onChange={e => setNewContract(prev => ({ ...prev, end_location: e.target.value }))}
+                          value={newContract.environment}
+                          onChange={e => setNewContract(prev => ({ ...prev, environment: e.target.value }))}
                         >
-                          <option value="">Select destination...</option>
-                          {MAJOR_LOCATIONS.filter(l => l !== newContract.start_location).map(loc => (
-                            <option key={loc} value={loc}>{loc}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="nc-label">CARGO VALUE</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.cargo_value}
-                          onChange={e => setNewContract(prev => ({ ...prev, cargo_value: e.target.value }))}
-                        >
-                          <option value="">Select cargo value...</option>
-                          {CONTRACT_OPTIONS.security.cargo_value.map(opt => (
+                          <option value="">Select environment...</option>
+                          {CONTRACT_OPTIONS.rescue.environment.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </select>
                       </div>
                     </>
                   )}
-                  
-                  {/* Non-Escort: Standard threat field */}
-                  {newContract.activity && newContract.activity !== 'Escort' && (
-                    <div className="form-group">
-                      <label className="nc-label">THREAT LEVEL</label>
+
+                  {/* TRANSPORT Options */}
+                  {newContract.type === 'transport' && (
+                    <>
+                      <div className="form-group">
+                        <label className="nc-label">LOAD TYPE</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.load}
+                          onChange={e => setNewContract(prev => ({ ...prev, load: e.target.value }))}
+                        >
+                          <option value="">Select load...</option>
+                          {CONTRACT_OPTIONS.transport.load.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="nc-label">DESTINATION TYPE</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.destination}
+                          onChange={e => setNewContract(prev => ({ ...prev, destination: e.target.value }))}
+                        >
+                          <option value="">Select destination type...</option>
+                          {CONTRACT_OPTIONS.transport.destination.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* OPERATIONS Options */}
+                  {newContract.type === 'operations' && (
+                    <>
+                      <div className="form-group">
+                        <label className="nc-label">JOB TYPE</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.job}
+                          onChange={e => setNewContract(prev => ({ ...prev, job: e.target.value }))}
+                        >
+                          <option value="">Select job...</option>
+                          {CONTRACT_OPTIONS.operations.job.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="nc-label">ROLE NEEDED</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.role}
+                          onChange={e => setNewContract(prev => ({ ...prev, role: e.target.value }))}
+                        >
+                          <option value="">Select role...</option>
+                          {CONTRACT_OPTIONS.operations.role.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="nc-label">COMPENSATION</label>
+                        <select 
+                          className="nc-input"
+                          value={newContract.compensation_type}
+                          onChange={e => setNewContract(prev => ({ ...prev, compensation_type: e.target.value, payment_amount: e.target.value !== 'Flat Fee' ? '' : prev.payment_amount }))}
+                        >
+                          {CONTRACT_OPTIONS.operations.compensation.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Location Selectors */}
+                  {!isOperations && (
+                  <div className="form-group">
+                    <label className="nc-label">LOCATION</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                       <select 
                         className="nc-input"
-                        value={newContract.threat}
-                        onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
+                        value={newContract.system}
+                        onChange={e => setNewContract(prev => ({ ...prev, system: e.target.value, planet: '', location: '' }))}
                       >
-                        <option value="">Select threat level...</option>
-                        {CONTRACT_OPTIONS.security.threat.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
+                        {SYSTEMS.map(sys => (
+                          <option key={sys} value={sys}>{sys}</option>
+                        ))}
+                      </select>
+                      <select 
+                        className="nc-input"
+                        value={newContract.planet}
+                        onChange={e => setNewContract(prev => ({ ...prev, planet: e.target.value, location: '' }))}
+                      >
+                        <option value="">Planet/Area...</option>
+                        {newContract.system && Object.keys(LOCATIONS[newContract.system] || {}).map(planet => (
+                          <option key={planet} value={planet}>{planet}</option>
+                        ))}
+                      </select>
+                      <select 
+                        className="nc-input"
+                        value={newContract.location}
+                        onChange={e => setNewContract(prev => ({ ...prev, location: e.target.value }))}
+                        disabled={!newContract.planet}
+                      >
+                        <option value="">Specific location...</option>
+                        {newContract.planet && newContract.system && LOCATIONS[newContract.system]?.[newContract.planet]?.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  )}
+
+                  {/* Meet At for Operations */}
+                  {isOperations && (
+                    <div className="form-group">
+                      <label className="nc-label">MEET AT</label>
+                      <select 
+                        className="nc-input"
+                        value={newContract.meet_at}
+                        onChange={e => setNewContract(prev => ({ ...prev, meet_at: e.target.value }))}
+                      >
+                        <option value="">Select meeting point...</option>
+                        {MAJOR_LOCATIONS.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
                         ))}
                       </select>
                     </div>
                   )}
+
+                  {/* Payment Amount (shown except for split compensation) */}
+                  {showPaymentField && (
+                    <div className="form-group">
+                      <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
+                      <input
+                        type="number"
+                        className="nc-input"
+                        placeholder="e.g., 50000"
+                        value={newContract.payment_amount}
+                        onChange={e => setNewContract(prev => ({ ...prev, payment_amount: e.target.value.replace(/\D/g, '') }))}
+                        min="0"
+                        style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 18, color: 'var(--nc-green)' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Preview Generated Title */}
+                  {generateTitle(newContract) && (
+                    <div className="form-group" style={{ background: 'var(--nc-bg-secondary)', padding: 16, border: '1px solid var(--nc-border)' }}>
+                      <label className="nc-label" style={{ marginBottom: 8 }}>GENERATED TITLE</label>
+                      <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-cyan)' }}>
+                        {generateTitle(newContract)}
+                      </div>
+                      {showPaymentField && newContract.payment_amount && (
+                        <div style={{ marginTop: 8, fontFamily: 'var(--nc-font-mono)', fontSize: 20, color: 'var(--nc-green)' }}>
+                          {parseInt(newContract.payment_amount).toLocaleString()} aUEC
+                        </div>
+                      )}
+                      {!showPaymentField && (
+                        <div style={{ marginTop: 8 }}>
+                          <span className="loot-split-badge">LOOT SPLIT</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 
-              {/* RESCUE Options */}
-              {newContract.type === 'rescue' && (
-                <>
-                  <div className="form-group">
-                    <label className="nc-label">STATUS</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.status_select}
-                      onChange={e => setNewContract(prev => ({ ...prev, status_select: e.target.value }))}
-                    >
-                      <option value="">Select status...</option>
-                      {CONTRACT_OPTIONS.rescue.status.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="nc-label">ENVIRONMENT</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.environment}
-                      onChange={e => setNewContract(prev => ({ ...prev, environment: e.target.value }))}
-                    >
-                      <option value="">Select environment...</option>
-                      {CONTRACT_OPTIONS.rescue.environment.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* TRANSPORT Options */}
-              {newContract.type === 'transport' && (
-                <>
-                  <div className="form-group">
-                    <label className="nc-label">LOAD TYPE</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.load}
-                      onChange={e => setNewContract(prev => ({ ...prev, load: e.target.value }))}
-                    >
-                      <option value="">Select load...</option>
-                      {CONTRACT_OPTIONS.transport.load.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="nc-label">DESTINATION TYPE</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.destination}
-                      onChange={e => setNewContract(prev => ({ ...prev, destination: e.target.value }))}
-                    >
-                      <option value="">Select destination type...</option>
-                      {CONTRACT_OPTIONS.transport.destination.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* OPERATIONS Options */}
-              {newContract.type === 'operations' && (
-                <>
-                  <div className="form-group">
-                    <label className="nc-label">JOB TYPE</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.job}
-                      onChange={e => setNewContract(prev => ({ ...prev, job: e.target.value }))}
-                    >
-                      <option value="">Select job...</option>
-                      {CONTRACT_OPTIONS.operations.job.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="nc-label">ROLE NEEDED</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.role}
-                      onChange={e => setNewContract(prev => ({ ...prev, role: e.target.value }))}
-                    >
-                      <option value="">Select role...</option>
-                      {CONTRACT_OPTIONS.operations.role.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="nc-label">COMPENSATION</label>
-                    <select 
-                      className="nc-input"
-                      value={newContract.compensation_type}
-                      onChange={e => setNewContract(prev => ({ ...prev, compensation_type: e.target.value, payment_amount: e.target.value !== 'Flat Fee' ? '' : prev.payment_amount }))}
-                    >
-                      {CONTRACT_OPTIONS.operations.compensation.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Location Selectors */}
-              {!isOperations && (
-              <div className="form-group">
-                <label className="nc-label">LOCATION</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <select 
-                    className="nc-input"
-                    value={newContract.system}
-                    onChange={e => setNewContract(prev => ({ ...prev, system: e.target.value, planet: '', location: '' }))}
-                  >
-                    {SYSTEMS.map(sys => (
-                      <option key={sys} value={sys}>{sys}</option>
-                    ))}
-                  </select>
-                  <select 
-                    className="nc-input"
-                    value={newContract.planet}
-                    onChange={e => setNewContract(prev => ({ ...prev, planet: e.target.value, location: '' }))}
-                  >
-                    <option value="">Planet/Area...</option>
-                    {newContract.system && Object.keys(LOCATIONS[newContract.system] || {}).map(planet => (
-                      <option key={planet} value={planet}>{planet}</option>
-                    ))}
-                  </select>
-                  <select 
-                    className="nc-input"
-                    value={newContract.location}
-                    onChange={e => setNewContract(prev => ({ ...prev, location: e.target.value }))}
-                    disabled={!newContract.planet}
-                  >
-                    <option value="">Specific location...</option>
-                    {newContract.planet && newContract.system && LOCATIONS[newContract.system]?.[newContract.planet]?.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              )}
-
-              {/* Meet At for Operations */}
-              {isOperations && (
-                <div className="form-group">
-                  <label className="nc-label">MEET AT</label>
-                  <select 
-                    className="nc-input"
-                    value={newContract.meet_at}
-                    onChange={e => setNewContract(prev => ({ ...prev, meet_at: e.target.value }))}
-                  >
-                    <option value="">Select meeting point...</option>
-                    {MAJOR_LOCATIONS.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Payment Amount (shown except for split compensation) */}
-              {showPaymentField && (
-                <div className="form-group">
-                  <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
-                  <input
-                    type="number"
-                    className="nc-input"
-                    placeholder="e.g., 50000"
-                    value={newContract.payment_amount}
-                    onChange={e => setNewContract(prev => ({ ...prev, payment_amount: e.target.value.replace(/\D/g, '') }))}
-                    min="0"
-                    style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 18, color: 'var(--nc-green)' }}
-                  />
-                </div>
-              )}
-
-              {/* Preview Generated Title */}
-              {generateTitle(newContract) && (
-                <div className="form-group" style={{ background: 'var(--nc-bg-secondary)', padding: 16, border: '1px solid var(--nc-border)' }}>
-                  <label className="nc-label" style={{ marginBottom: 8 }}>GENERATED TITLE</label>
+              {/* Multi-crew summary */}
+              {isMultiCrew && manifest.length > 0 && (
+                <div className="form-group" style={{ background: 'var(--nc-bg-secondary)', padding: 16, border: '1px solid var(--nc-border)', marginTop: 16 }}>
+                  <label className="nc-label" style={{ marginBottom: 8 }}>MULTI-CREW CONTRACT SUMMARY</label>
                   <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-cyan)' }}>
-                    {generateTitle(newContract)}
+                    {manifest.length} crew slots • {manifest.reduce((sum, s) => sum + s.payout, 0).toLocaleString()} aUEC total
                   </div>
-                  {showPaymentField && newContract.payment_amount && (
-                    <div style={{ marginTop: 8, fontFamily: 'var(--nc-font-mono)', fontSize: 20, color: 'var(--nc-green)' }}>
-                      {parseInt(newContract.payment_amount).toLocaleString()} aUEC
-                    </div>
-                  )}
-                  {!showPaymentField && (
-                    <div style={{ marginTop: 8 }}>
-                      <span className="loot-split-badge">LOOT SPLIT</span>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -843,8 +1118,9 @@ export default function Contracts() {
                 style={{ width: '100%', marginTop: 16 }}
                 onClick={handleCreateContract}
                 disabled={!isContractValid()}
+                data-testid="post-contract-btn"
               >
-                POST BEACON
+                POST {isMultiCrew ? 'MULTI-CREW ' : ''}BEACON
               </button>
             </div>
           </div>
@@ -939,6 +1215,10 @@ export default function Contracts() {
           <div style={{ width: 12, height: 12, background: 'var(--nc-orange)', borderRadius: 2 }} />
           <span className="font-mono text-muted" style={{ fontSize: 11 }}>GLOBAL</span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Users size={12} color="var(--nc-cyan)" />
+          <span className="font-mono text-muted" style={{ fontSize: 11 }}>MULTI-CREW</span>
+        </div>
       </div>
       )}
 
@@ -995,12 +1275,29 @@ export default function Contracts() {
               key={contract.id} 
               className={`contract-card ${isMyShard ? 'my-shard' : 'global'}`}
               data-testid={`contract-${contract.id}`}
+              onClick={() => contract.is_multi_crew ? navigateToContract(contract.id) : null}
+              style={{ cursor: contract.is_multi_crew ? 'pointer' : 'default' }}
             >
               <div className="contract-header">
                 <div className="contract-type">
                   <span className="contract-type-icon">{type.icon}</span>
                   <span className="contract-type-label">{type.label.toUpperCase()}</span>
-                  {details.subtitle && (
+                  {contract.is_multi_crew && (
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'var(--nc-cyan)',
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      background: 'rgba(0, 240, 255, 0.1)',
+                      border: '1px solid rgba(0, 240, 255, 0.3)'
+                    }}>
+                      <Users size={12} />
+                      {getCrewStatus(contract)}
+                    </span>
+                  )}
+                  {!contract.is_multi_crew && details.subtitle && (
                     <span className="contract-threat-badge" style={{ 
                       background: contract.threat?.includes('Critical') || contract.cargo_value?.includes('Whale') ? 'rgba(255,51,102,0.2)' : 
                                   contract.threat?.includes('PVP') || contract.cargo_value?.includes('High') ? 'rgba(255,153,0,0.2)' : 
@@ -1023,8 +1320,8 @@ export default function Contracts() {
                     <span className="loot-split-badge">
                       {contract.compensation_type === 'Equal Split' ? 'LOOT SPLIT' : '% SHARE'}
                     </span>
-                  ) : contract.payment_amount > 0 ? (
-                    <span className="payment-amount">{contract.payment_amount.toLocaleString()} aUEC</span>
+                  ) : getContractPayout(contract) > 0 ? (
+                    <span className="payment-amount">{getContractPayout(contract).toLocaleString()} aUEC</span>
                   ) : null}
                   <span className="contract-time">{getTimeAgo(contract.created_at)}</span>
                 </div>
@@ -1067,15 +1364,27 @@ export default function Contracts() {
                   </span>
                 )}
                 
-                {/* Poster Actions */}
-                {contract.poster_id === user?.id && contract.status === 'open' && (
+                {/* Multi-crew: View Details button */}
+                {contract.is_multi_crew && (
+                  <button 
+                    className="nc-btn nc-btn-primary"
+                    onClick={(e) => { e.stopPropagation(); navigateToContract(contract.id); }}
+                    data-testid={`view-crew-${contract.id}`}
+                  >
+                    <Users size={14} /> View Crew Slots
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+                
+                {/* Single-crew: Poster Actions */}
+                {!contract.is_multi_crew && contract.poster_id === user?.id && contract.status === 'open' && (
                   <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
                     <Users size={14} /> Manage Bids
                   </button>
                 )}
                 
-                {/* Merc Actions - Apply */}
-                {contract.poster_id !== user?.id && contract.status === 'open' && (
+                {/* Single-crew: Merc Actions - Apply */}
+                {!contract.is_multi_crew && contract.poster_id !== user?.id && contract.status === 'open' && (
                   myBids.some(b => b.contract_id === contract.id) ? (
                     <button className="nc-btn nc-btn-secondary" disabled>
                       <Check size={14} /> Bid Sent
@@ -1093,7 +1402,7 @@ export default function Contracts() {
                 )}
                 
                 {/* In Progress - Show Handle & Mark Complete */}
-                {(contract.status === 'in_progress' || contract.status === 'pending_completion') && (
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active') && (
                   <>
                     <button
                       className="nc-btn nc-btn-secondary"
@@ -1222,11 +1531,32 @@ export default function Contracts() {
           const type = getContractType(contract.type);
           const isClient = contract.poster_id === user?.id;
           return (
-            <div key={contract.id} className={`contract-card ${contract.status}`} data-testid={`my-contract-${contract.id}`}>
+            <div 
+              key={contract.id} 
+              className={`contract-card ${contract.status}`} 
+              data-testid={`my-contract-${contract.id}`}
+              onClick={() => contract.is_multi_crew ? navigateToContract(contract.id) : null}
+              style={{ cursor: contract.is_multi_crew ? 'pointer' : 'default' }}
+            >
               <div className="contract-header">
                 <div className="contract-type">
                   <span className="contract-type-icon">{type.icon}</span>
                   <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                  {contract.is_multi_crew && (
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: 'var(--nc-cyan)',
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      background: 'rgba(0, 240, 255, 0.1)',
+                      border: '1px solid rgba(0, 240, 255, 0.3)'
+                    }}>
+                      <Users size={12} />
+                      {getCrewStatus(contract)}
+                    </span>
+                  )}
                   <span className={`status-badge status-${contract.status}`}>
                     {contract.status.replace('_', ' ').toUpperCase()}
                   </span>
@@ -1252,15 +1582,26 @@ export default function Contracts() {
               
               {/* Contract Actions based on status */}
               <div className="contract-actions">
+                {/* Multi-crew view details */}
+                {contract.is_multi_crew && (
+                  <button 
+                    className="nc-btn nc-btn-primary"
+                    onClick={(e) => { e.stopPropagation(); navigateToContract(contract.id); }}
+                  >
+                    <Users size={14} /> Manage Crew
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+                
                 {/* Poster can manage bids on open contracts */}
-                {isClient && contract.status === 'open' && (
+                {!contract.is_multi_crew && isClient && contract.status === 'open' && (
                   <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
                     <Users size={14} /> Manage Bids
                   </button>
                 )}
                 
                 {/* In Progress - Mark Complete */}
-                {(contract.status === 'in_progress' || contract.status === 'pending_completion') && (
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active') && (
                   <>
                     <button
                       className="nc-btn nc-btn-secondary"
@@ -1504,51 +1845,26 @@ export default function Contracts() {
               </button>
             </div>
             <div className="mission-modal-content">
-              <div className="merc-profile">
-                <div className="merc-profile-header">
-                  <div className="merc-profile-avatar">
-                    {showMercProfile.avatar_url ? (
-                      <img src={showMercProfile.avatar_url} alt="" />
-                    ) : (
-                      <Users size={48} />
-                    )}
-                  </div>
-                  <div className="merc-profile-name">
-                    <h3>{showMercProfile.handle || 'Unknown Pilot'}</h3>
-                    <span className="merc-profile-badge">MERCENARY</span>
-                  </div>
+              <div className="merc-profile-header">
+                <div className="merc-avatar-large">
+                  {showMercProfile.avatar_url ? (
+                    <img src={showMercProfile.avatar_url} alt="" />
+                  ) : (
+                    <Users size={64} />
+                  )}
                 </div>
-                
-                <div className="merc-profile-stats">
-                  <div className="stat-box">
-                    <span className="stat-label">REPUTATION</span>
-                    <span className="stat-value">
-                      <Star size={16} fill="#FFD700" style={{ marginRight: 4 }} />
-                      {showMercProfile.reputation?.toFixed(1) || '5.0'}
-                    </span>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">CONTRACTS</span>
-                    <span className="stat-value">{showMercProfile.contracts_completed || 0}</span>
-                  </div>
+                <h3 className="merc-handle">{showMercProfile.handle}</h3>
+              </div>
+              <div className="merc-stats-grid">
+                <div className="merc-stat">
+                  <Star size={24} color="#FFD700" fill="#FFD700" />
+                  <span className="stat-value">{showMercProfile.reputation?.toFixed(1) || '5.0'}</span>
+                  <span className="stat-label">RATING</span>
                 </div>
-
-                {showMercProfile.bio && (
-                  <div className="merc-profile-bio">
-                    <span className="bio-label">// ABOUT</span>
-                    <p>{showMercProfile.bio}</p>
-                  </div>
-                )}
-
-                <div className="merc-profile-actions">
-                  <button 
-                    className="nc-btn nc-btn-secondary"
-                    onClick={() => {
-                      handleCopyHandle(showMercProfile.handle);
-                    }}
-                  >
-                    <Copy size={14} /> Copy RSI Handle
-                  </button>
+                <div className="merc-stat">
+                  <Shield size={24} color="var(--nc-cyan)" />
+                  <span className="stat-value">{showMercProfile.contracts_completed || 0}</span>
+                  <span className="stat-label">COMPLETED</span>
                 </div>
               </div>
             </div>
@@ -1557,57 +1873,99 @@ export default function Contracts() {
       )}
 
       <style>{`
-        .payment-amount {
-          font-family: var(--nc-font-mono);
-          font-size: 18px;
-          font-weight: bold;
-          color: #00ff88;
-          letter-spacing: 1px;
+        .merc-profile-header {
+          text-align: center;
+          margin-bottom: 24px;
         }
-        .loot-split-badge {
-          background: rgba(153, 51, 255, 0.2);
-          color: #cc66ff;
-          padding: 4px 10px;
-          font-family: var(--nc-font-mono);
-          font-size: 11px;
-          font-weight: bold;
-          letter-spacing: 1px;
-          border: 1px solid rgba(153, 51, 255, 0.4);
-        }
-        .escort-route {
+        .merc-avatar-large {
+          width: 100px;
+          height: 100px;
+          margin: 0 auto 16px;
+          border-radius: 50%;
+          border: 3px solid var(--nc-cyan);
+          overflow: hidden;
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 0;
-          font-family: var(--nc-font-display);
-          font-size: 18px;
+          justify-content: center;
+          background: var(--nc-bg-secondary);
         }
-        .route-point {
-          color: var(--nc-text-primary);
+        .merc-avatar-large img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
-        .route-arrow {
+        .merc-handle {
           color: var(--nc-cyan);
-          animation: pulse-arrow 1.5s ease-in-out infinite;
+          font-family: var(--nc-font-display);
+          font-size: 24px;
+          margin: 0;
         }
-        @keyframes pulse-arrow {
-          0%, 100% { opacity: 0.5; transform: translateX(0); }
-          50% { opacity: 1; transform: translateX(3px); }
+        .merc-stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
         }
-        .status-badge {
-          padding: 4px 10px;
-          font-family: var(--nc-font-mono);
+        .merc-stat {
+          text-align: center;
+          padding: 20px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+        }
+        .merc-stat .stat-value {
+          display: block;
+          font-size: 28px;
+          font-weight: bold;
+          color: var(--nc-text);
+          margin: 8px 0 4px;
+        }
+        .merc-stat .stat-label {
           font-size: 10px;
-          letter-spacing: 1px;
-          border: 1px solid;
+          letter-spacing: 2px;
+          color: var(--nc-text-muted);
         }
-        .status-open { background: rgba(0,240,255,0.1); color: var(--nc-cyan); border-color: var(--nc-cyan-dim); }
-        .status-in_progress { background: rgba(255,153,0,0.2); color: #ff9900; border-color: #ff9900; }
-        .status-pending_completion { background: rgba(255,215,0,0.2); color: #ffd700; border-color: #ffd700; }
-        .status-completed { background: rgba(0,255,136,0.2); color: #00ff88; border-color: #00ff88; }
-        .bids-list {
+        .accepted-notification-icon {
+          width: 60px;
+          height: 60px;
+          margin: 0 auto 20px;
+          border-radius: 50%;
+          background: rgba(0, 255, 136, 0.2);
+          border: 2px solid var(--nc-green);
           display: flex;
-          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          font-size: 32px;
+          color: var(--nc-green);
+        }
+        .client-handle-box {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 20px;
+          margin-top: 16px;
+        }
+        .client-handle-box .label {
+          display: block;
+          font-size: 10px;
+          letter-spacing: 2px;
+          color: var(--nc-text-muted);
+          margin-bottom: 12px;
+        }
+        .client-handle-box .client-info {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           gap: 12px;
+        }
+        .client-handle-box .client-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 2px solid var(--nc-cyan);
+        }
+        .client-handle-box .handle {
+          font-size: 24px;
+          font-weight: bold;
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
         }
         .pilot-card {
           display: flex;
@@ -1616,17 +1974,21 @@ export default function Contracts() {
           padding: 16px;
           background: var(--nc-bg-secondary);
           border: 1px solid var(--nc-border);
+          margin-bottom: 12px;
         }
         .pilot-avatar {
-          width: 56px;
-          height: 56px;
-          background: var(--nc-bg-primary);
-          border: 2px solid var(--nc-cyan-dim);
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          border: 2px solid var(--nc-cyan);
+          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--nc-text-muted);
-          overflow: hidden;
+          background: var(--nc-bg);
+        }
+        .pilot-avatar.clickable {
+          cursor: pointer;
         }
         .pilot-avatar img {
           width: 100%;
@@ -1636,16 +1998,17 @@ export default function Contracts() {
         .pilot-info {
           flex: 1;
         }
+        .pilot-info.clickable {
+          cursor: pointer;
+        }
         .pilot-info h4 {
-          font-family: var(--nc-font-display);
-          font-size: 16px;
+          margin: 0 0 4px;
           color: var(--nc-cyan);
-          margin-bottom: 4px;
+          font-size: 16px;
         }
         .pilot-stats {
           display: flex;
           gap: 16px;
-          font-family: var(--nc-font-mono);
           font-size: 12px;
           color: var(--nc-text-muted);
         }
@@ -1653,6 +2016,11 @@ export default function Contracts() {
           display: flex;
           align-items: center;
           gap: 4px;
+        }
+        .view-profile-hint {
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          opacity: 0.7;
         }
         .pilot-actions {
           display: flex;
@@ -1664,137 +2032,41 @@ export default function Contracts() {
         }
         .handshake-handle {
           background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-cyan);
+          border: 1px solid var(--nc-border);
           padding: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
         }
         .handshake-handle .label {
-          font-family: var(--nc-font-mono);
+          display: block;
           font-size: 10px;
-          color: var(--nc-text-muted);
           letter-spacing: 2px;
+          color: var(--nc-text-muted);
           margin-bottom: 8px;
         }
         .handshake-handle .handle {
-          font-family: var(--nc-font-display);
-          font-size: 24px;
+          display: block;
+          font-size: 28px;
+          font-weight: bold;
           color: var(--nc-cyan);
-          letter-spacing: 2px;
+          font-family: var(--nc-font-display);
         }
-        .pilot-avatar.clickable,
-        .pilot-info.clickable {
+        .rating-stars {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+        }
+        .star-btn {
+          background: none;
+          border: none;
           cursor: pointer;
-          transition: all 0.2s;
+          padding: 4px;
+          color: rgba(255, 255, 255, 0.3);
+          transition: transform 0.2s;
         }
-        .pilot-avatar.clickable:hover {
-          border-color: var(--nc-cyan);
-          box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        .star-btn:hover {
+          transform: scale(1.1);
         }
-        .pilot-info.clickable:hover h4 {
-          color: var(--nc-cyan);
-        }
-        .view-profile-hint {
-          font-size: 10px;
-          color: var(--nc-cyan-dim);
-          font-family: var(--nc-font-mono);
-          margin-top: 4px;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        .pilot-info.clickable:hover .view-profile-hint {
-          opacity: 1;
-        }
-        .merc-profile {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        .merc-profile-header {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .merc-profile-avatar {
-          width: 80px;
-          height: 80px;
-          border: 2px solid var(--nc-cyan);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--nc-text-muted);
-          overflow: hidden;
-          background: var(--nc-bg-primary);
-        }
-        .merc-profile-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .merc-profile-name h3 {
-          font-family: var(--nc-font-display);
-          font-size: 24px;
-          color: var(--nc-cyan);
-          margin-bottom: 4px;
-        }
-        .merc-profile-badge {
-          font-family: var(--nc-font-mono);
-          font-size: 10px;
-          color: var(--nc-green);
-          background: rgba(0, 255, 136, 0.1);
-          padding: 2px 8px;
-          letter-spacing: 2px;
-        }
-        .merc-profile-stats {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .stat-box {
-          background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-border);
-          padding: 16px;
-          text-align: center;
-        }
-        .stat-label {
-          display: block;
-          font-family: var(--nc-font-mono);
-          font-size: 10px;
-          color: var(--nc-text-muted);
-          letter-spacing: 2px;
-          margin-bottom: 8px;
-        }
-        .stat-value {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: var(--nc-font-display);
-          font-size: 24px;
-          color: var(--nc-text-primary);
-        }
-        .merc-profile-bio {
-          background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-border);
-          padding: 16px;
-        }
-        .bio-label {
-          display: block;
-          font-family: var(--nc-font-mono);
-          font-size: 10px;
-          color: var(--nc-cyan);
-          letter-spacing: 2px;
-          margin-bottom: 8px;
-        }
-        .merc-profile-bio p {
-          color: var(--nc-text-secondary);
-          font-size: 14px;
-          line-height: 1.6;
-          margin: 0;
-        }
-        .merc-profile-actions {
-          display: flex;
-          justify-content: center;
+        .star-btn.active {
+          color: #FFD700;
         }
         .pending-rating-badge {
           display: inline-flex;
@@ -1803,76 +2075,20 @@ export default function Contracts() {
           width: 18px;
           height: 18px;
           background: var(--nc-gold);
-          color: var(--nc-bg-primary);
+          color: var(--nc-bg);
+          border-radius: 50%;
           font-size: 12px;
           font-weight: bold;
-          border-radius: 50%;
           margin-left: 8px;
-          animation: pulse-badge 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-badge {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
         }
         .pending-ratings-section {
-          background: rgba(255, 215, 0, 0.05);
-          border: 1px solid rgba(255, 215, 0, 0.3);
+          margin-bottom: 24px;
           padding: 16px;
-          margin-bottom: 16px;
+          background: rgba(255, 215, 0, 0.05);
+          border: 1px solid rgba(255, 215, 0, 0.2);
         }
         .contract-card.pending-rating {
           border-color: var(--nc-gold);
-          background: rgba(255, 215, 0, 0.05);
-        }
-        .accepted-notification-icon {
-          width: 80px;
-          height: 80px;
-          border: 3px solid var(--nc-green);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 40px;
-          color: var(--nc-green);
-          margin: 0 auto 24px;
-          animation: pulse-success 1.5s ease-out infinite;
-        }
-        @keyframes pulse-success {
-          0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
-          70% { box-shadow: 0 0 0 20px rgba(0, 255, 136, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
-        }
-        .client-handle-box {
-          background: var(--nc-bg-secondary);
-          border: 2px solid var(--nc-green);
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .client-handle-box .label {
-          font-family: var(--nc-font-mono);
-          font-size: 10px;
-          color: var(--nc-text-muted);
-          letter-spacing: 2px;
-          margin-bottom: 12px;
-        }
-        .client-handle-box .client-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .client-handle-box .client-avatar {
-          width: 48px;
-          height: 48px;
-          border: 2px solid var(--nc-cyan);
-          object-fit: cover;
-        }
-        .client-handle-box .handle {
-          font-family: var(--nc-font-display);
-          font-size: 28px;
-          color: var(--nc-green);
-          letter-spacing: 2px;
         }
       `}</style>
     </div>
