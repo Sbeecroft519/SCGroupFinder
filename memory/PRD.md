@@ -57,6 +57,15 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] Bilateral 5-star ratings
 - [x] Contract expiration (30 min)
 - [x] Concurrency limits (1 active contract per user)
+- [x] **Multi-Crew Manifest System** (Feb 4, 2026)
+  - [x] Multi-crew toggle in contract creation modal
+  - [x] Manifest Builder UI with role selection and quick-fill
+  - [x] Individual slot payout configuration
+  - [x] Contract details page (/contracts/:id) with crew roster
+  - [x] Bidding on specific crew slots
+  - [x] Accept/withdraw bid functionality
+  - [x] Deploy team when crew is ready (partial fill supported)
+  - [x] 'mustering' status for multi-crew contracts in progress
 
 ### ROADMAP Module - COMPLETE
 - [x] Crowdfunding goals
