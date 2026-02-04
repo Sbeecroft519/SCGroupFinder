@@ -1703,5 +1703,183 @@ async def acknowledge_accepted_bid(bid_id: str, user = Depends(get_current_user)
     )
     return {'success': True}
 
+
+# ===== Multi-Crew Manifest Endpoints =====
+
+@api_router.get("/contracts/{contract_id}")
+async def get_contract_details(contract_id: str, user = Depends(get_current_user)):
+    """Get a single contract by ID"""
+    contract = await db.contracts.find_one({"id": contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    contract.pop("_id", None)
+    return contract
+
+
+@api_router.post("/contracts/{contract_id}/manifest/bid")
+async def bid_on_manifest_slot(contract_id: str, bid: ManifestBidRequest, user = Depends(get_current_user)):
+    """Submit a bid for a specific crew slot in a multi-crew contract"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({"id": contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    if not contract.get("manifest"):
+        raise HTTPException(status_code=400, detail="Not a multi-crew contract")
+    
+    if contract["poster_id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot bid on your own contract")
+    
+    manifest = contract["manifest"]
+    
+    if bid.slot_index < 0 or bid.slot_index >= len(manifest):
+        raise HTTPException(status_code=400, detail="Invalid slot index")
+    
+    slot = manifest[bid.slot_index]
+    
+    if slot["status"] == "FILLED":
+        raise HTTPException(status_code=400, detail="Slot already filled")
+    
+    if any(b["user_id"] == user["id"] for b in slot.get("bids", [])):
+        raise HTTPException(status_code=400, detail="Already bid on this slot")
+    
+    new_bid = {
+        "user_id": user["id"],
+        "handle": user.get("rsi_handle", "Unknown"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if "bids" not in manifest[bid.slot_index]:
+        manifest[bid.slot_index]["bids"] = []
+    
+    manifest[bid.slot_index]["bids"].append(new_bid)
+    manifest[bid.slot_index]["status"] = "PENDING"
+    
+    await db.contracts.update_one(
+        {"id": contract_id},
+        {"$set": {"manifest": manifest}}
+    )
+    
+    return {"message": "Bid submitted", "slot_index": bid.slot_index}
+
+
+@api_router.delete("/contracts/{contract_id}/manifest/bid/{slot_index}")
+async def withdraw_manifest_bid(contract_id: str, slot_index: int, user = Depends(get_current_user)):
+    """Withdraw a bid from a manifest slot"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({"id": contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    manifest = contract.get("manifest", [])
+    
+    if slot_index < 0 or slot_index >= len(manifest):
+        raise HTTPException(status_code=400, detail="Invalid slot index")
+    
+    slot = manifest[slot_index]
+    original_count = len(slot.get("bids", []))
+    slot["bids"] = [b for b in slot.get("bids", []) if b["user_id"] != user["id"]]
+    
+    if len(slot["bids"]) == original_count:
+        raise HTTPException(status_code=400, detail="No bid to withdraw")
+    
+    if len(slot["bids"]) == 0 and slot["status"] == "PENDING":
+        slot["status"] = "OPEN"
+    
+    manifest[slot_index] = slot
+    
+    await db.contracts.update_one(
+        {"id": contract_id},
+        {"$set": {"manifest": manifest}}
+    )
+    
+    return {"message": "Bid withdrawn"}
+
+
+@api_router.post("/contracts/{contract_id}/manifest/accept-bid")
+async def accept_manifest_bid(contract_id: str, request: ManifestAcceptBidRequest, user = Depends(get_current_user)):
+    """Accept a bid for a manifest slot (owner only)"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({"id": contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    if contract["poster_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only owner can accept bids")
+    
+    manifest = contract.get("manifest", [])
+    
+    if request.slot_index < 0 or request.slot_index >= len(manifest):
+        raise HTTPException(status_code=400, detail="Invalid slot index")
+    
+    slot = manifest[request.slot_index]
+    accepted_bid = next((b for b in slot.get("bids", []) if b["user_id"] == request.user_id), None)
+    
+    if not accepted_bid:
+        raise HTTPException(status_code=400, detail="Bid not found")
+    
+    # ATOMIC: Remove accepted user's bids from all other slots
+    for i, s in enumerate(manifest):
+        if i != request.slot_index:
+            s["bids"] = [b for b in s.get("bids", []) if b["user_id"] != request.user_id]
+            if len(s["bids"]) == 0 and s["status"] == "PENDING":
+                s["status"] = "OPEN"
+    
+    # Fill the slot
+    manifest[request.slot_index] = {
+        **slot,
+        "status": "FILLED",
+        "applicant_id": request.user_id,
+        "filled_by": {
+            "user_id": request.user_id,
+            "handle": accepted_bid["handle"]
+        },
+        "bids": []
+    }
+    
+    await db.contracts.update_one(
+        {"id": contract_id},
+        {"$set": {"manifest": manifest}}
+    )
+    
+    return {"message": f"Bid accepted for slot {request.slot_index}"}
+
+
+@api_router.post("/contracts/{contract_id}/deploy")
+async def deploy_team(contract_id: str, user = Depends(get_current_user)):
+    """Deploy a multi-crew team (owner only, at least one slot filled)"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({"id": contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    if contract["poster_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Only owner can deploy")
+    
+    if contract["status"] != "mustering":
+        raise HTTPException(status_code=400, detail="Contract not in mustering phase")
+    
+    manifest = contract.get("manifest", [])
+    filled_count = sum(1 for s in manifest if s["status"] == "FILLED")
+    
+    if filled_count == 0:
+        raise HTTPException(status_code=400, detail="No crew members assigned")
+    
+    await db.contracts.update_one(
+        {"id": contract_id},
+        {"$set": {"status": "active", "deployed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Team deployed", "crew_count": filled_count}
+
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
