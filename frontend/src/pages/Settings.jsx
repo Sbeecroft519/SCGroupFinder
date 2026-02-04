@@ -12,14 +12,14 @@ const THEMES = [
 ];
 
 const AVATAR_PRESETS = [
-  { id: 'pilot', name: 'Pilot', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/ud2yrip4_Pilot%20Helmet%20Icon.jpg' },
-  { id: 'medic', name: 'Combat Medic', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y3sjh1kj_medic%20icon.jpg' },
-  { id: 'pirate', name: 'Pirate', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/9jq4a6p0_pirate%20icon.jpg' },
-  { id: 'hauler', name: 'Hauler', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/y9kqdygi_hauler%20icon.jpg' },
-  { id: 'miner', name: 'Miner', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/7i1hxlzx_mining%20icon.jpg' },
-  { id: 'bounty', name: 'Bounty Hunter', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/2bvh7efg_bounty%20hunter%20icon.jpg' },
-  { id: 'engineer', name: 'Engineer', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/3k5fmash_engineer%20icon.jpg' },
-  { id: 'explorer', name: 'Explorer', file: 'https://customer-assets.emergentagent.com/job_citizen-hub-8/artifacts/rdo3h8bq_explorer%20icon.jpg' },
+  { id: 'pilot', name: 'Pilot', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/qir020ik_pilot.png' },
+  { id: 'medic', name: 'Rescue', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/horusbmi_rescue.png' },
+  { id: 'pirate', name: 'Pirate', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/gcw4ywaa_pirate.png' },
+  { id: 'hauler', name: 'Hauler', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/yjw0cw3r_cargo%20hauler.png' },
+  { id: 'miner', name: 'Miner', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/3vgt2etd_mining.png' },
+  { id: 'bounty', name: 'Bounty Hunter', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/feh9f09a_bounty%20hunter%20icon.png' },
+  { id: 'engineer', name: 'Engineer', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/fkdyhw8p_engineer.png' },
+  { id: 'explorer', name: 'Explorer', file: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/7rceprgl_explorer%20icon.png' },
 ];
 
 const CONTRACT_TYPES = [
