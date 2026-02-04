@@ -10,6 +10,7 @@ import OnboardingCarousel from './components/OnboardingCarousel';
 import Intel from './pages/Intel';
 import Signals from './pages/Signals';
 import Contracts from './pages/Contracts';
+import ContractDetails from './pages/ContractDetails';
 import Roadmap from './pages/Roadmap';
 import Login from './pages/Login';
 import Register from './pages/Register';
