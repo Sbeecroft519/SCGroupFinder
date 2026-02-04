@@ -1628,6 +1628,34 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
         await db.users.update_one({'id': contract['poster_id']}, {'$inc': {'contracts_completed': 1}})
         await db.users.update_one({'id': contract['accepted_by']['id']}, {'$inc': {'contracts_completed': 1}})
         
+        # Save mission history for the merc
+        merc_id = contract['accepted_by']['id']
+        payout = contract.get('payment_amount', 0)
+        history_record = {
+            'user_id': merc_id,
+            'contract_id': contract_id,
+            'contract_title': contract.get('title', ''),
+            'contract_type': contract.get('type', ''),
+            'role': contract.get('role', 'Mercenary'),
+            'payout_received': payout,
+            'rating_received': None,  # Updated when client rates
+            'completed_at': datetime.now(timezone.utc).isoformat(),
+            'poster_handle': contract.get('poster', {}).get('handle', contract.get('poster_handle', ''))
+        }
+        await db.mission_history.insert_one(history_record)
+        
+        # Update merc's aggregate stats
+        await db.users.update_one(
+            {'id': merc_id},
+            {
+                '$inc': {
+                    'total_missions_completed': 1,
+                    'total_earnings': payout,
+                    f'missions_by_type.{contract.get("type", "other")}': 1
+                }
+            }
+        )
+        
         return {'message': 'Contract completed!', 'status': 'completed', 'show_rating': True}
     
     return {'message': 'Invalid contract state'}
