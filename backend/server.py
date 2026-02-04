@@ -82,6 +82,7 @@ class UserResponse(BaseModel):
     created_at: str
     avatar_url: Optional[str] = None
     avatar_preset: Optional[str] = None
+    badges: List[str] = []
 
 class TokenResponse(BaseModel):
     token: str
