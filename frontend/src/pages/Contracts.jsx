@@ -566,6 +566,7 @@ export default function Contracts() {
       type: newContract.type,
       title: isMultiCrew ? `Multi-Crew: ${newContract.type.charAt(0).toUpperCase() + newContract.type.slice(1)} Operation` : title,
       description: isMultiCrew ? `Multi-crew ${newContract.type} operation requiring ${manifest.length} crew members.` : null,
+      category: newContract.category,
       // Include structured fields
       activity: newContract.activity,
       threat: newContract.threat,
