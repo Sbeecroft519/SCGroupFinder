@@ -897,16 +897,18 @@ async def get_commodity_prices(commodity_code: str):
 
 @api_router.get("/contracts")
 async def get_contracts(type: Optional[str] = None):
-    # Filter out expired contracts (>1 hour old and still open)
-    # Also hide COMPLETED contracts from the feed
+    # Filter out expired contracts using expires_at or fallback to 1hr for legacy
+    now = datetime.now(timezone.utc).isoformat()
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     
     query = {
         'status': {'$nin': ['completed', 'expired']},  # Hide completed/expired
         '$or': [
-            {'status': {'$in': ['in_progress', 'pending_completion', 'active']}},  # Show active contracts regardless of age
-            {'status': 'mustering', 'created_at': {'$gte': one_hour_ago}},  # Multi-crew contracts in mustering phase
-            {'status': 'open', 'created_at': {'$gte': one_hour_ago}}  # Open but not expired (1 hour)
+            {'status': {'$in': ['in_progress', 'pending_completion', 'active']}},  # Show active contracts regardless
+            {'status': 'mustering', 'expires_at': {'$gt': now}},  # Multi-crew with expires_at
+            {'status': 'mustering', 'expires_at': None, 'created_at': {'$gte': one_hour_ago}},  # Legacy mustering
+            {'status': 'open', 'expires_at': {'$gt': now}},  # Open with expires_at
+            {'status': 'open', 'expires_at': None, 'created_at': {'$gte': one_hour_ago}}  # Legacy open
         ]
     }
     if type:
@@ -917,9 +919,12 @@ async def get_contracts(type: Optional[str] = None):
         {'_id': 0}
     ).sort('created_at', -1).limit(50).to_list(50)
     
-    # Mark expired contracts (open and older than 1 hour)
+    # Mark expired contracts (both new expires_at and legacy 1hr)
     await db.contracts.update_many(
-        {'status': 'open', 'created_at': {'$lt': one_hour_ago}},
+        {'$or': [
+            {'status': {'$in': ['open', 'mustering']}, 'expires_at': {'$lt': now, '$ne': None}},
+            {'status': 'open', 'expires_at': None, 'created_at': {'$lt': one_hour_ago}}
+        ]},
         {'$set': {'status': 'expired'}}
     )
     
