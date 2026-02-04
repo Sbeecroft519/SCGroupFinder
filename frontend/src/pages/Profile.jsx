@@ -166,11 +166,13 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Copy Handle Button */}
-        <button className="copy-btn" onClick={copyHandle} title="Copy RSI Handle">
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'COPIED' : 'COPY'}
-        </button>
+        {/* Copy Handle Button - only show on own profile */}
+        {isOwnProfile && (
+          <button className="copy-btn" onClick={copyHandle} title="Copy RSI Handle">
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? 'COPIED' : 'COPY'}
+          </button>
+        )}
       </div>
         </div>
 
