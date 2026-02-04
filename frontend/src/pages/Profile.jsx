@@ -1,6 +1,8 @@
-import { useAuth } from '../App';
+import { useAuth, API } from '../App';
 import { Check, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import MissionHistory from '../components/MissionHistory';
 
 // Rank thresholds based on contracts completed
