@@ -341,6 +341,7 @@ export default function Contracts() {
   // New contract form state
   const [newContract, setNewContract] = useState({
     type: 'security',
+    category: 'COMBAT',
     // Security fields
     activity: '',
     threat: '',
