@@ -34,7 +34,7 @@ export default function Profile() {
   if (!user) return null;
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#00f0ff' }}>Loading...</div>;
 
-  const rank = getRank(user.contracts_completed || 0);
+  const userRank = getUserRank(user.contracts_completed || 0);
   const reputation = user.reputation || 5.0;
   const fullStars = Math.floor(reputation);
   const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
