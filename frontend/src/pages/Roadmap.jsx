@@ -146,7 +146,7 @@ export default function Roadmap() {
             </p>
           </div>
           <a 
-            href="https://www.paypal.com/donate/?hosted_button_id=YOUR_BUTTON_ID" 
+            href="https://www.paypal.com/donate/?hosted_button_id=9THAEAML49USJ" 
             target="_blank" 
             rel="noopener noreferrer"
             className="nc-btn nc-btn-gold" 
@@ -154,7 +154,7 @@ export default function Roadmap() {
             data-testid="donate-btn"
           >
             <Shield size={16} />
-            DONATE
+            SUPPORT THE PROJECT
           </a>
         </div>
       </div>
