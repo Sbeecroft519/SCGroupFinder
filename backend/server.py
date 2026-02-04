@@ -116,6 +116,7 @@ class ReportCreate(BaseModel):
 class ContractCreate(BaseModel):
     type: str
     title: str
+    description: Optional[str] = None
     # Structured fields
     activity: Optional[str] = None
     threat: Optional[str] = None
@@ -134,11 +135,15 @@ class ContractCreate(BaseModel):
     meet_at: Optional[str] = None
     # Payment
     payment_amount: Optional[int] = 0
+    payout: Optional[int] = None
     # Location
     system: Optional[str] = None
     planet: Optional[str] = None
     location: Optional[str] = None
     shard: Optional[str] = None
+    # Multi-crew manifest
+    is_multi_crew: Optional[bool] = False
+    manifest: Optional[List[ManifestSlot]] = None
 
 class ReviewCreate(BaseModel):
     contract_id: str
