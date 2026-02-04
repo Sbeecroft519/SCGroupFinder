@@ -1442,6 +1442,34 @@ async def admin_get_last_reset(admin = Depends(require_admin)):
     return {'last_reset': setting['value'] if setting else None}
 
 
+@api_router.post("/admin/users/{user_id}/badge")
+async def admin_assign_badge(user_id: str, request: BadgeAssignRequest, admin = Depends(require_admin)):
+    """Assign or remove supporter badges from a user"""
+    user = await db.users.find_one({'id': user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    badges = user.get('badges', [])
+    supporter_badges = ['SUPPORTER_BRONZE', 'SUPPORTER_SILVER', 'SUPPORTER_GOLD']
+    
+    if request.badge_id == 'REMOVE_SUPPORTER' or request.action == 'remove':
+        # Remove all supporter badges
+        badges = [b for b in badges if b not in supporter_badges]
+    else:
+        # Remove existing supporter badge first (only one tier allowed)
+        badges = [b for b in badges if b not in supporter_badges]
+        # Add new badge
+        if request.badge_id not in badges:
+            badges.append(request.badge_id)
+    
+    await db.users.update_one(
+        {'id': user_id},
+        {'$set': {'badges': badges}}
+    )
+    
+    return {'message': 'Badge updated', 'badges': badges}
+
+
 # ===== Root Route =====
 
 @api_router.get("/")
