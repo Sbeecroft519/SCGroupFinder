@@ -91,7 +91,7 @@ export default function Profile() {
             <div className="right-col">
               <div className="rank-section">
                 <span className="label">RANK</span>
-                <span className="rank-value">{rank}</span>
+                <span className="rank-value" style={{ color: userRank.color }}>{userRank.name}</span>
               </div>
               
               <div className="rep-section">
