@@ -7,24 +7,6 @@ import MissionHistory from '../components/MissionHistory';
 import BadgeRack from '../components/BadgeRack';
 import { getUserRank } from '../constants/ranks';
 
-// Rank thresholds based on contracts completed
-const RANK_THRESHOLDS = [
-  { min: 500, rank: 'LEGEND' },
-  { min: 250, rank: 'ELITE' },
-  { min: 100, rank: 'VETERAN' },
-  { min: 50, rank: 'OPERATIVE' },
-  { min: 10, rank: 'ASSOCIATE' },
-  { min: 1, rank: 'FREELANCER' },
-  { min: 0, rank: 'CIVILIAN' },
-];
-
-const getRank = (contracts) => {
-  for (const tier of RANK_THRESHOLDS) {
-    if (contracts >= tier.min) return tier.rank;
-  }
-  return 'CIVILIAN';
-};
-
 export default function Profile() {
   const { user: currentUser } = useAuth();
   const { userId } = useParams();
