@@ -54,6 +54,17 @@ export default function Admin() {
     }
   };
 
+  const handleAssignBadge = async (userId, badgeId) => {
+    if (!badgeId) return;
+    try {
+      const action = badgeId === 'REMOVE_SUPPORTER' ? 'remove' : 'add';
+      await axios.post(`${API}/admin/users/${userId}/badge`, { action, badge_id: badgeId });
+      fetchData();
+    } catch (e) {
+      alert('Badge assignment failed');
+    }
+  };
+
   const handleCreateGoal = async () => {
     try {
       if (editingGoal) {
