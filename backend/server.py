@@ -153,6 +153,8 @@ class ContractCreate(BaseModel):
     # Multi-crew manifest
     is_multi_crew: Optional[bool] = False
     manifest: Optional[List[ManifestSlot]] = None
+    # Duration
+    duration_minutes: Optional[int] = 60
 
 class ReviewCreate(BaseModel):
     contract_id: str
