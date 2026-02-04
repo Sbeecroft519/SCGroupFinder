@@ -992,6 +992,11 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         contract_doc['is_multi_crew'] = False
         contract_doc['status'] = 'open'
     
+    # Calculate expires_at based on duration
+    duration_mins = contract.duration_minutes or 60
+    contract_doc['duration_minutes'] = duration_mins
+    contract_doc['expires_at'] = (datetime.now(timezone.utc) + timedelta(minutes=duration_mins)).isoformat()
+    
     await db.contracts.insert_one(contract_doc)
     contract_doc.pop('_id', None)
     
