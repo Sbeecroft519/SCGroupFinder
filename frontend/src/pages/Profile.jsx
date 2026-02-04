@@ -151,9 +151,9 @@ export default function Profile() {
       </div>
         </div>
 
-        {/* Right Column - Future Mission History Module */}
+        {/* Right Column - Mission History Module */}
         <div className="history-column">
-          {/* PLACEHOLDER: Mission History / Activity Feed will go here */}
+          <MissionHistory userId={user.id} />
         </div>
       </div>
 
