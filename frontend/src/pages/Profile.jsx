@@ -406,8 +406,8 @@ export default function Profile() {
         }
 
         .avatar-icon {
-          width: 88px;
-          height: 88px;
+          width: 110px;
+          height: 110px;
           object-fit: contain;
           filter: drop-shadow(0 0 8px var(--nc-cyan));
         }
