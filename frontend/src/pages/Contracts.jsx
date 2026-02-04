@@ -294,6 +294,9 @@ export default function Contracts() {
   const [isMultiCrew, setIsMultiCrew] = useState(false);
   const [manifest, setManifest] = useState([]);
   const [basePayout, setBasePayout] = useState(50000);
+  
+  // Duration state
+  const [duration, setDuration] = useState(60);
 
   // Handle ?action=create from QuickActions FAB
   useEffect(() => {
