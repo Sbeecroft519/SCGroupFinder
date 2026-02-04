@@ -66,6 +66,13 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
   - [x] Accept/withdraw bid functionality
   - [x] Deploy team when crew is ready (partial fill supported)
   - [x] 'mustering' status for multi-crew contracts in progress
+- [x] **Contract Duration/Expiry System** (Feb 4, 2026)
+  - [x] LISTING DURATION dropdown: Distress (30m), Standard (1h), Operation (4h), Scheduled (24h)
+  - [x] Dynamic expires_at timestamp calculated on creation
+  - [x] Time remaining display on contract cards (⏱️ Xh Xm)
+  - [x] Distress contracts show 🚨 red styling
+  - [x] Near-expiry (<10 min) shows amber/orange styling
+  - [x] Backend filters expired contracts from active listings
 
 ### ROADMAP Module - COMPLETE
 - [x] Crowdfunding goals
