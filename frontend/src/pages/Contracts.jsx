@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, X, ThumbsUp, ArrowRight, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
+import { CONTRACT_CATEGORIES } from '../constants/badges';
 
 const CONTRACT_TYPES = [
   { id: 'security', label: 'Security', icon: '🛡️', color: '#00f0ff' },
