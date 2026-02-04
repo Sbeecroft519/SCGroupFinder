@@ -1640,11 +1640,13 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
         # Save mission history for the merc
         merc_id = contract['accepted_by']['id']
         payout = contract.get('payment_amount', 0)
+        category = contract.get('category', 'OTHER')
         history_record = {
             'user_id': merc_id,
             'contract_id': contract_id,
             'contract_title': contract.get('title', ''),
             'contract_type': contract.get('type', ''),
+            'category': category,
             'role': contract.get('role', 'Mercenary'),
             'payout_received': payout,
             'rating_received': None,  # Updated when client rates
@@ -1653,17 +1655,45 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
         }
         await db.mission_history.insert_one(history_record)
         
-        # Update merc's aggregate stats
+        # Update merc's aggregate stats including category
         await db.users.update_one(
             {'id': merc_id},
             {
                 '$inc': {
                     'total_missions_completed': 1,
                     'total_earnings': payout,
-                    f'missions_by_type.{contract.get("type", "other")}': 1
+                    f'missions_by_type.{contract.get("type", "other")}': 1,
+                    f'contracts_by_category.{category}': 1
                 }
             }
         )
+        
+        # Check for specialist badge awards at 50 completions
+        SPECIALIST_BADGES = {
+            'COMBAT': 'ACE_PILOT',
+            'MEDICAL': 'COMBAT_MEDIC',
+            'LOGISTICS': 'HEAVY_HAULER',
+            'INDUSTRIAL': 'INDUSTRIALIST'
+        }
+        merc = await db.users.find_one({'id': merc_id})
+        if merc and category in SPECIALIST_BADGES:
+            cat_count = merc.get('contracts_by_category', {}).get(category, 0)
+            badge_id = SPECIALIST_BADGES[category]
+            if cat_count >= 50 and badge_id not in merc.get('badges', []):
+                await db.users.update_one(
+                    {'id': merc_id},
+                    {'$addToSet': {'badges': badge_id}}
+                )
+        
+        # Check for Five Star badge
+        if merc:
+            total_completed = merc.get('total_missions_completed', 0)
+            avg_rating = merc.get('reputation', 0)
+            if total_completed >= 20 and avg_rating == 5.0 and 'FIVE_STAR' not in merc.get('badges', []):
+                await db.users.update_one(
+                    {'id': merc_id},
+                    {'$addToSet': {'badges': 'FIVE_STAR'}}
+                )
         
         return {'message': 'Contract completed!', 'status': 'completed', 'show_rating': True}
     
