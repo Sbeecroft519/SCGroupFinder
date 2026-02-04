@@ -1365,7 +1365,22 @@ export default function Contracts() {
                   ) : getContractPayout(contract) > 0 ? (
                     <span className="payment-amount">{getContractPayout(contract).toLocaleString()} aUEC</span>
                   ) : null}
-                  <span className="contract-time">{getTimeAgo(contract.created_at)}</span>
+                  {(() => {
+                    const timeInfo = getTimeRemaining(contract);
+                    if (!timeInfo) return <span className="contract-time">{getTimeAgo(contract.created_at)}</span>;
+                    return (
+                      <span style={{ 
+                        fontSize: 11, 
+                        fontFamily: 'var(--nc-font-mono)',
+                        color: timeInfo.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        {timeInfo.isDistress ? '🚨' : '⏱️'} {timeInfo.text}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
