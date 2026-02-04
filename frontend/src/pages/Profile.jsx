@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import MissionHistory from '../components/MissionHistory';
+import BadgeRack from '../components/BadgeRack';
+import { getUserRank } from '../constants/ranks';
 
 // Rank thresholds based on contracts completed
 const RANK_THRESHOLDS = [
