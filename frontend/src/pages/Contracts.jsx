@@ -1139,6 +1139,22 @@ export default function Contracts() {
                 </div>
               )}
 
+              {/* Listing Duration */}
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="nc-label">LISTING DURATION</label>
+                <select
+                  className="nc-input"
+                  value={duration}
+                  onChange={e => setDuration(parseInt(e.target.value))}
+                  data-testid="duration-select"
+                >
+                  <option value={30}>🚨 Distress (30 Minutes)</option>
+                  <option value={60}>⚡ Standard (1 Hour)</option>
+                  <option value={240}>📋 Operation (4 Hours)</option>
+                  <option value={1440}>📅 Scheduled (24 Hours)</option>
+                </select>
+              </div>
+
               <button 
                 className="nc-btn nc-btn-primary" 
                 style={{ width: '100%', marginTop: 16 }}
