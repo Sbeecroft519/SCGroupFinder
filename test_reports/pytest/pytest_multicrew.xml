@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="9" failures="1" skipped="0" tests="14" time="0.698" timestamp="2026-02-04T16:55:05.712322+00:00" hostname="agent-env-bd3acc42-2e2f-42e8-9706-9ac56766a049"><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_create_multi_crew_contract" time="0.113" /><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_get_contract_details" time="0.080" /><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_bid_on_manifest_slot" time="0.039"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_cannot_bid_on_own_contract" time="0.078" /><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_cannot_bid_twice_on_same_slot" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_withdraw_manifest_bid" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_accept_manifest_bid" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_only_owner_can_accept_bid" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_deploy_team" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_cannot_deploy_without_crew" time="0.123" /><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_only_owner_can_deploy" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_invalid_slot_index" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestMultiCrewManifestSystem" name="test_bid_on_non_multicrew_contract" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">backend/tests/test_multicrew_manifest.py:46: in test_user_token
+    return register_response.json()["token"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="backend.tests.test_multicrew_manifest.TestContractListingWithManifest" name="test_contracts_list_includes_multicrew" time="0.119"><failure message="AssertionError: Created contract should be in list&#10;assert None is not None">backend/tests/test_multicrew_manifest.py:589: in test_contracts_list_includes_multicrew
+    assert our_contract is not None, "Created contract should be in list"
+E   AssertionError: Created contract should be in list
+E   assert None is not None</failure></testcase></testsuite></testsuites>
