@@ -1093,6 +1093,11 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
         merc_id = contract.get('accepted_by', {}).get('id')
         if merc_id:
             await update_user_reputation(merc_id)
+            # Update mission history with rating
+            await db.mission_history.update_one(
+                {'contract_id': contract_id, 'user_id': merc_id},
+                {'$set': {'rating_received': review.rating}}
+            )
     else:
         await db.contracts.update_one({'id': contract_id}, {'$set': {'merc_review': review_data}})
         # Update client's reputation
