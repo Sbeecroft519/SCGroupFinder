@@ -107,6 +107,14 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] Rank, reputation, contracts stats
 - [x] Verification status
 - [x] Earned badges
+- [x] **Mission History Module** (Feb 4, 2026)
+  - [x] Stats bar: Completed, Success Rate, Total Earned
+  - [x] 3 expandable dropdowns: Missions by Type, Earnings Breakdown, Recent Missions
+  - [x] Empty state for new users
+  - [x] Mission history saved on contract completion
+  - [x] Rating updates saved to mission history
+  - [x] View other users' profiles via /profile/:userId
+  - [x] "View Profile" button in bid review modal
 
 ## Backlog
 
