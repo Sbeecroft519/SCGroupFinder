@@ -1774,6 +1774,13 @@ export default function Contracts() {
                       </div>
                       <div className="pilot-actions">
                         <button 
+                          className="nc-btn nc-btn-secondary"
+                          onClick={() => navigate(`/profile/${bid.bidder?.id}`)}
+                          style={{ fontSize: 10, padding: '8px 12px' }}
+                        >
+                          View Profile
+                        </button>
+                        <button 
                           className="nc-btn nc-btn-primary"
                           onClick={() => handleAcceptBid(showBidsModal, bid.id, bid.bidder?.handle)}
                         >
