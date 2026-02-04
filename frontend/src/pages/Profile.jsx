@@ -160,17 +160,10 @@ export default function Profile() {
       </div>
         </div>
 
-        {/* Right Column - Mission History Module */}
+        {/* Right Column - BadgeRack and Mission History */}
         <div className="history-column">
+          <BadgeRack badges={user.badges} />
           <MissionHistory userId={user.id} />
-        </div>
-      </div>
-
-      {/* Badges Box */}
-      <div className="badges-box">
-        <span className="badges-label">BADGES</span>
-        <div className="badges-content">
-          {/* PLACEHOLDER: Dynamic earned badges will render here */}
         </div>
       </div>
 
