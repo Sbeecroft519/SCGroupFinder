@@ -131,24 +131,31 @@ export default function Roadmap() {
         <p className="page-subtitle">Community-funded feature bounties</p>
       </div>
 
-      {/* Supporter CTA */}
+      {/* Support CTA */}
       <div className="nc-card" style={{ marginBottom: 32, background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, transparent 50%)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <Star size={24} className="text-gold" />
               <h3 className="font-display" style={{ fontSize: 18, color: 'var(--nc-text-primary)' }}>
-                Join the Syndicate
+                Support the Project
               </h3>
             </div>
             <p className="text-muted" style={{ fontSize: 14, maxWidth: 500 }}>
-              Supporters get a gold profile border, exclusive badge, early access to features, and voting power on the roadmap.
+              Help keep NavCom running and support future development. Every contribution helps!
             </p>
           </div>
-          <button className="nc-btn nc-btn-gold" data-testid="become-supporter-btn">
+          <a 
+            href="https://www.paypal.com/donate/?hosted_button_id=YOUR_BUTTON_ID" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="nc-btn nc-btn-gold" 
+            style={{ textDecoration: 'none' }}
+            data-testid="donate-btn"
+          >
             <Shield size={16} />
-            BECOME A SUPPORTER
-          </button>
+            DONATE
+          </a>
         </div>
       </div>
 
