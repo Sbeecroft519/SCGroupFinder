@@ -34,15 +34,7 @@ class TestMultiCrewManifestSystem:
     
     @pytest.fixture(scope="class")
     def test_user_token(self):
-        """Create test user and get token for bidding tests"""
-        # Try to register test user
-        register_response = requests.post(f"{BASE_URL}/api/auth/register", json={
-            "email": TEST_USER_EMAIL,
-            "password": TEST_USER_PASSWORD,
-            "rsi_handle": TEST_USER_HANDLE
-        })
-        
-        # After registration (or if user exists), login to get token
+        """Get token for pre-verified test user for bidding tests"""
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_USER_EMAIL,
             "password": TEST_USER_PASSWORD
