@@ -589,7 +589,9 @@ export default function Contracts() {
       shard: myShard,
       // Multi-crew
       is_multi_crew: isMultiCrew,
-      manifest: isMultiCrew ? manifest : null
+      manifest: isMultiCrew ? manifest : null,
+      // Duration
+      duration_minutes: duration
     };
 
     try {
