@@ -259,7 +259,8 @@ export default function Admin() {
                 <th>Handle</th>
                 <th>Email</th>
                 <th>Verified</th>
-                <th>Supporter</th>
+                <th>Badges</th>
+                <th>Assign Badge</th>
                 <th>Joined</th>
               </tr>
             </thead>
@@ -269,7 +270,27 @@ export default function Admin() {
                   <td style={{ color: 'var(--nc-cyan)' }}>{u.rsi_handle}</td>
                   <td>{u.email}</td>
                   <td>{u.is_verified ? <Check size={14} className="text-green" /> : <X size={14} className="text-red" />}</td>
-                  <td>{u.is_supporter ? <Check size={14} className="text-gold" /> : <X size={14} className="text-muted" />}</td>
+                  <td>
+                    {(u.badges || []).filter(b => b.startsWith('SUPPORTER')).map(b => (
+                      <span key={b} style={{ marginRight: 4 }}>
+                        {b === 'SUPPORTER_GOLD' ? '🥇' : b === 'SUPPORTER_SILVER' ? '🥈' : '🥉'}
+                      </span>
+                    ))}
+                  </td>
+                  <td>
+                    <select 
+                      className="nc-input" 
+                      style={{ padding: '4px 8px', fontSize: 12 }}
+                      onChange={(e) => handleAssignBadge(u.id, e.target.value)}
+                      defaultValue=""
+                    >
+                      <option value="">Assign...</option>
+                      <option value="SUPPORTER_BRONZE">🥉 Bronze</option>
+                      <option value="SUPPORTER_SILVER">🥈 Silver</option>
+                      <option value="SUPPORTER_GOLD">🥇 Gold</option>
+                      <option value="REMOVE_SUPPORTER">Remove</option>
+                    </select>
+                  </td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
