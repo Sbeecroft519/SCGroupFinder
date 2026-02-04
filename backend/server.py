@@ -197,14 +197,7 @@ class NotificationSettings(BaseModel):
     contract_types: Optional[List[str]] = None  # e.g., ['rescue', 'escort', 'transport']
 
 
-# ===== Multi-Crew Manifest Models =====
-
-class ManifestSlot(BaseModel):
-    role: str
-    payout: int
-    status: str = "OPEN"
-    applicant_id: Optional[str] = None
-    bids: List[dict] = []
+# ===== Multi-Crew Request Models =====
 
 class ManifestBidRequest(BaseModel):
     slot_index: int
