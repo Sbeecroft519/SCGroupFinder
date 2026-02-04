@@ -164,6 +164,10 @@ class ReviewCreate(BaseModel):
     comment: Optional[str] = None
     review_type: str  # 'client_to_merc' or 'merc_to_client'
 
+class BadgeAssignRequest(BaseModel):
+    action: str = "add"  # "add" or "remove"
+    badge_id: str
+
 class GoalResponse(BaseModel):
     id: str
     title: str
