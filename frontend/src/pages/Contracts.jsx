@@ -610,7 +610,7 @@ export default function Contracts() {
   
   const resetForm = () => {
     setNewContract({
-      type: 'security', activity: '', threat: '', start_location: '', end_location: '',
+      type: 'security', category: 'COMBAT', activity: '', threat: '', start_location: '', end_location: '',
       cargo_value: '', status_select: '', environment: '', load: '', destination: '',
       job: '', role: '', compensation_type: 'Flat Fee', meet_at: '', payment_amount: '',
       system: 'Stanton', planet: '', location: ''
