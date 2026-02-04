@@ -902,7 +902,8 @@ async def get_contracts(type: Optional[str] = None):
     query = {
         'status': {'$nin': ['completed', 'expired']},  # Hide completed/expired
         '$or': [
-            {'status': {'$in': ['in_progress', 'pending_completion']}},  # Show active contracts regardless of age
+            {'status': {'$in': ['in_progress', 'pending_completion', 'active']}},  # Show active contracts regardless of age
+            {'status': 'mustering', 'created_at': {'$gte': one_hour_ago}},  # Multi-crew contracts in mustering phase
             {'status': 'open', 'created_at': {'$gte': one_hour_ago}}  # Open but not expired (1 hour)
         ]
     }
