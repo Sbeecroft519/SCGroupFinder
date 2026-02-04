@@ -120,7 +120,10 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
-## Bug Fixes Applied This Session (Jan 29, 2026)
+## Bug Fixes Applied This Session (Feb 4, 2026)
+1. **Multi-Crew contracts not appearing in feed**: Fixed query in `get_contracts` to include 'mustering' status for multi-crew contracts (testing agent fix).
+
+## Bug Fixes Applied Previous Session (Jan 29, 2026)
 1. **myShard state fix verified**: The `myShard is not defined` runtime error on Contracts page was previously fixed (state variable present at line 97). Verified working.
 2. **Onboarding disclaimer slide completed**: Added JSX to render the "Made by the Community" badge on the new "About NavCom" slide.
 
