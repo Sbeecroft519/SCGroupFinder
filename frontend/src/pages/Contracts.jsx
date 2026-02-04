@@ -686,6 +686,26 @@ export default function Contracts() {
     return `${filled}/${contract.manifest.length}`;
   };
 
+  const getTimeRemaining = (contract) => {
+    if (!contract.expires_at) return null;
+    const now = new Date();
+    const expires = new Date(contract.expires_at);
+    const diffMs = expires - now;
+    if (diffMs <= 0) return { text: 'Expired', color: '#ff4d4d', isDistress: false };
+    
+    const mins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    
+    const isDistress = contract.duration_minutes === 30;
+    let color = 'rgba(255,255,255,0.5)'; // default muted
+    if (isDistress) color = '#ff4d4d'; // red for distress
+    else if (mins < 10) color = '#ff9900'; // amber for < 10 min
+    
+    const text = hours > 0 ? `${hours}h ${remainingMins}m` : `${mins}m`;
+    return { text, color, isDistress };
+  };
+
   const navigateToContract = (contractId) => {
     navigate(`/contracts/${contractId}`);
   };
