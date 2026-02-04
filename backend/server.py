@@ -183,6 +183,23 @@ class NotificationSettings(BaseModel):
     contract_types: Optional[List[str]] = None  # e.g., ['rescue', 'escort', 'transport']
 
 
+# ===== Multi-Crew Manifest Models =====
+
+class ManifestSlot(BaseModel):
+    role: str
+    payout: int
+    status: str = "OPEN"
+    applicant_id: Optional[str] = None
+    bids: List[dict] = []
+
+class ManifestBidRequest(BaseModel):
+    slot_index: int
+
+class ManifestAcceptBidRequest(BaseModel):
+    slot_index: int
+    user_id: str
+
+
 # ===== Utility Functions =====
 
 def hash_password(password: str) -> str:
