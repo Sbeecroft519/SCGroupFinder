@@ -13,10 +13,10 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 ADMIN_EMAIL = "beecroft519@gmail.com"
 ADMIN_PASSWORD = "Nv$C0m_Adm1n_2025!"
 
-# Test user for bidding (will be created)
-TEST_USER_EMAIL = f"test_multicrew_{uuid.uuid4().hex[:8]}@navcom.com"
-TEST_USER_PASSWORD = "TestPass123!"
-TEST_USER_HANDLE = f"TEST_MultiCrew_{uuid.uuid4().hex[:6]}"
+# Pre-verified test user for bidding (created in database)
+TEST_USER_EMAIL = "test_bidder@navcom.com"
+TEST_USER_PASSWORD = "TestBidder123!"
+TEST_USER_HANDLE = "TEST_Bidder"
 
 
 class TestMultiCrewManifestSystem:
