@@ -308,6 +308,7 @@ function App() {
               <Route path="/intel" element={<ProtectedRoute><Intel /></ProtectedRoute>} />
               <Route path="/signals" element={<ProtectedRoute><Signals /></ProtectedRoute>} />
               <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
+              <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetails /></ProtectedRoute>} />
               <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
