@@ -1,6 +1,7 @@
 import { useAuth } from '../App';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
+import MissionHistory from '../components/MissionHistory';
 
 // Rank thresholds based on contracts completed
 const RANK_THRESHOLDS = [
