@@ -929,6 +929,7 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'id': str(uuid.uuid4()),
         'type': contract.type,
         'title': contract.title,
+        'description': contract.description,
         # Structured fields
         'activity': contract.activity,
         'threat': contract.threat,
@@ -945,14 +946,13 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'role': contract.role,
         'compensation_type': contract.compensation_type,
         'meet_at': contract.meet_at,
-        # Payment
-        'payment_amount': contract.payment_amount or 0,
         # Location
         'system': contract.system,
         'planet': contract.planet,
         'location': contract.location,
         'shard': contract.shard,
         'poster_id': user['id'],
+        'poster_handle': user['rsi_handle'],
         'poster': {
             'handle': user['rsi_handle'],
             'reputation': user.get('reputation', 5.0),
@@ -960,11 +960,32 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
             'avatar_url': user.get('avatar_url')
         },
         'accepted_by': None,
-        'status': 'open',
         'client_review': None,
         'merc_review': None,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
+    
+    # Handle multi-crew contracts with manifest
+    if contract.is_multi_crew and contract.manifest and len(contract.manifest) > 0:
+        contract_doc['manifest'] = [
+            {
+                'role': slot.role,
+                'payout': slot.payout,
+                'status': 'OPEN',
+                'applicant_id': None,
+                'filled_by': None,
+                'bids': []
+            }
+            for slot in contract.manifest
+        ]
+        contract_doc['is_multi_crew'] = True
+        contract_doc['status'] = 'mustering'
+        contract_doc['payment_amount'] = sum(slot.payout for slot in contract.manifest)
+    else:
+        contract_doc['payment_amount'] = contract.payment_amount or contract.payout or 0
+        contract_doc['assigned_to'] = None
+        contract_doc['is_multi_crew'] = False
+        contract_doc['status'] = 'open'
     
     await db.contracts.insert_one(contract_doc)
     contract_doc.pop('_id', None)
