@@ -113,6 +113,15 @@ class ReportCreate(BaseModel):
     details: Optional[str] = None
     timestamp: Optional[str] = None
 
+# ===== Multi-Crew Manifest Models (defined before ContractCreate) =====
+
+class ManifestSlot(BaseModel):
+    role: str
+    payout: int
+    status: str = "OPEN"
+    applicant_id: Optional[str] = None
+    bids: List[dict] = []
+
 class ContractCreate(BaseModel):
     type: str
     title: str
