@@ -150,6 +150,8 @@ class ContractCreate(BaseModel):
     planet: Optional[str] = None
     location: Optional[str] = None
     shard: Optional[str] = None
+    # Category
+    category: Optional[str] = 'OTHER'
     # Multi-crew manifest
     is_multi_crew: Optional[bool] = False
     manifest: Optional[List[ManifestSlot]] = None
