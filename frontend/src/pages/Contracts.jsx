@@ -804,6 +804,21 @@ export default function Contracts() {
                 </div>
               </div>
 
+              {/* Contract Category */}
+              <div className="form-group">
+                <label className="nc-label">CONTRACT CATEGORY</label>
+                <select
+                  className="nc-input"
+                  value={newContract.category}
+                  onChange={e => setNewContract(prev => ({ ...prev, category: e.target.value }))}
+                  data-testid="category-select"
+                >
+                  {CONTRACT_CATEGORIES.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Multi-Crew Toggle */}
               <div style={{
                 display: 'flex',
