@@ -1730,6 +1730,15 @@ async def get_user_mission_history(user_id: str):
         'missions': missions
     }
 
+
+@api_router.get("/users/{user_id}/profile")
+async def get_user_profile(user_id: str):
+    """Get public profile data for a user"""
+    user = await db.users.find_one({'id': user_id}, {'_id': 0, 'password_hash': 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
 @api_router.get("/user/my-contracts")
 async def get_user_contracts(user = Depends(get_current_user)):
     """Get user's contracts (posted or accepted) including completed ones for rating"""
