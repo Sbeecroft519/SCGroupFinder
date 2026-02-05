@@ -166,7 +166,9 @@ const ContractDetails = () => {
 
         <div style={styles.mainCard}>
           <div style={styles.header}>
-            <span style={styles.typeBadge}>{contract.type?.toUpperCase()}</span>
+            <span style={styles.typeBadge}>
+              {CATEGORY_ICONS[contract.category] || '📋'} {CATEGORY_LABELS[contract.category] || contract.category || 'Contract'}
+            </span>
             <h1 style={styles.title}>{contract.title}</h1>
             <div style={styles.meta}>
               <div style={styles.metaItem}>
