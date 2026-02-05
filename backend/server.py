@@ -1484,6 +1484,33 @@ async def admin_assign_badge(user_id: str, request: BadgeAssignRequest, admin = 
     return {'message': 'Badge updated', 'badges': badges}
 
 
+@api_router.post("/redeem-code")
+async def redeem_code(request: RedeemCodeRequest, user = Depends(get_current_user)):
+    """Redeem an access code for supporter tier"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    code = request.code.strip().upper()
+    
+    if code not in REDEMPTION_CODES:
+        return {"success": False, "message": "Invalid or expired code"}
+    
+    tier = REDEMPTION_CODES[code]
+    
+    await db.users.update_one(
+        {'id': user['id']},
+        {'$set': {'supporter_tier': tier}}
+    )
+    
+    tier_names = {"BRONZE": "Contributor", "SILVER": "Sponsor", "GOLD": "Patron"}
+    
+    return {
+        "success": True,
+        "tier": tier,
+        "message": f"Congratulations! You are now a {tier_names[tier]}!"
+    }
+
+
 # ===== Root Route =====
 
 @api_router.get("/")
