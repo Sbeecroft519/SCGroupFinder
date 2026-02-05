@@ -83,6 +83,7 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     avatar_preset: Optional[str] = None
     badges: List[str] = []
+    supporter_tier: str = "NONE"
 
 class TokenResponse(BaseModel):
     token: str
