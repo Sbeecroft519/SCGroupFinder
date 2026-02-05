@@ -5,13 +5,6 @@ import axios from 'axios';
 import { API, useAuth } from '../App';
 import { CONTRACT_CATEGORIES, CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 
-const CONTRACT_TYPES = [
-  { id: 'security', label: 'Security', icon: '🛡️', color: '#00f0ff' },
-  { id: 'rescue', label: 'Rescue', icon: '🚑', color: '#00ff88' },
-  { id: 'transport', label: 'Transport', icon: '📦', color: '#ffcc00' },
-  { id: 'operations', label: 'Operations', icon: '🤝', color: '#ff9933' }
-];
-
 // Preset roles for multi-crew contracts
 const PRESET_ROLES = [
   'Pilot',
