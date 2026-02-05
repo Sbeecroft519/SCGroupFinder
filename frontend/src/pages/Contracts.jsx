@@ -21,54 +21,6 @@ const PRESET_ROLES = [
   'Navigator'
 ];
 
-// Structured dropdown options by contract type
-const CONTRACT_OPTIONS = {
-  security: {
-    activity: ['Escort', 'Bunker Clear', 'Airspace Defense', 'Bounty Assist'],
-    threat: ['Low Risk (PVE)', 'High Risk (PVP)', 'Critical'],
-    cargo_value: ['Low Value', 'Medium Value', 'High Value (Whale)']
-  },
-  rescue: {
-    status: ['Incapacitated (Revive)', 'Stranded (Pickup)', 'Under Fire'],
-    environment: ['Space', 'Ground', 'Bunker (Hostile)', 'Bunker (Safe)']
-  },
-  transport: {
-    load: ['Single Passenger', 'Squad (2+)', 'Small Cargo'],
-    destination: ['Orbital Station', 'Ground Outpost', 'Major City']
-  },
-  operations: {
-    job: [
-      'Multi-Crew Mining',
-      'Deep Space Salvage',
-      'Bunker / FPS Ops',
-      'Exploration / Touring',
-      'Security Detail',
-      'Refueling Support',
-      'Logistics / Moving',
-      'Org Training / Event',
-      'Film / Media Production'
-    ],
-    role: [
-      'FPS Specialist',
-      'Hired Gun / Turret',
-      'Laser Operator',
-      'Cargo Handler',
-      'Engineer',
-      'Pilot / Driver',
-      'Medic',
-      'Scout',
-      'Camera Operator'
-    ],
-    compensation: ['Flat Fee', 'Equal Split', 'Negotiated %', 'No Payment']
-  }
-};
-
-// Major landing zones/stations for Escort routes
-const MAJOR_LOCATIONS = [
-  'Port Olisar', 'Grim HEX', 'Orison', 'Lorville', 'Area 18', 'New Babbage',
-  'Port Tressler', 'Baijini Point', 'Everus Harbor', 'CRU-L1', 'HUR-L1', 'ARC-L1', 'MIC-L1'
-];
-
 // Location dropdowns - All Systems
 const SYSTEMS = ['Stanton', 'Pyro', 'Nyx'];
 const LOCATIONS = {
