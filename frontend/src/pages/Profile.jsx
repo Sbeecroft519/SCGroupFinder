@@ -7,6 +7,18 @@ import MissionHistory from '../components/MissionHistory';
 import BadgeRack from '../components/BadgeRack';
 import { getUserRank } from '../constants/ranks';
 
+// New transparent avatar presets - must match Settings.jsx
+const AVATAR_PRESETS = {
+  pilot: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/qir020ik_pilot.png',
+  medic: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/horusbmi_rescue.png',
+  pirate: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/gcw4ywaa_pirate.png',
+  hauler: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/yjw0cw3r_cargo%20hauler.png',
+  miner: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/3vgt2etd_mining.png',
+  bounty: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/feh9f09a_bounty%20hunter%20icon.png',
+  engineer: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/fkdyhw8p_engineer.png',
+  explorer: 'https://customer-assets.emergentagent.com/job_spacecontracts/artifacts/7rceprgl_explorer%20icon.png',
+};
+
 export default function Profile() {
   const { user: currentUser } = useAuth();
   const { userId } = useParams();
