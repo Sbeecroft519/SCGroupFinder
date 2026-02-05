@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield } from 'lucide-react';
+import { CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 
 const ContractDetails = () => {
   const { id } = useParams();
