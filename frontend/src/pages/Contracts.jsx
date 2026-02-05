@@ -901,13 +901,13 @@ export default function Contracts() {
           >
             All
           </button>
-          {CONTRACT_TYPES.map(type => (
+          {CONTRACT_CATEGORIES.map(cat => (
             <button
-              key={type.id}
-              className={`nc-toggle ${filter === type.id ? 'active' : ''}`}
-              onClick={() => setFilter(type.id)}
+              key={cat.id}
+              className={`nc-toggle ${filter === cat.id ? 'active' : ''}`}
+              onClick={() => setFilter(cat.id)}
             >
-              {type.icon} {type.label}
+              {cat.icon} {cat.shortLabel}
             </button>
           ))}
         </div>
