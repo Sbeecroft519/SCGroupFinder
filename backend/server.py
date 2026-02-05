@@ -916,7 +916,7 @@ async def get_commodity_prices(commodity_code: str):
 # ===== Contracts Routes =====
 
 @api_router.get("/contracts")
-async def get_contracts(type: Optional[str] = None):
+async def get_contracts(category: Optional[str] = None):
     # Filter out expired contracts using expires_at or fallback to 1hr for legacy
     now = datetime.now(timezone.utc).isoformat()
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
@@ -931,8 +931,8 @@ async def get_contracts(type: Optional[str] = None):
             {'status': 'open', 'expires_at': None, 'created_at': {'$gte': one_hour_ago}}  # Legacy open
         ]
     }
-    if type:
-        query['type'] = type
+    if category:
+        query['category'] = category
     
     contracts = await db.contracts.find(
         query,
