@@ -140,7 +140,10 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
-## Bug Fixes Applied This Session (Feb 4, 2026)
+## Bug Fixes Applied This Session (Feb 5, 2026)
+1. **Missing redemption code UI**: The redemption code input/button was missing from the Settings page. Added the UI to the "About" section with proper styling.
+
+## Bug Fixes Applied Previous Session (Feb 4, 2026)
 1. **Multi-Crew contracts not appearing in feed**: Fixed query in `get_contracts` to include 'mustering' status for multi-crew contracts (testing agent fix).
 
 ## Bug Fixes Applied Previous Session (Jan 29, 2026)
