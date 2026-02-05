@@ -936,49 +936,9 @@ export default function Contracts() {
       {viewMode === 'feed' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {filteredContracts.map(contract => {
-          const type = getContractType(contract.type);
+          const categoryDisplay = getCategoryDisplay(contract.category);
           const isMyShard = isMyShardContract(contract);
-          const isEscortContract = contract.type === 'security' && contract.activity === 'Escort';
           const isLootSplit = contract.compensation_type && contract.compensation_type !== 'Flat Fee';
-          
-          // Generate display info based on contract type
-          const getContractDetails = () => {
-            switch (contract.type) {
-              case 'security':
-                if (isEscortContract) {
-                  return { 
-                    subtitle: contract.cargo_value || 'Standard',
-                    detail: contract.activity
-                  };
-                }
-                return { 
-                  subtitle: contract.threat || 'Standard',
-                  detail: contract.activity || contract.title
-                };
-              case 'rescue':
-                return { 
-                  subtitle: contract.environment || 'Unknown',
-                  detail: contract.status_select || contract.title
-                };
-              case 'transport':
-                return { 
-                  subtitle: contract.destination || 'Destination',
-                  detail: contract.load || contract.title
-                };
-              case 'operations':
-                return { 
-                  subtitle: `Need ${contract.role || 'Crew'}`,
-                  detail: contract.job || contract.title
-                };
-              default:
-                return { subtitle: '', detail: contract.title };
-            }
-          };
-          
-          const details = getContractDetails();
-          const displayTitle = contract.activity 
-            ? generateTitle(contract) 
-            : contract.title;
           
           return (
             <div 
@@ -990,8 +950,8 @@ export default function Contracts() {
             >
               <div className="contract-header">
                 <div className="contract-type">
-                  <span className="contract-type-icon">{type.icon}</span>
-                  <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                  <span className="contract-type-icon">{categoryDisplay.icon}</span>
+                  <span className="contract-type-label">{categoryDisplay.label.toUpperCase()}</span>
                   {contract.is_multi_crew && (
                     <span style={{
                       display: 'flex',
@@ -1005,21 +965,6 @@ export default function Contracts() {
                     }}>
                       <Users size={12} />
                       {getCrewStatus(contract)}
-                    </span>
-                  )}
-                  {!contract.is_multi_crew && details.subtitle && (
-                    <span className="contract-threat-badge" style={{ 
-                      background: contract.threat?.includes('Critical') || contract.cargo_value?.includes('Whale') ? 'rgba(255,51,102,0.2)' : 
-                                  contract.threat?.includes('PVP') || contract.cargo_value?.includes('High') ? 'rgba(255,153,0,0.2)' : 
-                                  'rgba(0,240,255,0.15)',
-                      color: contract.threat?.includes('Critical') || contract.cargo_value?.includes('Whale') ? '#ff3366' : 
-                             contract.threat?.includes('PVP') || contract.cargo_value?.includes('High') ? '#ff9900' : 
-                             'var(--nc-cyan)',
-                      padding: '2px 8px',
-                      fontSize: 10,
-                      fontFamily: 'var(--nc-font-mono)'
-                    }}>
-                      {details.subtitle}
                     </span>
                   )}
                 </div>
@@ -1052,16 +997,7 @@ export default function Contracts() {
                 </div>
               </div>
 
-              {/* Escort Route Display */}
-              {isEscortContract && contract.start_location && contract.end_location ? (
-                <div className="escort-route">
-                  <span className="route-point">{contract.start_location}</span>
-                  <ArrowRight size={16} className="route-arrow" />
-                  <span className="route-point">{contract.end_location}</span>
-                </div>
-              ) : (
-                <h3 className="contract-title">{displayTitle || details.detail}</h3>
-              )}
+              <h3 className="contract-title">{contract.title}</h3>
 
               <div className="contract-meta">
                 <div className="contract-meta-item">
