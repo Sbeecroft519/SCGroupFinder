@@ -494,35 +494,16 @@ export default function Contracts() {
     if (!isContractValid()) return;
 
     const title = generateTitle(newContract);
-    const locationStr = isEscort 
-      ? `${newContract.start_location} → ${newContract.end_location}`
-      : isOperations 
-        ? newContract.meet_at 
-        : `${newContract.planet} - ${newContract.location}`;
+    const locationStr = `${newContract.planet} - ${newContract.location}`;
     
     const paymentAmount = showPaymentField ? parseInt(newContract.payment_amount) || 0 : 0;
+    const cat = CATEGORY_LABELS[newContract.category] || 'Contract';
 
     const contractData = {
-      type: newContract.type,
-      title: isMultiCrew ? `Multi-Crew: ${newContract.type.charAt(0).toUpperCase() + newContract.type.slice(1)} Operation` : title,
-      description: isMultiCrew ? `Multi-crew ${newContract.type} operation requiring ${manifest.length} crew members.` : null,
+      title: isMultiCrew ? `Multi-Crew: ${cat} Operation` : (newContract.title || title),
+      description: isMultiCrew ? `Multi-crew ${cat.toLowerCase()} operation requiring ${manifest.length} crew members.` : (newContract.description || null),
       category: newContract.category,
-      // Include structured fields
-      activity: newContract.activity,
-      threat: newContract.threat,
-      // Escort fields
-      start_location: newContract.start_location,
-      end_location: newContract.end_location,
-      cargo_value: newContract.cargo_value,
-      // Other type fields
-      status_select: newContract.status_select,
-      environment: newContract.environment,
-      load: newContract.load,
-      destination: newContract.destination,
-      job: newContract.job,
-      role: newContract.role,
       compensation_type: newContract.compensation_type,
-      meet_at: newContract.meet_at,
       // Payment
       payment_amount: paymentAmount,
       // Location
@@ -550,10 +531,8 @@ export default function Contracts() {
   
   const resetForm = () => {
     setNewContract({
-      type: 'security', category: 'COMBAT', activity: '', threat: '', start_location: '', end_location: '',
-      cargo_value: '', status_select: '', environment: '', load: '', destination: '',
-      job: '', role: '', compensation_type: 'Flat Fee', meet_at: '', payment_amount: '',
-      system: 'Stanton', planet: '', location: ''
+      category: 'COMBAT', title: '', description: '', compensation_type: 'Flat Fee', 
+      payment_amount: '', system: 'Stanton', planet: '', location: ''
     });
     setManifest([]);
     setIsMultiCrew(false);
