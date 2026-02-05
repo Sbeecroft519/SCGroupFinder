@@ -334,64 +334,24 @@ export default function Contracts() {
 
   // New contract form state
   const [newContract, setNewContract] = useState({
-    type: 'security',
     category: 'COMBAT',
-    // Security fields
-    activity: '',
-    threat: '',
-    // Escort-specific fields
-    start_location: '',
-    end_location: '',
-    cargo_value: '',
-    // Rescue fields
-    status_select: '',
-    environment: '',
-    // Transport fields
-    load: '',
-    destination: '',
-    // Operations fields
-    job: '',
-    role: '',
-    compensation_type: 'Flat Fee',
-    meet_at: '',
+    title: '',
+    description: '',
     // Payment (global)
     payment_amount: '',
+    compensation_type: 'Flat Fee',
     // Location fields
     system: 'Stanton',
     planet: '',
     location: ''
   });
 
-  const isEscort = newContract.type === 'security' && newContract.activity === 'Escort';
-  const isOperations = newContract.type === 'operations';
-  const showPaymentField = !isMultiCrew && (isOperations ? newContract.compensation_type === 'Flat Fee' : true);
+  const showPaymentField = !isMultiCrew && newContract.compensation_type === 'Flat Fee';
 
-  // Generate title based on contract type and selections
+  // Generate title based on category
   const generateTitle = (contract) => {
-    switch (contract.type) {
-      case 'security':
-        if (contract.activity === 'Escort' && contract.start_location && contract.end_location) {
-          return `Escort: ${contract.start_location} → ${contract.end_location} (${contract.cargo_value || 'Standard'})`;
-        }
-        return contract.activity && contract.threat 
-          ? `${contract.activity} - ${contract.threat}` 
-          : '';
-      case 'rescue':
-        return contract.status_select && contract.environment 
-          ? `${contract.status_select} - ${contract.environment}` 
-          : '';
-      case 'transport':
-        return contract.load && contract.destination 
-          ? `${contract.load} to ${contract.destination}` 
-          : '';
-      case 'operations':
-        const comp = contract.compensation_type !== 'Flat Fee' ? ` (${contract.compensation_type})` : '';
-        return contract.job && contract.role 
-          ? `${contract.job} - Need ${contract.role}${comp}` 
-          : '';
-      default:
-        return '';
-    }
+    const cat = CATEGORY_LABELS[contract.category] || 'Contract';
+    return contract.title || `${cat} Contract`;
   };
 
   // Check if contract form is valid
