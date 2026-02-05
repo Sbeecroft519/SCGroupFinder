@@ -366,21 +366,8 @@ export default function Contracts() {
       return false;
     }
     
-    switch (newContract.type) {
-      case 'security':
-        if (newContract.activity === 'Escort') {
-          return newContract.start_location && newContract.end_location && newContract.cargo_value;
-        }
-        return newContract.activity && newContract.threat && newContract.planet && newContract.location;
-      case 'rescue':
-        return newContract.status_select && newContract.environment && newContract.planet && newContract.location;
-      case 'transport':
-        return newContract.load && newContract.destination && newContract.planet && newContract.location;
-      case 'operations':
-        return newContract.job && newContract.role && newContract.meet_at;
-      default:
-        return false;
-    }
+    // Simplified: just need title/description and location
+    return newContract.title && newContract.planet && newContract.location;
   };
 
   useEffect(() => {
@@ -391,7 +378,7 @@ export default function Contracts() {
 
   const fetchContracts = async () => {
     try {
-      const params = filter !== 'all' ? { type: filter } : {};
+      const params = filter !== 'all' ? { category: filter } : {};
       const response = await axios.get(`${API}/contracts`, { params });
       if (response.data && response.data.length > 0) {
         setContracts(response.data);
