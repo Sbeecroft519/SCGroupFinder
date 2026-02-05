@@ -40,6 +40,27 @@ export default function Settings() {
   const [desktopNotifPermission, setDesktopNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
+  
+  // Redeem code state
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemMessage, setRedeemMessage] = useState('');
+  const [redeemSuccess, setRedeemSuccess] = useState(false);
+
+  const handleRedeemCode = async () => {
+    if (!redeemCode.trim()) return;
+    try {
+      const res = await axios.post(`${API}/redeem-code`, { code: redeemCode });
+      setRedeemMessage(res.data.message);
+      setRedeemSuccess(res.data.success);
+      if (res.data.success) {
+        setRedeemCode('');
+        updateUser({ supporter_tier: res.data.tier });
+      }
+    } catch (e) {
+      setRedeemMessage('Failed to redeem code');
+      setRedeemSuccess(false);
+    }
+  };
 
   const requestDesktopPermission = async () => {
     if (!('Notification' in window)) {
