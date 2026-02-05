@@ -58,14 +58,17 @@ export default function Profile() {
     });
   };
 
-  // Get avatar - prefer preset, then RSI scraped, then initials
+  // Get avatar - ALWAYS use new transparent PNG presets
   const getAvatarContent = () => {
-    if (user.avatar_preset || user.avatar_url?.includes('/avatars/')) {
+    // If user has a preset, use the new transparent PNG from our mapping
+    if (user.avatar_preset && AVATAR_PRESETS[user.avatar_preset]) {
+      return <img src={AVATAR_PRESETS[user.avatar_preset]} alt="Avatar" className="avatar-icon" />;
+    }
+    // Fallback: if avatar_url is a new PNG (not old SVG), use it
+    if (user.avatar_url && !user.avatar_url.includes('.svg') && !user.avatar_url.includes('/avatars/')) {
       return <img src={user.avatar_url} alt="Avatar" className="avatar-icon" />;
     }
-    if (user.avatar_url) {
-      return <img src={user.avatar_url} alt="Avatar" className="avatar-icon rsi-avatar" />;
-    }
+    // Last fallback: initials
     return <div className="avatar-initials">{user.rsi_handle?.substring(0, 2).toUpperCase()}</div>;
   };
 
