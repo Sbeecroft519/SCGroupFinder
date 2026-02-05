@@ -789,201 +789,7 @@ export default function Contracts() {
               {/* Single-crew fields only show when not multi-crew */}
               {!isMultiCrew && (
                 <>
-                  {/* SECURITY Options */}
-                  {newContract.type === 'security' && (
-                    <>
-                      <div className="form-group">
-                        <label className="nc-label">ACTIVITY</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.activity}
-                          onChange={e => setNewContract(prev => ({ 
-                            ...prev, 
-                            activity: e.target.value,
-                            start_location: '', end_location: '', cargo_value: '', threat: ''
-                          }))}
-                        >
-                          <option value="">Select activity...</option>
-                          {CONTRACT_OPTIONS.security.activity.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      {/* Escort-specific fields */}
-                      {newContract.activity === 'Escort' && (
-                        <>
-                          <div className="form-group">
-                            <label className="nc-label">START LOCATION</label>
-                            <select 
-                              className="nc-input"
-                              value={newContract.start_location}
-                              onChange={e => setNewContract(prev => ({ ...prev, start_location: e.target.value }))}
-                            >
-                              <option value="">Select start...</option>
-                              {MAJOR_LOCATIONS.map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label className="nc-label">END LOCATION</label>
-                            <select 
-                              className="nc-input"
-                              value={newContract.end_location}
-                              onChange={e => setNewContract(prev => ({ ...prev, end_location: e.target.value }))}
-                            >
-                              <option value="">Select destination...</option>
-                              {MAJOR_LOCATIONS.filter(l => l !== newContract.start_location).map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label className="nc-label">CARGO VALUE</label>
-                            <select 
-                              className="nc-input"
-                              value={newContract.cargo_value}
-                              onChange={e => setNewContract(prev => ({ ...prev, cargo_value: e.target.value }))}
-                            >
-                              <option value="">Select cargo value...</option>
-                              {CONTRACT_OPTIONS.security.cargo_value.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </>
-                      )}
-                      
-                      {/* Non-Escort: Standard threat field */}
-                      {newContract.activity && newContract.activity !== 'Escort' && (
-                        <div className="form-group">
-                          <label className="nc-label">THREAT LEVEL</label>
-                          <select 
-                            className="nc-input"
-                            value={newContract.threat}
-                            onChange={e => setNewContract(prev => ({ ...prev, threat: e.target.value }))}
-                          >
-                            <option value="">Select threat level...</option>
-                            {CONTRACT_OPTIONS.security.threat.map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* RESCUE Options */}
-                  {newContract.type === 'rescue' && (
-                    <>
-                      <div className="form-group">
-                        <label className="nc-label">STATUS</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.status_select}
-                          onChange={e => setNewContract(prev => ({ ...prev, status_select: e.target.value }))}
-                        >
-                          <option value="">Select status...</option>
-                          {CONTRACT_OPTIONS.rescue.status.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="nc-label">ENVIRONMENT</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.environment}
-                          onChange={e => setNewContract(prev => ({ ...prev, environment: e.target.value }))}
-                        >
-                          <option value="">Select environment...</option>
-                          {CONTRACT_OPTIONS.rescue.environment.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* TRANSPORT Options */}
-                  {newContract.type === 'transport' && (
-                    <>
-                      <div className="form-group">
-                        <label className="nc-label">LOAD TYPE</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.load}
-                          onChange={e => setNewContract(prev => ({ ...prev, load: e.target.value }))}
-                        >
-                          <option value="">Select load...</option>
-                          {CONTRACT_OPTIONS.transport.load.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="nc-label">DESTINATION TYPE</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.destination}
-                          onChange={e => setNewContract(prev => ({ ...prev, destination: e.target.value }))}
-                        >
-                          <option value="">Select destination type...</option>
-                          {CONTRACT_OPTIONS.transport.destination.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* OPERATIONS Options */}
-                  {newContract.type === 'operations' && (
-                    <>
-                      <div className="form-group">
-                        <label className="nc-label">JOB TYPE</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.job}
-                          onChange={e => setNewContract(prev => ({ ...prev, job: e.target.value }))}
-                        >
-                          <option value="">Select job...</option>
-                          {CONTRACT_OPTIONS.operations.job.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="nc-label">ROLE NEEDED</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.role}
-                          onChange={e => setNewContract(prev => ({ ...prev, role: e.target.value }))}
-                        >
-                          <option value="">Select role...</option>
-                          {CONTRACT_OPTIONS.operations.role.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="nc-label">COMPENSATION</label>
-                        <select 
-                          className="nc-input"
-                          value={newContract.compensation_type}
-                          onChange={e => setNewContract(prev => ({ ...prev, compensation_type: e.target.value, payment_amount: e.target.value !== 'Flat Fee' ? '' : prev.payment_amount }))}
-                        >
-                          {CONTRACT_OPTIONS.operations.compensation.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
-
                   {/* Location Selectors */}
-                  {!isOperations && (
                   <div className="form-group">
                     <label className="nc-label">LOCATION</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
@@ -1019,26 +825,8 @@ export default function Contracts() {
                       </select>
                     </div>
                   </div>
-                  )}
 
-                  {/* Meet At for Operations */}
-                  {isOperations && (
-                    <div className="form-group">
-                      <label className="nc-label">MEET AT</label>
-                      <select 
-                        className="nc-input"
-                        value={newContract.meet_at}
-                        onChange={e => setNewContract(prev => ({ ...prev, meet_at: e.target.value }))}
-                      >
-                        <option value="">Select meeting point...</option>
-                        {MAJOR_LOCATIONS.map(loc => (
-                          <option key={loc} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Payment Amount (shown except for split compensation) */}
+                  {/* Payment Amount */}
                   {showPaymentField && (
                     <div className="form-group">
                       <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
@@ -1050,27 +838,8 @@ export default function Contracts() {
                         onChange={e => setNewContract(prev => ({ ...prev, payment_amount: e.target.value.replace(/\D/g, '') }))}
                         min="0"
                         style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 18, color: 'var(--nc-green)' }}
+                        data-testid="payment-amount-input"
                       />
-                    </div>
-                  )}
-
-                  {/* Preview Generated Title */}
-                  {generateTitle(newContract) && (
-                    <div className="form-group" style={{ background: 'var(--nc-bg-secondary)', padding: 16, border: '1px solid var(--nc-border)' }}>
-                      <label className="nc-label" style={{ marginBottom: 8 }}>GENERATED TITLE</label>
-                      <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-cyan)' }}>
-                        {generateTitle(newContract)}
-                      </div>
-                      {showPaymentField && newContract.payment_amount && (
-                        <div style={{ marginTop: 8, fontFamily: 'var(--nc-font-mono)', fontSize: 20, color: 'var(--nc-green)' }}>
-                          {parseInt(newContract.payment_amount).toLocaleString()} aUEC
-                        </div>
-                      )}
-                      {!showPaymentField && (
-                        <div style={{ marginTop: 8 }}>
-                          <span className="loot-split-badge">LOOT SPLIT</span>
-                        </div>
-                      )}
                     </div>
                   )}
                 </>
