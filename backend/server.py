@@ -169,6 +169,16 @@ class BadgeAssignRequest(BaseModel):
     action: str = "add"  # "add" or "remove"
     badge_id: str
 
+class RedeemCodeRequest(BaseModel):
+    code: str
+
+# Hardcoded redemption codes for supporter tiers
+REDEMPTION_CODES = {
+    "NAV-BRONZE-TEST": "BRONZE",
+    "NAV-SILVER-TEST": "SILVER",
+    "NAV-GOLD-TEST": "GOLD",
+}
+
 class GoalResponse(BaseModel):
     id: str
     title: str
