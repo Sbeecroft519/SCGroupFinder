@@ -706,29 +706,7 @@ export default function Contracts() {
               </button>
             </div>
             <div className="mission-modal-content">
-              <div className="form-group">
-                <label className="nc-label">CONTRACT TYPE</label>
-                <div className="nc-toggle-group">
-                  {CONTRACT_TYPES.map(type => (
-                    <button
-                      key={type.id}
-                      className={`nc-toggle ${newContract.type === type.id ? 'active' : ''}`}
-                      onClick={() => setNewContract(prev => ({ 
-                        ...prev, 
-                        type: type.id,
-                        activity: '', threat: '', status_select: '', environment: '',
-                        load: '', destination: '', job: '', role: ''
-                      }))}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                    >
-                      <span>{type.icon}</span>
-                      <span>{type.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Contract Category */}
+              {/* Contract Category - SINGLE UNIFIED FIELD */}
               <div className="form-group">
                 <label className="nc-label">CONTRACT CATEGORY</label>
                 <select
@@ -736,11 +714,38 @@ export default function Contracts() {
                   value={newContract.category}
                   onChange={e => setNewContract(prev => ({ ...prev, category: e.target.value }))}
                   data-testid="category-select"
+                  style={{ fontSize: 14 }}
                 >
                   {CONTRACT_CATEGORIES.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.label}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Contract Title */}
+              <div className="form-group">
+                <label className="nc-label">CONTRACT TITLE</label>
+                <input
+                  className="nc-input"
+                  type="text"
+                  placeholder="e.g., Escort from Lorville to Orison"
+                  value={newContract.title}
+                  onChange={e => setNewContract(prev => ({ ...prev, title: e.target.value }))}
+                  data-testid="contract-title-input"
+                />
+              </div>
+
+              {/* Contract Description (Optional) */}
+              <div className="form-group">
+                <label className="nc-label">DESCRIPTION (OPTIONAL)</label>
+                <textarea
+                  className="nc-input"
+                  placeholder="Add any additional details..."
+                  value={newContract.description}
+                  onChange={e => setNewContract(prev => ({ ...prev, description: e.target.value }))}
+                  style={{ minHeight: 60, resize: 'vertical' }}
+                  data-testid="contract-description-input"
+                />
               </div>
 
               {/* Multi-Crew Toggle */}
