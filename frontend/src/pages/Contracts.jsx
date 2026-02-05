@@ -586,10 +586,15 @@ export default function Contracts() {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const getContractType = (typeId) => CONTRACT_TYPES.find(t => t.id === typeId) || CONTRACT_TYPES[0];
+  // Helper to get category display info
+  const getCategoryDisplay = (categoryId) => {
+    const icon = CATEGORY_ICONS[categoryId] || '📋';
+    const label = CATEGORY_LABELS[categoryId] || 'Other';
+    return { icon, label };
+  };
 
   const filteredContracts = contracts.filter(c => {
-    if (filter !== 'all' && c.type !== filter) return false;
+    if (filter !== 'all' && c.category !== filter) return false;
     return true;
   });
 
