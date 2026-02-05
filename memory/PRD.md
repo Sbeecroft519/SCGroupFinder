@@ -91,8 +91,9 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] WebSocket notifications
 - [x] Sound toggle
 - [x] Contract type filters
-- [x] **Avatar Section** - 10 preset role-based avatars (Helmet, Medic, Skull, Cargo, Target, Pilot, Miner, Commander, Explorer, Engineer)
+- [x] **Avatar Section** - 8 preset role-based avatars (Pilot, Rescue, Pirate, Hauler, Miner, Bounty Hunter, Engineer, Explorer)
 - [x] **Community Badge** in About section
+- [x] **Supporter Code Redemption** (Feb 5, 2026) - Input in About tab to redeem NAV-BRONZE/SILVER/GOLD-TEST codes
 
 ### Alert Tickers - COMPLETE
 - [x] Three tickers (Threats, Stability, Issues)
@@ -115,6 +116,10 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
   - [x] Rating updates saved to mission history
   - [x] View other users' profiles via /profile/:userId
   - [x] "View Profile" button in bid review modal
+- [x] **Rank & Badge System** (Feb 4, 2026)
+  - [x] User rank displayed (CIVILIAN, FREELANCER, etc.) based on completed contracts
+  - [x] Badge Rack component showing supporter badges and gameplay badges
+  - [x] Premium animated supporter badges (Bronze 🪙, Silver 🛡️, Gold 🏆 with pulse animation)
 
 ## Backlog
 
