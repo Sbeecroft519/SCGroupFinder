@@ -125,25 +125,9 @@ class ManifestSlot(BaseModel):
     bids: List[dict] = []
 
 class ContractCreate(BaseModel):
-    type: str
     title: str
     description: Optional[str] = None
-    # Structured fields
-    activity: Optional[str] = None
-    threat: Optional[str] = None
-    # Escort fields
-    start_location: Optional[str] = None
-    end_location: Optional[str] = None
-    cargo_value: Optional[str] = None
-    # Other type fields
-    status_select: Optional[str] = None
-    environment: Optional[str] = None
-    load: Optional[str] = None
-    destination: Optional[str] = None
-    job: Optional[str] = None
-    role: Optional[str] = None
     compensation_type: Optional[str] = None
-    meet_at: Optional[str] = None
     # Payment
     payment_amount: Optional[int] = 0
     payout: Optional[int] = None
@@ -152,7 +136,7 @@ class ContractCreate(BaseModel):
     planet: Optional[str] = None
     location: Optional[str] = None
     shard: Optional[str] = None
-    # Category
+    # Category (single unified field)
     category: Optional[str] = 'OTHER'
     # Multi-crew manifest
     is_multi_crew: Optional[bool] = False
