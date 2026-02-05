@@ -70,9 +70,25 @@ export const BADGE_DEFINITIONS = {
 };
 
 export const CONTRACT_CATEGORIES = [
-  { id: 'COMBAT', label: 'COMBAT (Bounties, Escort, PvP)' },
-  { id: 'MEDICAL', label: 'MEDICAL (Rescue, Medical Evac)' },
-  { id: 'LOGISTICS', label: 'LOGISTICS (Cargo, Transport)' },
-  { id: 'INDUSTRIAL', label: 'INDUSTRIAL (Mining, Salvage)' },
-  { id: 'OTHER', label: 'OTHER (Misc)' }
+  { id: 'COMBAT', label: '⚔️ Combat (Bounty, Escort, Security)', icon: '⚔️', shortLabel: 'Combat' },
+  { id: 'MEDICAL', label: '🏥 Medical (Rescue, Evac)', icon: '🏥', shortLabel: 'Medical' },
+  { id: 'LOGISTICS', label: '📦 Logistics (Cargo, Transport)', icon: '📦', shortLabel: 'Logistics' },
+  { id: 'INDUSTRIAL', label: '⛏️ Industrial (Mining, Salvage)', icon: '⛏️', shortLabel: 'Industrial' },
+  { id: 'OTHER', label: '📋 Other (Recon, Misc)', icon: '📋', shortLabel: 'Other' }
 ];
+
+export const CATEGORY_ICONS = {
+  COMBAT: '⚔️',
+  MEDICAL: '🏥',
+  LOGISTICS: '📦',
+  INDUSTRIAL: '⛏️',
+  OTHER: '📋'
+};
+
+export const CATEGORY_LABELS = {
+  COMBAT: 'Combat',
+  MEDICAL: 'Medical',
+  LOGISTICS: 'Logistics',
+  INDUSTRIAL: 'Industrial',
+  OTHER: 'Other'
+};
