@@ -1189,7 +1189,7 @@ export default function Contracts() {
           // ALL_MY_CONTRACTS
         </h3>
         {myContracts.map(contract => {
-          const type = getContractType(contract.type);
+          const categoryDisplay = getCategoryDisplay(contract.category);
           const isClient = contract.poster_id === user?.id;
           return (
             <div 
@@ -1201,8 +1201,8 @@ export default function Contracts() {
             >
               <div className="contract-header">
                 <div className="contract-type">
-                  <span className="contract-type-icon">{type.icon}</span>
-                  <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                  <span className="contract-type-icon">{categoryDisplay.icon}</span>
+                  <span className="contract-type-label">{categoryDisplay.label.toUpperCase()}</span>
                   {contract.is_multi_crew && (
                     <span style={{
                       display: 'flex',
