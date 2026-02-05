@@ -445,7 +445,8 @@ async def get_me(user = Depends(get_current_user)):
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
         avatar_preset=user.get('avatar_preset'),
-        badges=user.get('badges', [])
+        badges=user.get('badges', []),
+        supporter_tier=user.get('supporter_tier', 'NONE')
     )
 
 
