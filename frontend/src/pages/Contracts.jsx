@@ -1153,14 +1153,14 @@ export default function Contracts() {
               (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
               (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
             ).map(contract => {
-              const type = getContractType(contract.type);
+              const categoryDisplay = getCategoryDisplay(contract.category);
               const isClient = contract.poster_id === user?.id;
               return (
                 <div key={contract.id} className="contract-card pending-rating" data-testid={`my-contract-${contract.id}`}>
                   <div className="contract-header">
                     <div className="contract-type">
-                      <span className="contract-type-icon">{type.icon}</span>
-                      <span className="contract-type-label">{type.label.toUpperCase()}</span>
+                      <span className="contract-type-icon">{categoryDisplay.icon}</span>
+                      <span className="contract-type-label">{categoryDisplay.label.toUpperCase()}</span>
                       <span className="status-badge status-completed">COMPLETED</span>
                     </div>
                   </div>
