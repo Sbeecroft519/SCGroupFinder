@@ -146,7 +146,7 @@ export default function Roadmap() {
             </p>
           </div>
           <a 
-            href="https://www.paypal.com/donate/?hosted_button_id=9THAEAML49USJ" 
+            href="https://www.paypal.com/ncp/payment/LKB6D77Y94TVQ" 
             target="_blank" 
             rel="noopener noreferrer"
             className="nc-btn nc-btn-gold" 
