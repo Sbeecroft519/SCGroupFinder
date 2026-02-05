@@ -957,31 +957,15 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     
     contract_doc = {
         'id': str(uuid.uuid4()),
-        'type': contract.type,
         'title': contract.title,
         'description': contract.description,
-        # Structured fields
-        'activity': contract.activity,
-        'threat': contract.threat,
-        # Escort fields
-        'start_location': contract.start_location,
-        'end_location': contract.end_location,
-        'cargo_value': contract.cargo_value,
-        # Other type fields
-        'status_select': contract.status_select,
-        'environment': contract.environment,
-        'load': contract.load,
-        'destination': contract.destination,
-        'job': contract.job,
-        'role': contract.role,
         'compensation_type': contract.compensation_type,
-        'meet_at': contract.meet_at,
         # Location
         'system': contract.system,
         'planet': contract.planet,
         'location': contract.location,
         'shard': contract.shard,
-        # Category
+        # Category (single unified field)
         'category': contract.category or 'OTHER',
         'poster_id': user['id'],
         'poster_handle': user['rsi_handle'],
