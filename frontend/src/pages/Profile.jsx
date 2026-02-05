@@ -162,7 +162,7 @@ export default function Profile() {
 
         {/* Right Column - BadgeRack and Mission History */}
         <div className="history-column">
-          <BadgeRack badges={user.badges} />
+          <BadgeRack supporterTier={user.supporter_tier} badges={user.badges} />
           <MissionHistory userId={user.id} />
         </div>
       </div>
