@@ -73,6 +73,12 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
   - [x] Distress contracts show 🚨 red styling
   - [x] Near-expiry (<10 min) shows amber/orange styling
   - [x] Backend filters expired contracts from active listings
+- [x] **Unified Category System** (Feb 5, 2026)
+  - [x] Consolidated `type` and `category` into single `category` field
+  - [x] New categories with icons: ⚔️ Combat, 🏥 Medical, 📦 Logistics, ⛏️ Industrial, 📋 Other
+  - [x] Simplified contract creation form with title + description
+  - [x] Filter tabs updated to use categories
+  - [x] Contract cards display category with icon
 
 ### ROADMAP Module - COMPLETE
 - [x] Crowdfunding goals
