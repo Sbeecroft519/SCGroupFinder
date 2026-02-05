@@ -550,6 +550,57 @@ export default function Settings() {
                     style={{ height: 40, opacity: 0.7 }}
                   />
                 </div>
+                
+                {/* Redemption Code Section */}
+                <div className="redeem-section" style={{ marginTop: 32, padding: '20px', background: 'rgba(0, 240, 255, 0.05)', border: '1px solid var(--nc-border)' }}>
+                  <h3 style={{ color: 'var(--nc-cyan)', fontSize: 14, marginBottom: 8, letterSpacing: 1 }}>// SUPPORTER_CODE</h3>
+                  <p style={{ color: 'var(--nc-text-secondary)', fontSize: 13, marginBottom: 16 }}>
+                    Have a supporter code? Enter it below to unlock your badge.
+                  </p>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <input
+                      type="text"
+                      value={redeemCode}
+                      onChange={(e) => setRedeemCode(e.target.value)}
+                      placeholder="Enter redemption code"
+                      data-testid="redeem-code-input"
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        background: 'var(--nc-bg-secondary)',
+                        border: '1px solid var(--nc-border)',
+                        color: 'var(--nc-text-primary)',
+                        fontFamily: 'var(--nc-font-body)',
+                        fontSize: 14
+                      }}
+                    />
+                    <button
+                      onClick={handleRedeemCode}
+                      data-testid="redeem-code-btn"
+                      style={{
+                        padding: '12px 24px',
+                        background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1))',
+                        border: '1px solid var(--nc-cyan)',
+                        color: 'var(--nc-cyan)',
+                        fontFamily: 'var(--nc-font-display)',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      REDEEM
+                    </button>
+                  </div>
+                  {redeemMessage && (
+                    <p style={{ 
+                      marginTop: 12, 
+                      fontSize: 13, 
+                      color: redeemSuccess ? '#00ff88' : '#ff4466' 
+                    }}>
+                      {redeemMessage}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}
