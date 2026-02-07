@@ -135,8 +135,8 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Footer - Badge Rack (hidden on mobile) */}
-          <div className="card-footer" style={{ display: window.innerWidth <= 640 ? 'none' : 'block' }}>
+          {/* Footer - Badge Rack (hidden on mobile via CSS) */}
+          <div className="card-footer badge-rack-desktop-only">
             <div className="badge-rack-label">BADGE RACK</div>
             <div className="badge-rack">
               {user.is_supporter && (
