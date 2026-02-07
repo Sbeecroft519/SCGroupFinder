@@ -901,14 +901,14 @@ async def get_commodity_prices(commodity_code: str):
 
 @api_router.get("/contracts")
 async def get_contracts(category: Optional[str] = None):
-    # Filter out expired contracts using expires_at or fallback to 1hr for legacy
+    # Filter out expired/completed/cancelled contracts using expires_at or fallback to 1hr for legacy
     now = datetime.now(timezone.utc).isoformat()
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     
     query = {
-        'status': {'$nin': ['completed', 'expired']},  # Hide completed/expired
+        'status': {'$nin': ['completed', 'expired', 'cancelled']},  # Hide completed/expired/cancelled
         '$or': [
-            {'status': {'$in': ['in_progress', 'pending_completion', 'active']}},  # Show active contracts regardless
+            {'status': {'$in': ['in_progress', 'pending_completion', 'active']}},  # Show active contracts regardless (no expiry check)
             {'status': 'mustering', 'expires_at': {'$gt': now}},  # Multi-crew with expires_at
             {'status': 'mustering', 'expires_at': None, 'created_at': {'$gte': one_hour_ago}},  # Legacy mustering
             {'status': 'open', 'expires_at': {'$gt': now}},  # Open with expires_at
@@ -923,7 +923,7 @@ async def get_contracts(category: Optional[str] = None):
         {'_id': 0}
     ).sort('created_at', -1).limit(50).to_list(50)
     
-    # Mark expired contracts (both new expires_at and legacy 1hr)
+    # Mark expired contracts - ONLY for open/mustering status (never expire active contracts)
     await db.contracts.update_many(
         {'$or': [
             {'status': {'$in': ['open', 'mustering']}, 'expires_at': {'$lt': now, '$ne': None}},
