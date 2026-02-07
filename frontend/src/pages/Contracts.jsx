@@ -566,6 +566,11 @@ export default function Contracts() {
   };
 
   const getTimeRemaining = (contract) => {
+    // Don't show timer for active/in_progress/completed/cancelled contracts
+    if (['active', 'in_progress', 'pending_completion', 'completed', 'cancelled'].includes(contract.status)) {
+      return null;
+    }
+    
     if (!contract.expires_at) return null;
     const now = new Date();
     const expires = new Date(contract.expires_at);
