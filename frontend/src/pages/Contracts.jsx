@@ -894,10 +894,23 @@ export default function Contracts() {
       {/* Filter Tabs - Only show on Feed view */}
       {viewMode === 'feed' && (
       <div style={{ marginBottom: 24 }}>
-        <div className="nc-toggle-group" data-testid="contract-filter">
+        <div 
+          className="nc-toggle-group" 
+          data-testid="contract-filter"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: '8px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           <button
             className={`nc-toggle ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
+            style={{ flexShrink: 0 }}
           >
             All
           </button>
@@ -906,6 +919,7 @@ export default function Contracts() {
               key={cat.id}
               className={`nc-toggle ${filter === cat.id ? 'active' : ''}`}
               onClick={() => setFilter(cat.id)}
+              style={{ flexShrink: 0 }}
             >
               {cat.icon} {cat.shortLabel}
             </button>
