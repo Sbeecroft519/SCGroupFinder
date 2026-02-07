@@ -992,6 +992,7 @@ export default function Contracts() {
           const categoryDisplay = getCategoryDisplay(contract.category);
           const isMyShard = isMyShardContract(contract);
           const isLootSplit = contract.compensation_type && contract.compensation_type !== 'Flat Fee';
+          const isSplitProfits = contract.split_profits;
           
           return (
             <div 
@@ -1024,7 +1025,11 @@ export default function Contracts() {
                 
                 {/* Payment Display */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {isLootSplit ? (
+                  {isSplitProfits ? (
+                    <span style={{ color: 'var(--nc-cyan)', fontSize: 13, fontFamily: 'var(--nc-font-mono)' }}>
+                      💰 SPLIT PROFITS
+                    </span>
+                  ) : isLootSplit ? (
                     <span className="loot-split-badge">
                       {contract.compensation_type === 'Equal Split' ? 'LOOT SPLIT' : '% SHARE'}
                     </span>
