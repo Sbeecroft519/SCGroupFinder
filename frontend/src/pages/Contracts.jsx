@@ -997,7 +997,32 @@ export default function Contracts() {
                   ) : getContractPayout(contract) > 0 ? (
                     <span className="payment-amount">{getContractPayout(contract).toLocaleString()} aUEC</span>
                   ) : null}
-                  {(() => {
+                  {/* Show IN PROGRESS badge for active contracts */}
+                  {['active', 'in_progress'].includes(contract.status) ? (
+                    <span style={{
+                      background: 'rgba(0, 255, 136, 0.2)',
+                      border: '1px solid #00ff88',
+                      color: '#00ff88',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      letterSpacing: '1px',
+                      fontFamily: 'var(--nc-font-mono)'
+                    }}>
+                      IN PROGRESS
+                    </span>
+                  ) : contract.status === 'cancelled' ? (
+                    <span style={{
+                      background: 'rgba(255, 77, 77, 0.2)',
+                      border: '1px solid #ff4d4d',
+                      color: '#ff4d4d',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      letterSpacing: '1px',
+                      fontFamily: 'var(--nc-font-mono)'
+                    }}>
+                      CANCELLED
+                    </span>
+                  ) : (() => {
                     const timeInfo = getTimeRemaining(contract);
                     if (!timeInfo) return <span className="contract-time">{getTimeAgo(contract.created_at)}</span>;
                     return (
