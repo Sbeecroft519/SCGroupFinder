@@ -292,13 +292,14 @@ export default function Contracts() {
     // Payment (global)
     payment_amount: '',
     compensation_type: 'Flat Fee',
+    split_profits: false,
     // Location fields
     system: 'Stanton',
     planet: '',
     location: ''
   });
 
-  const showPaymentField = !isMultiCrew && newContract.compensation_type === 'Flat Fee';
+  const showPaymentField = !isMultiCrew && newContract.compensation_type === 'Flat Fee' && !newContract.split_profits;
 
   // Generate title based on category
   const generateTitle = (contract) => {
@@ -313,7 +314,7 @@ export default function Contracts() {
       return manifest.length > 0;
     }
     
-    // Payment validation (except for split compensation)
+    // Payment validation (skip if split_profits is true)
     if (showPaymentField && (!newContract.payment_amount || isNaN(parseInt(newContract.payment_amount)))) {
       return false;
     }
