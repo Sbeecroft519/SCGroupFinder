@@ -32,19 +32,19 @@ const SHIPS = [
   { name: "Carrack", scu: 456, type: "Exploration" },
   { name: "890 Jump", scu: 388, type: "Capital/Luxury" },
   { name: "Vulture", scu: 12, type: "Salvage" },
-  { name: "Fortune", scu: 24, type: "Salvage" },
+  { name: "Fortune", scu: 12, type: "Salvage" },
   { name: "Reclaimer", scu: 420, type: "Heavy Salvage" },
   { name: "Prospector", scu: 32, type: "Mining" },
   { name: "MOLE", scu: 96, type: "Mining" },
   { name: "Golem", scu: 32, type: "Mining" },
-  { name: "Golem OX", scu: 32, type: "Mining" },
+  { name: "Golem OX", scu: 64, type: "Mining" },
   { name: "Eclipse", scu: 0, type: "Stealth Bomber" },
-  { name: "Apollo Medivac", scu: 28, type: "Medical" },
-  { name: "Apollo Triage", scu: 28, type: "Medical" },
-  { name: "Hermes", scu: 8, type: "Courier" },
-  { name: "Perseus", scu: 40, type: "Gunship" },
-  { name: "Polaris", scu: 216, type: "Corvette" },
-  { name: "Idris", scu: 995, type: "Frigate" }
+  { name: "Apollo Medivac", scu: 32, type: "Medical" },
+  { name: "Apollo Triage", scu: 32, type: "Medical" },
+  { name: "Hermes", scu: 288, type: "Courier" },
+  { name: "Perseus", scu: 96, type: "Gunship" },
+  { name: "Polaris", scu: 576, type: "Corvette" },
+  { name: "Idris-P", scu: 1374, type: "Frigate" }
 ];
 
 const SYSTEMS = ['Stanton', 'Pyro', 'Nyx'];
