@@ -1056,6 +1056,11 @@
   .activity-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  /* Hide badge rack in citizen card on mobile - shown in separate section below */
+  .badge-rack-desktop-only {
+    display: none !important;
+  }
 }
 
 /* ===== Shard Instructions ===== */
