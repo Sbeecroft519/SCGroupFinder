@@ -131,6 +131,7 @@ class ContractCreate(BaseModel):
     # Payment
     payment_amount: Optional[int] = 0
     payout: Optional[int] = None
+    split_profits: Optional[bool] = False
     # Location
     system: Optional[str] = None
     planet: Optional[str] = None
