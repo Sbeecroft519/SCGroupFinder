@@ -7,6 +7,7 @@ import MobileNav from './components/MobileNav';
 import QuickActionsFAB from './components/QuickActionsFAB';
 import AlertTicker from './components/AlertTicker';
 import OnboardingCarousel from './components/OnboardingCarousel';
+import Footer from './components/Footer';
 import Intel from './pages/Intel';
 import Signals from './pages/Signals';
 import Contracts from './pages/Contracts';
