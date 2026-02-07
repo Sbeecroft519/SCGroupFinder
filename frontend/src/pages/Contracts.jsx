@@ -801,7 +801,28 @@ export default function Contracts() {
                     </div>
                   </div>
 
-                  {/* Payment Amount */}
+                  {/* Split Profits Checkbox */}
+                  <div className="form-group">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input
+                        type="checkbox"
+                        id="splitProfits"
+                        checked={newContract.split_profits}
+                        onChange={(e) => setNewContract(prev => ({ 
+                          ...prev, 
+                          split_profits: e.target.checked, 
+                          payment_amount: e.target.checked ? '0' : prev.payment_amount 
+                        }))}
+                        style={{ width: 18, height: 18, accentColor: 'var(--nc-cyan)' }}
+                        data-testid="split-profits-checkbox"
+                      />
+                      <label htmlFor="splitProfits" style={{ color: 'var(--nc-text-secondary)', fontSize: '14px', cursor: 'pointer' }}>
+                        💰 Split Profits (no fixed payout)
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Payment Amount - only show if not split profits */}
                   {showPaymentField && (
                     <div className="form-group">
                       <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
