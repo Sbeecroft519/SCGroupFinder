@@ -1029,6 +1029,31 @@ async def accept_contract(contract_id: str, user = Depends(get_current_user)):
     return {'message': 'Contract accepted'}
 
 
+@api_router.post("/contracts/{contract_id}/cancel")
+async def cancel_contract(contract_id: str, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    # Only owner can cancel
+    if contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized - only contract owner can cancel")
+    
+    # Can only cancel if not already completed/cancelled
+    if contract['status'] in ['completed', 'cancelled']:
+        raise HTTPException(status_code=400, detail="Contract already finalized")
+    
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$set': {'status': 'cancelled', 'cancelled_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {'message': 'Contract cancelled', 'status': 'cancelled'}
+
+
 @api_router.post("/contracts/{contract_id}/complete")
 async def complete_contract(contract_id: str, user = Depends(get_current_user)):
     if not user:
