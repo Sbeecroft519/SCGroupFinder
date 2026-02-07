@@ -1,126 +1,76 @@
-import { useState, useEffect } from 'react';
-import { Map, Target, Rocket, Users, Shield, Star, ExternalLink, CheckCircle } from 'lucide-react';
-import axios from 'axios';
-import { API, useAuth } from '../App';
-import { useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Map, Target, Star, Shield, CheckCircle } from 'lucide-react';
+import { useAuth } from '../App';
 
-const MOCK_GOALS = [
+// Roadmap items with status
+const ROADMAP_ITEMS = [
   {
     id: '1',
     title: 'Mercenary Board',
     description: 'Full contract system with reputation, ratings, and payment tracking.',
-    target_amount: 5000,
-    current_amount: 3250,
-    backers: 42,
-    status: 'active'
+    status: 'STABLE'
   },
   {
     id: '2',
-    title: 'Fleet Manager',
-    description: 'Track your ships, loadouts, and crew assignments in one place.',
-    target_amount: 3000,
-    current_amount: 1800,
-    backers: 28,
-    status: 'active'
+    title: 'Intelligence Network',
+    description: 'Real-time player reports for piracy, PvP zones, 30ks, and shard stability.',
+    status: 'STABLE'
   },
   {
     id: '3',
-    title: 'Org Integration',
-    description: 'Connect NavCom with RSI Org tools for fleet coordination.',
-    target_amount: 7500,
-    current_amount: 2250,
-    backers: 35,
-    status: 'active'
+    title: 'Mission Advisor',
+    description: 'Session planning based on time, ship, and risk tolerance.',
+    status: 'STABLE'
   },
   {
     id: '4',
+    title: 'Multi-Crew Contracts',
+    description: 'Post jobs for multiple roles with individual payout tracking.',
+    status: 'STABLE'
+  },
+  {
+    id: '5',
+    title: 'WebSocket Notifications',
+    description: 'Real-time push notifications for contract updates.',
+    status: 'IN_PROGRESS'
+  },
+  {
+    id: '6',
+    title: 'Fleet Manager',
+    description: 'Track your ships, loadouts, and crew assignments in one place.',
+    status: 'PLANNED'
+  },
+  {
+    id: '7',
+    title: 'Org Integration',
+    description: 'Connect NavCom with RSI Org tools for fleet coordination.',
+    status: 'PLANNED'
+  },
+  {
+    id: '8',
     title: 'Mobile Companion App',
     description: 'Access NavCom on your phone while away from the verse.',
-    target_amount: 10000,
-    current_amount: 1500,
-    backers: 22,
-    status: 'planned'
+    status: 'BACKLOG'
   }
 ];
 
+// Status color helper
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'STABLE':
+    case 'COMPLETE':
+      return { bg: 'rgba(0, 255, 136, 0.2)', text: '#00ff88' };
+    case 'IN_PROGRESS':
+      return { bg: 'rgba(0, 240, 255, 0.2)', text: '#00f0ff' };
+    case 'PLANNED':
+      return { bg: 'rgba(255, 215, 0, 0.2)', text: '#ffd700' };
+    case 'BACKLOG':
+    default:
+      return { bg: 'rgba(136, 136, 136, 0.2)', text: '#888' };
+  }
+};
+
 export default function Roadmap() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState(MOCK_GOALS);
-  const [loading, setLoading] = useState(false);
-  const [contributingGoalId, setContributingGoalId] = useState(null);
-  const [searchParams] = useSearchParams();
-
-  // Check for success redirect from Stripe
-  useEffect(() => {
-    if (searchParams.get('success') === 'true') {
-      toast.success('Thank you for your contribution!', {
-        description: 'Your support helps build new features.',
-        duration: 5000,
-      });
-      // Refresh goals to show updated amounts
-      fetchGoals();
-    }
-    if (searchParams.get('canceled') === 'true') {
-      toast.info('Contribution canceled');
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const fetchGoals = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API}/goals`);
-      if (response.data && response.data.length > 0) {
-        setGoals(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch goals:', error);
-      // Keep mock data
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getProgress = (goal) => {
-    return Math.min(100, Math.round((goal.current_amount / goal.target_amount) * 100));
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
-  };
-
-  const handleContribute = async (goalId) => {
-    if (!user) {
-      toast.error('Please log in to contribute');
-      return;
-    }
-    
-    setContributingGoalId(goalId);
-    try {
-      const response = await axios.post(`${API}/stripe/create-checkout`, {
-        goal_id: goalId,
-        amount: 10 // Default $10 contribution
-      });
-      
-      if (response.data.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = response.data.url;
-      } else if (response.data.demo) {
-        // Demo mode - no real Stripe
-        toast.success('Demo: Contribution would be processed here');
-        fetchGoals();
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Failed to start checkout');
-    } finally {
-      setContributingGoalId(null);
-    }
-  };
 
   return (
     <div className="navcom-page" data-testid="roadmap-page">
@@ -128,7 +78,7 @@ export default function Roadmap() {
       <div className="page-header">
         <div className="page-label">// SUPPLY_DROP</div>
         <h1 className="page-title">Feature Roadmap</h1>
-        <p className="page-subtitle">Community-funded feature bounties</p>
+        <p className="page-subtitle">NavCom development status and upcoming features</p>
       </div>
 
       {/* Support CTA */}
@@ -159,92 +109,62 @@ export default function Roadmap() {
         </div>
       </div>
 
-      {/* Feature Goals */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {goals.map(goal => {
-          const progress = getProgress(goal);
-          const isComplete = progress >= 100;
+      {/* Feature Roadmap Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {ROADMAP_ITEMS.map(item => {
+          const statusColor = getStatusColor(item.status);
           
           return (
-            <div key={goal.id} className="goal-card" data-testid={`goal-${goal.id}`}>
-              <div className="goal-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Target size={20} className={isComplete ? 'text-green' : 'text-cyan'} />
-                  <h3 className="goal-title">{goal.title}</h3>
-                  {goal.status === 'planned' && (
-                    <span className="font-mono text-muted" style={{ fontSize: 10, padding: '2px 8px', background: 'var(--nc-bg-secondary)', border: '1px solid var(--nc-border)' }}>
-                      PLANNED
-                    </span>
-                  )}
+            <div 
+              key={item.id} 
+              className="nc-card" 
+              data-testid={`roadmap-${item.id}`}
+              style={{ padding: '20px 24px' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    {item.status === 'STABLE' ? (
+                      <CheckCircle size={18} style={{ color: '#00ff88' }} />
+                    ) : (
+                      <Target size={18} style={{ color: statusColor.text }} />
+                    )}
+                    <h3 style={{ 
+                      color: '#fff', 
+                      fontSize: 16, 
+                      fontFamily: 'var(--nc-font-display)',
+                      margin: 0
+                    }}>
+                      {item.title}
+                    </h3>
+                  </div>
+                  <p style={{ 
+                    color: '#aaa', 
+                    fontSize: 14, 
+                    margin: 0,
+                    fontFamily: 'var(--nc-font-body)',
+                    lineHeight: 1.5
+                  }}>
+                    {item.description}
+                  </p>
                 </div>
-                <span className={`goal-percentage ${isComplete ? 'text-green' : ''}`}>
-                  {progress}%
+                <span style={{
+                  padding: '4px 12px',
+                  fontSize: 11,
+                  letterSpacing: '1px',
+                  fontWeight: 'bold',
+                  fontFamily: 'var(--nc-font-mono)',
+                  background: statusColor.bg,
+                  color: statusColor.text,
+                  border: `1px solid ${statusColor.text}`,
+                  flexShrink: 0
+                }}>
+                  {item.status.replace('_', ' ')}
                 </span>
               </div>
-
-              <p className="goal-description">{goal.description}</p>
-
-              <div className="goal-progress-container">
-                <div className="goal-progress-bg">
-                  <div 
-                    className="goal-progress-fill" 
-                    style={{ 
-                      width: `${progress}%`,
-                      background: isComplete 
-                        ? 'var(--nc-green)' 
-                        : 'linear-gradient(90deg, var(--nc-cyan-dim), var(--nc-cyan))'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div className="goal-meta">
-                <span>
-                  <strong className="text-cyan">{formatCurrency(goal.current_amount)}</strong>
-                  {' / '}
-                  {formatCurrency(goal.target_amount)}
-                </span>
-                <span>
-                  <Users size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                  {goal.backers} backers
-                </span>
-              </div>
-
-              {!isComplete && (
-                <button 
-                  className="nc-btn nc-btn-secondary" 
-                  style={{ marginTop: 16 }}
-                  onClick={() => handleContribute(goal.id)}
-                  disabled={contributingGoalId === goal.id}
-                  data-testid={`fund-${goal.id}`}
-                >
-                  {contributingGoalId === goal.id ? (
-                    <>Loading...</>
-                  ) : (
-                    <>
-                      <Rocket size={14} />
-                      FUND THIS FEATURE
-                    </>
-                  )}
-                </button>
-              )}
             </div>
           );
         })}
-      </div>
-
-      {/* Bottom CTA */}
-      <div className="nc-card" style={{ marginTop: 32, textAlign: 'center' }}>
-        <h3 className="font-display" style={{ fontSize: 16, marginBottom: 8, color: 'var(--nc-text-primary)' }}>
-          Have a Feature Idea?
-        </h3>
-        <p className="text-muted" style={{ fontSize: 14, marginBottom: 16 }}>
-          Join our Discord to suggest new features and vote on the roadmap
-        </p>
-        <button className="nc-btn nc-btn-secondary">
-          <ExternalLink size={14} />
-          JOIN DISCORD
-        </button>
       </div>
     </div>
   );
