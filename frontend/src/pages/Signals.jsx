@@ -579,14 +579,14 @@ export default function Signals() {
 
       {/* Incident Trends */}
       <div className="nc-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <TrendingUp size={16} className="text-cyan" />
             <span className="font-display uppercase" style={{ fontSize: 14, letterSpacing: 1 }}>
               INCIDENT TRENDS
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <div className="nc-toggle-group" style={{ alignItems: 'center' }}>
               <span style={{ fontSize: 14, color: 'var(--nc-text-muted)', marginRight: 8, fontFamily: 'var(--nc-font-mono)', letterSpacing: 1 }}>Days:</span>
               {[7, 14, 30].map(d => (
