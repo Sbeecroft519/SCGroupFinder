@@ -1143,7 +1143,46 @@ export default function Contracts() {
                       <Check size={14} /> 
                       {contract.status === 'pending_completion' ? 'Confirm Complete' : 'Mark Complete'}
                     </button>
+                    {/* Cancel button for contract owner on active contracts */}
+                    {contract.poster_id === user?.id && (
+                      <button 
+                        onClick={() => handleCancelContract(contract.id)}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid #ff4d4d',
+                          color: '#ff4d4d',
+                          padding: '8px 16px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontFamily: 'var(--nc-font-display)',
+                          letterSpacing: '1px'
+                        }}
+                      >
+                        <X size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                        CANCEL
+                      </button>
+                    )}
                   </>
+                )}
+                
+                {/* Cancel button for contract owner - OPEN/MUSTERING status */}
+                {contract.poster_id === user?.id && ['open', 'mustering'].includes(contract.status) && (
+                  <button 
+                    onClick={() => handleCancelContract(contract.id)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #ff4d4d',
+                      color: '#ff4d4d',
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontFamily: 'var(--nc-font-display)',
+                      letterSpacing: '1px'
+                    }}
+                  >
+                    <X size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                    CANCEL
+                  </button>
                 )}
                 
                 {/* Completed - Show Rating for each party */}
