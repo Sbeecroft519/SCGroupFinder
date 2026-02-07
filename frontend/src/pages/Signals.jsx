@@ -615,23 +615,25 @@ export default function Signals() {
           </div>
         </div>
 
-        {/* Stats Summary */}
-        <div className="grid-4" style={{ marginBottom: 24 }}>
-          <div className="nc-stat-card">
-            <div className="nc-stat-value">{totalReports}</div>
-            <div className="nc-stat-label">TOTAL REPORTS</div>
-          </div>
-          <div className="nc-stat-card">
-            <div className="nc-stat-value">{avgReports}</div>
-            <div className="nc-stat-label">AVG/DAY</div>
-          </div>
-          <div className="nc-stat-card">
-            <div className="nc-stat-value">{peakReports}</div>
-            <div className="nc-stat-label">SYSTEMS</div>
-          </div>
-          <div className="nc-stat-card">
-            <div className="nc-stat-value">{uniqueLocations}</div>
-            <div className="nc-stat-label">HOTSPOTS</div>
+        {/* Stats Summary - scrollable on mobile */}
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 24 }}>
+          <div className="grid-4" style={{ minWidth: 500 }}>
+            <div className="nc-stat-card">
+              <div className="nc-stat-value">{totalReports}</div>
+              <div className="nc-stat-label">TOTAL REPORTS</div>
+            </div>
+            <div className="nc-stat-card">
+              <div className="nc-stat-value">{avgReports}</div>
+              <div className="nc-stat-label">AVG/DAY</div>
+            </div>
+            <div className="nc-stat-card">
+              <div className="nc-stat-value">{peakReports}</div>
+              <div className="nc-stat-label">SYSTEMS</div>
+            </div>
+            <div className="nc-stat-card">
+              <div className="nc-stat-value">{uniqueLocations}</div>
+              <div className="nc-stat-label">HOTSPOTS</div>
+            </div>
           </div>
         </div>
 
