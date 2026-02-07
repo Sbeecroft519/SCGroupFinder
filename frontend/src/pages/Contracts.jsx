@@ -476,6 +476,7 @@ export default function Contracts() {
       compensation_type: newContract.compensation_type,
       // Payment
       payment_amount: paymentAmount,
+      split_profits: newContract.split_profits,
       // Location
       system: newContract.system,
       planet: newContract.planet,
@@ -502,7 +503,7 @@ export default function Contracts() {
   const resetForm = () => {
     setNewContract({
       category: 'COMBAT', title: '', description: '', compensation_type: 'Flat Fee', 
-      payment_amount: '', system: 'Stanton', planet: '', location: ''
+      split_profits: false, payment_amount: '', system: 'Stanton', planet: '', location: ''
     });
     setManifest([]);
     setIsMultiCrew(false);
