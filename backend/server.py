@@ -945,6 +945,7 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'title': contract.title,
         'description': contract.description,
         'compensation_type': contract.compensation_type,
+        'split_profits': contract.split_profits or False,
         # Location
         'system': contract.system,
         'planet': contract.planet,
