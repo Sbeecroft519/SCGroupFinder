@@ -1,0 +1,162 @@
+<analysis>**original_problem_statement**: The user wants to build a responsive web application named NavCom for players of the game Star Citizen. It's a Mission Advisor and risk intelligence tool with a futuristic MobiGlass UI theme. Initially, the project focused on core features like a contract board and intelligence feeds. Recent development has shifted to feature refinement, bug fixing, and UI/UX polish based on user feedback.
+
+**PRODUCT REQUIREMENTS**:
+- **Consolidate Contract Fields**: Merge the redundant  and  fields into a single  field for contracts to simplify creation and display.
+- **Avatar System Fix**: Resolve a recurring issue where old, non-transparent avatars were displayed instead of the new, updated ones.
+- **MVP Fixes & Polish**:
+    - Address multiple mobile responsiveness issues, specifically with filter tabs and data tables.
+    - Add a Split Profits option to contracts to allow for jobs without a fixed payout.
+    - Implement a contract cancellation feature for contract posters.
+    - Add missing ship data and correct existing data in the Mission Advisor component.
+    - Create a public-facing About NavCom modal accessible to non-logged-in users.
+- **Admin & Roadmap Cleanup**: Simplify the Admin and Roadmap pages by removing defunct crowdfunding-related elements to reflect the project's current state.
+- **Deployment**: The user requested to deploy the application and link it to their custom domains (, ).
+
+**User's preferred language**: English
+
+**what currently exists?**
+The application is a full-stack React/FastAPI/MongoDB app with a MobiGlass UI theme and mandatory authentication.
+- **Core Features**: The Intel, Signals, Contracts, Roadmap, Profile, and Admin pages are functional.
+- **Recent Major Additions**:
+    - **Unified Contract System**: The  and  fields have been consolidated into a single  field. The creation form, backend model, and contract card display have all been updated.
+    - **Split Profits Contracts**: The contract system now supports a Split Profits option, allowing contracts to be created with a payout of 0.
+    - **Contract Cancellation**: Contract posters can now cancel their open or active contracts via a new backend endpoint and UI button.
+    - **Avatar System**: The avatar system has been comprehensively fixed. Old avatar assets have been removed, and the backend and frontend logic have been updated to ensure only the new, transparent avatars are used.
+    - **Ship Database**: The ship list in the Mission Advisor on the Intel page has been updated with 13 new ships and corrected SCU (cargo capacity) data scraped from an external API.
+    - **UI/UX Polish**:
+        - Mobile responsiveness has been improved on the Contracts page (filter tabs now stack vertically) and the Signals page (tables are scrollable).
+        - The Profile page's Citizen ID Card no longer shows a redundant badge rack on mobile.
+        - A global  and a public  have been added, providing information about the project to all users.
+    - **Admin/Roadmap Cleanup**: The Roadmap and Admin pages have been simplified to remove all legacy crowdfunding features, aligning them with the project's current non-commercial, utility-focused philosophy.
+
+**Last working item**:
+    - **Last item agent was working**: Simplifying the Admin page by removing the Goals and Contributions tabs and related crowdfunding statistics, which were made obsolete by the cleanup of the Roadmap page.
+    - **Status**: USER VERIFICATION PENDING
+    - **Agent Testing Done**: Y
+    - **Which testing method agent to use?**: screenshot tool
+    - **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+- None. All issues raised by the user in this session have been addressed.
+
+**In progress Task List**:
+- None.
+
+**Upcoming and Future Tasks**
+*   **Upcoming Tasks**:
+    *   **P1**: **WebSocket Notifications**: Evolve the current polling-based notification system into a full real-time WebSocket implementation for instant updates.
+    *   **P1**: **Granular Notifications**: Allow users to get notifications for specific contract subtypes (e.g., only Bounty Hunting or Medical Rescue).
+*   **Future Tasks**:
+    *   **P2**: **Refactor **: This monolithic file (over 1400 lines) needs to be broken down into smaller components for maintainability.
+    - **P3**: **Theme System**: Implement the Scavenger, Luxury, and MilSpec themes.
+
+**Completed work in this session**
+- **Premium Supporter System Verified**: Completed end-to-end verification of the supporter badge and redemption code system, including fixing a missing UI element on the  page.
+- **Contract Field Consolidation**: Merged  and  into a single  field across the stack (, , ).
+- **Avatar System Overhaul**: Performed a root-cause fix for inconsistent avatars by removing old SVG assets and correcting logic in  and the  backend endpoint.
+- **Contract Expiry & Cancellation**: Fixed a critical bug where active contracts could expire and implemented a new feature allowing posters to cancel contracts ().
+- **Ship Data Update**: Added 13 new ships and corrected the SCU cargo capacity for several existing ships in .
+- **Split Profits Feature**: Implemented a checkbox on the contract creation form to allow for jobs with no fixed payout.
+- **Mobile Responsiveness Fixes**:
+    - Made category filter tabs on  stack vertically.
+    - Made the incident trends table on  horizontally scrollable.
+    - Hid the redundant badge rack on the  Citizen ID card on mobile.
+- **About NavCom Modal**: Created and integrated a new public-facing modal accessible from the landing page and a new global footer.
+- **Roadmap & Admin Page Cleanup**: Rewrote  and  to remove all legacy crowdfunding elements.
+- **Deployment Guidance**: Provided the user with instructions for deploying the application and connecting custom domains.
+
+**Earlier issues found/mentioned but not fixed**
+- None.
+
+**Known issue recurrence from previous fork**
+  - **Issue recurrence in previous fork**: Inconsistent avatar images. The user reported this issue again after a deployment.
+  - **Recurrence count**: 2
+  - **Status**: RESOLVED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Frontend**: React, . UI state is managed within components.
+- **Backend**: FastAPI, , .
+- **Database**: MongoDB.
+- **Architecture**: Decoupled SPA with a REST API. Authentication is managed via JWTs.
+
+**key DB schema**
+- **contracts**:  field removed.  is the sole identifier. Added  (defaults to false). Status enum now includes .
+- **users**:  functionality was verified.  is now reliably updated to new asset paths.
+
+**changes in tech stack**
+- None.
+
+**All files of reference**
+- **Created**:
+  - : A new public-facing modal with project information.
+  - : A new global footer component.
+- **Updated**:
+  - : Modified contract model/endpoints for  and , and updated avatar endpoint with correct URLs.
+  - : Heavily modified to consolidate , add , add  logic, and improve mobile layout.
+  - : Added missing redemption code UI.
+  - : Fixed avatar rendering logic and hid redundant mobile elements.
+  - : Updated  array with new ships and corrected data.
+  - : Improved mobile responsiveness for tables.
+  - : Added a link to trigger the new About modal.
+  - : Rewritten to remove crowdfunding elements.
+  - : Rewritten to remove crowdfunding-related tabs and stats.
+  - : Integrated the new  and  components.
+  - : Added styles for mobile responsiveness fixes.
+  - : Updated with completed tasks.
+
+**Areas that need refactoring**:
+- : Remains a very large monolithic component and a high-priority candidate for being broken down into smaller, manageable components.
+
+**key api endpoints**
+- ****: Verified successfully.
+- ****: Modified to handle  and remove the legacy  field.
+- ****: New endpoint to allow a contract poster to cancel a contract.
+- ****: Endpoint logic updated to point to the correct new avatar image URLs.
+
+**Critical Info for New Agent**
+- The user operates in a **STRICT LOW-CREDIT MODE**. Do not perform any work, refactoring, or enhancements that are not explicitly requested.
+- The application has been deployed to a production domain (). The previous agent provided guidance on this process. Any new features or fixes will require a new deployment to be visible to end-users.
+- The next set of priorities involves implementing real-time features with WebSockets and potentially tackling the large-scale refactor of the  component.
+
+**documents and test reports created in this job**
+- 
+
+**Last 10 User Messages and any pending HUMAN messages** 
+1. **User:** Noticed the deployment had the wrong SCU (cargo) data for new ships. Provided correct data sources. (FIXED)
+2. **Agent:** Acknowledged, scraped the new data, and updated the ship list in . (COMPLETED)
+3. **User:** Requested a batch of fixes: mobile tab layout, Split Profits contract option, hiding a mobile UI element, making a table scrollable, and adding a public About modal. (PENDING IMPLEMENTATION)
+4. **Agent:** Acknowledged the batch of 5 fixes and began implementation. (IN PROGRESS)
+5. **Agent:** Completed all 5 fixes and verified them with screenshots, providing a summary. (COMPLETED)
+6. **User:** Requested cleanup of the Roadmap page to remove all crowdfunding-related elements. (PENDING IMPLEMENTATION)
+7. **Agent:** Acknowledged and completely rewrote  to be a simple, non-interactive status board. Verified with screenshots. (COMPLETED)
+8. **User:** Requested the Admin section be updated to reflect the changes to the Roadmap. (PENDING IMPLEMENTATION)
+9. **Agent:** Acknowledged and rewrote , removing the obsolete Goals and Contributions tabs. Verified with a screenshot. (COMPLETED)
+10. **(PENDING HUMAN MESSAGE):** The user has not responded since the agent completed the Admin page cleanup. The next action is likely to be user verification of all the recent changes.
+
+**Project Health Check:**
+- **Broken**: None. All known issues and bugs have been addressed.
+- **Mocked**: None.
+
+**3rd Party Integrations**
+- **UEX Corp API**: Public API for Star Citizen game data (used for ship info).
+- **RSI Status Feed**: Public RSS feed.
+- **RSI Profile Scraper**: Web scraping.
+- **PayPal**: A direct donation link () is integrated on the Roadmap page.
+
+**Testing status**
+  - **Testing agent used after significant changes**: NO
+  - **Troubleshoot agent used after agent stuck in loop**: NO
+  - **Test files created**: []
+  - **Known regressions**: None. The avatar display regression was fixed.
+
+**Credentials to test flow:**
+- **Admin Account**:
+    - Email: 
+    - Password: 
+- Regular users can be created via the registration form.
+
+**What agent forgot to execute**
+- Nothing. The agent successfully executed all tasks from the user prompts in this session.</analysis>
