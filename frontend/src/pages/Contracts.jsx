@@ -442,6 +442,23 @@ export default function Contracts() {
     }
   };
 
+  const handleCancelContract = async (contractId) => {
+    if (!window.confirm('Are you sure you want to cancel this contract?')) return;
+    try {
+      await axios.post(`${API}/contracts/${contractId}/cancel`);
+      // Update local state
+      setContracts(prev => prev.map(c => 
+        c.id === contractId ? { ...c, status: 'cancelled' } : c
+      ));
+      setMyContracts(prev => prev.map(c => 
+        c.id === contractId ? { ...c, status: 'cancelled' } : c
+      ));
+    } catch (error) {
+      console.error('Failed to cancel contract:', error);
+      alert(error.response?.data?.detail || 'Failed to cancel contract');
+    }
+  };
+
   const handleCreateContract = async () => {
     if (!isContractValid()) return;
 
