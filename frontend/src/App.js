@@ -316,6 +316,9 @@ function App() {
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             </Routes>
+            
+            {/* Footer - shown when logged in */}
+            {user && <Footer />}
           </main>
           {/* Mobile Bottom Navigation - only shown when logged in */}
           {user && <MobileNav />}
