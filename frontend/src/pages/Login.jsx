@@ -105,7 +105,33 @@ export default function Login() {
             style={{ height: 32, opacity: 0.7 }}
           />
         </div>
+        
+        {/* About NavCom Link */}
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <button 
+            onClick={() => setShowAbout(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--nc-cyan)',
+              fontSize: 13,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'var(--nc-font-display)',
+              letterSpacing: 1
+            }}
+            data-testid="about-navcom-btn"
+          >
+            <Info size={14} />
+            About NavCom
+          </button>
+        </div>
       </div>
+      
+      {/* About Modal */}
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   );
 }
