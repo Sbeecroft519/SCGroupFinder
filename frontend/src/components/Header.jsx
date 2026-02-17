@@ -64,6 +64,7 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
             <span className="shard-value">{userShard}</span>
           </button>
         )}
+        {user && <NotificationBell currentUserId={user.id} />}
         {user ? (
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
