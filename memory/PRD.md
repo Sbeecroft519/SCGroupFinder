@@ -47,6 +47,12 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
   - GET /api/locations returns 168+ cached POI locations
   - GET /api/locations/categorized groups by type (outposts, mining, trading, etc)
   - 24-hour cache, only live game locations (is_available_live=1)
+- [x] **Real Locations in Mission Advisor** - Replaced hardcoded arrays (Feb 17, 2026)
+  - FPS: Uses real UEXcorp bunker/outpost locations (e.g., "MT DataCenter 8FK-Q2X-K")
+  - Combat: Uses real UEXcorp outpost locations (e.g., "HDSF Ishmael")
+  - Salvage: Uses real UEXcorp outpost locations (e.g., "Utopia")
+  - Chill: Curated scenic locations with proper context format
+  - Clean display: Name bold (white 16px), context small (gray 12px)
 
 ### SIGNALS Module - COMPLETE
 - [x] RSI server status (RSS feed) - Color-coded Green/Yellow/Red
