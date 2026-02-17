@@ -1927,6 +1927,49 @@ async def acknowledge_accepted_bid(bid_id: str, user = Depends(get_current_user)
     return {'success': True}
 
 
+# ===== User Search Endpoint =====
+
+@api_router.get("/users/search")
+async def search_users(q: str):
+    """Search for users by RSI handle (case-insensitive partial match)"""
+    if not q or len(q) < 2:
+        return {"users": []}
+    
+    users = await db.users.find(
+        {"rsi_handle": {"$regex": q, "$options": "i"}},
+        {"_id": 0, "password_hash": 0}
+    ).limit(20).to_list(20)
+    
+    # Calculate rank based on contracts completed
+    def get_rank(contracts_completed):
+        if contracts_completed >= 100:
+            return "ADMIRAL"
+        elif contracts_completed >= 50:
+            return "CAPTAIN"
+        elif contracts_completed >= 25:
+            return "COMMANDER"
+        elif contracts_completed >= 10:
+            return "LIEUTENANT"
+        elif contracts_completed >= 5:
+            return "FREELANCER"
+        elif contracts_completed >= 1:
+            return "CONTRACTOR"
+        else:
+            return "CIVILIAN"
+    
+    return {
+        "users": [
+            {
+                "id": u["id"],
+                "handle": u.get("rsi_handle", "Unknown"),
+                "rank": get_rank(u.get("contracts_completed", 0)),
+                "reputation": u.get("reputation", 5.0)
+            }
+            for u in users
+        ]
+    }
+
+
 # ===== Multi-Crew Manifest Endpoints =====
 
 @api_router.get("/contracts/{contract_id}")
