@@ -213,6 +213,25 @@ export default function Settings() {
 
               {/* Ticker Toggles */}
               <div className="ticker-toggles">
+                {/* Sound Notifications Toggle */}
+                <div className="ticker-toggle-card" style={{ '--ticker-color': '#00ff88' }}>
+                  <div className="ticker-toggle-header">
+                    {soundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                    <div>
+                      <h4>Sound Notifications</h4>
+                      <p>Play audio alerts for new notifications</p>
+                    </div>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${soundOn ? 'active' : ''}`} 
+                    onClick={handleSoundToggle}
+                    style={{ '--toggle-color': '#00ff88' }}
+                    data-testid="sound-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </div>
+
                 <div className="ticker-toggle-card" style={{ '--ticker-color': '#ff3366' }}>
                   <div className="ticker-toggle-header">
                     <Skull size={20} />
