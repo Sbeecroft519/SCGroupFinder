@@ -1,0 +1,68 @@
+{
+  "summary": "Verified granular contract notification filtering feature. Backend includes 'category' field in new_contract notifications. Frontend useSSENotifications hook correctly filters based on contract_types array. Settings page contract type filter buttons work correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "BACKEND: Contract creation returns category field for all categories (Combat, Medical, Logistics, Industrial, Other) - VERIFIED",
+    "BACKEND: SSE new_contract notification includes category field for filtering - VERIFIED",
+    "BACKEND: Notification settings API correctly saves/retrieves contract_types array - VERIFIED",
+    "BACKEND: Toggling individual contract types works via API - VERIFIED",
+    "FRONTEND: Settings > Push Notifications > Contract Alerts toggle present and functional - VERIFIED",
+    "FRONTEND: All 5 contract type filter buttons present (escort, rescue, transport, mining, combat) - VERIFIED",
+    "FRONTEND: Contract type filter buttons toggle correctly (nc-btn-primary ↔ nc-btn-secondary) - VERIFIED",
+    "CODE: CATEGORY_TO_FILTER mapping covers all contract categories to valid filter IDs - VERIFIED",
+    "CODE: Filter logic correctly allows all notifications when contract_types is empty - VERIFIED"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_granular_notifications.py",
+    "/app/test_reports/pytest/pytest_granular_notifications.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend correctly includes 'category' in new_contract notification payload (server.py lines 1324-1333)",
+    "Frontend useSSENotifications.js correctly filters notifications when contract_types.length > 0",
+    "CATEGORY_TO_FILTER mapping in useSSENotifications.js properly maps all 5 contract categories",
+    "Settings.jsx CONTRACT_TYPES array defines all 5 filter options with correct data-testids"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_granular_notifications.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": {
+    "admin": {
+      "email": "beecroft519@gmail.com",
+      "password": "Nv$C0m_Adm1n_2025!"
+    }
+  },
+  "seed_data_creation": "Created test contracts with various categories (auto-expire after duration_minutes)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Granular notification filtering fully implemented and tested. Key components: 1) Backend broadcasts new_contract with 'category' field, 2) Frontend hook filters based on user's contract_types preference in notificationSettings, 3) Settings page has toggle buttons for each contract type. The mapping is: Combat->combat, Medical->rescue, Logistics->transport, Industrial->mining, Other->escort. API endpoint for settings is /api/user/notification-settings.",
+  "features_verified": {
+    "BACKEND_CATEGORY_IN_NOTIFICATION": {
+      "status": "VERIFIED",
+      "location": "/app/backend/server.py lines 1324-1333",
+      "details": "broadcast_notification includes 'category' field in new_contract event"
+    },
+    "FRONTEND_FILTER_HOOK": {
+      "status": "VERIFIED",
+      "location": "/app/frontend/src/hooks/useSSENotifications.js",
+      "details": "CATEGORY_TO_FILTER mapping and filter logic working correctly"
+    },
+    "SETTINGS_UI_FILTERS": {
+      "status": "VERIFIED",
+      "location": "/app/frontend/src/pages/Settings.jsx lines 500-539",
+      "details": "All 5 contract type filter buttons with data-testids and toggle functionality"
+    }
+  }
+}
