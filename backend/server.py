@@ -918,18 +918,28 @@ async def analyze_mission(request: IntelRequest):
             intel_summary=intel_summary
         )
     
-    # Salvage
+    # Salvage - Use real outpost locations from UEXcorp
     if request.activity == 'salvage':
         salvage_desc = 'Recover materials from derelict ships and debris.'
         if request.system == 'Pyro':
             salvage_desc += ' ⚠️ PYRO: Expect combat over salvage rights!'
         salvage_desc += pyro_warning + signals_warning
         
-        salvage_locations = {
-            'Stanton': 'Comm Array debris fields / Post-battle wrecks',
-            'Pyro': 'Ruin Station ship graveyard / Ambush aftermath',
-            'Nyx': 'Delamar abandoned outposts'
-        }
+        # Get real outpost locations from UEXcorp cache
+        import random
+        pois = await get_uexcorp_pois()
+        system_outposts = [p for p in pois if 
+            p.get('star_system_name', '').lower() == request.system.lower() and
+            p.get('type') == 'Outpost'
+        ]
+        
+        if system_outposts:
+            outpost = random.choice(system_outposts)
+            salvage_name = outpost.get('name', 'Wreck Sites')
+            salvage_context = outpost.get('moon_name') or outpost.get('planet_name') or ''
+        else:
+            salvage_name = 'Comm Array debris fields'
+            salvage_context = ''
         
         intel_summary = None
         if signals_warnings:
@@ -938,7 +948,11 @@ async def analyze_mission(request: IntelRequest):
         return MissionResponse(
             type='salvage', title='Salvage Operations',
             description=salvage_desc,
-            location={'name': f"📍 {request.system} System: {salvage_locations.get(request.system, 'Wreck Sites')}", 'description': 'Fresh combat wrecks near comm arrays. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Components'},
+            location={
+                'name': salvage_name,
+                'description': f'{salvage_context}, {request.system}' if salvage_context else request.system,
+                'activities': 'Hull Scraping, Components'
+            },
             duration=time_display, reward='20,000 - 80,000 aUEC',
             risk_level=effective_risk, fallback={'title': 'Reclaimer Crew', 'description': f'Join a salvage ship in {request.system} for guaranteed cuts'},
             intel_summary=intel_summary
