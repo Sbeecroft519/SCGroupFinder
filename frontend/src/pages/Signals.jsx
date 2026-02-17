@@ -23,27 +23,6 @@ const REPORT_TYPES = [
   { id: '30k', label: '30k Disconnect', icon: Zap, color: '#ff0066', requiresLocation: false }
 ];
 
-const LOCATIONS = {
-  'Stanton': {
-    planets: ['Hurston', 'Crusader', 'ArcCorp', 'microTech'],
-    moons: ['Yela', 'Daymar', 'Cellin', 'Lyria', 'Wala', 'Arial', 'Aberdeen', 'Ita', 'Magda', 'Clio', 'Euterpe', 'Calliope'],
-    stations: ['Port Olisar', 'Everus Harbor', 'Port Tressler', 'Baijini Point', 'GrimHEX', 'CRU-L1', 'HUR-L1', 'ARC-L1', 'MIC-L1'],
-    other: ['Aaron Halo', 'Space (General)']
-  },
-  'Pyro': {
-    planets: ['Pyro I', 'Pyro II', 'Pyro III', 'Pyro IV', 'Pyro V', 'Pyro VI'],
-    moons: [],
-    stations: ['Ruin Station'],
-    other: ['Pyro Belt', 'Space (General)']
-  },
-  'Nyx': {
-    planets: ['Delamar'],
-    moons: [],
-    stations: ['Levski'],
-    other: ['Nyx Belt', 'Space (General)']
-  }
-};
-
 const RELIABILITY_METRICS = [
   { id: 'cargo', label: 'Cargo Reliability', description: 'Cargo hauling mission stability', value: 78 },
   { id: 'combat', label: 'Combat Reliability', description: 'Combat mission and bounty stability', value: 83 },
