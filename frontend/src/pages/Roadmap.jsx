@@ -127,7 +127,7 @@ export default function Roadmap() {
 
       {/* Feature Roadmap Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {ROADMAP_ITEMS.map(item => {
+        {roadmapItems.map(item => {
           const statusColor = getStatusColor(item.status);
           
           return (
