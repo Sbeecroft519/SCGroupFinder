@@ -1081,6 +1081,21 @@ export default function Contracts() {
               </div>
 
               <h3 className="contract-title">{contract.title}</h3>
+              
+              {/* Contract Description */}
+              {contract.description && (
+                <p style={{ 
+                  color: 'var(--nc-text-secondary)', 
+                  fontSize: 13, 
+                  margin: '8px 0 12px',
+                  lineHeight: 1.5,
+                  maxHeight: 60,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {contract.description}
+                </p>
+              )}
 
               <div className="contract-meta">
                 <div className="contract-meta-item">
