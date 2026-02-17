@@ -220,7 +220,7 @@ class TestNotificationSettingsAPI:
     
     def test_get_notification_settings(self):
         """Test getting current notification settings"""
-        response = self.session.get(f"{BASE_URL}/api/user/notifications")
+        response = self.session.get(f"{BASE_URL}/api/user/notification-settings")
         
         assert response.status_code == 200, f"Failed to get notification settings: {response.text}"
         
@@ -251,12 +251,12 @@ class TestNotificationSettingsAPI:
             "contract_types": test_contract_types
         }
         
-        response = self.session.put(f"{BASE_URL}/api/user/notifications", json=settings_data)
+        response = self.session.put(f"{BASE_URL}/api/user/notification-settings", json=settings_data)
         
         assert response.status_code == 200, f"Failed to save notification settings: {response.text}"
         
         # Verify the saved settings
-        get_response = self.session.get(f"{BASE_URL}/api/user/notifications")
+        get_response = self.session.get(f"{BASE_URL}/api/user/notification-settings")
         assert get_response.status_code == 200
         
         saved_settings = get_response.json()
@@ -271,7 +271,7 @@ class TestNotificationSettingsAPI:
     def test_toggle_individual_contract_type(self):
         """Test toggling individual contract types (simulating Settings page behavior)"""
         # First, get current settings
-        get_response = self.session.get(f"{BASE_URL}/api/user/notifications")
+        get_response = self.session.get(f"{BASE_URL}/api/user/notification-settings")
         current_settings = get_response.json() if get_response.status_code == 200 else {}
         
         current_types = current_settings.get('contract_types', [])
@@ -286,12 +286,12 @@ class TestNotificationSettingsAPI:
         
         # Save the toggled settings
         settings_data = {**current_settings, "contract_types": new_types}
-        response = self.session.put(f"{BASE_URL}/api/user/notifications", json=settings_data)
+        response = self.session.put(f"{BASE_URL}/api/user/notification-settings", json=settings_data)
         
         assert response.status_code == 200, f"Failed to toggle contract type: {response.text}"
         
         # Verify
-        verify_response = self.session.get(f"{BASE_URL}/api/user/notifications")
+        verify_response = self.session.get(f"{BASE_URL}/api/user/notification-settings")
         verified_settings = verify_response.json()
         
         has_escort = 'escort' in verified_settings.get('contract_types', [])
