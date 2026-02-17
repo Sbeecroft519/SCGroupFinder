@@ -1321,6 +1321,15 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     # Broadcast new contract via WebSocket
     await broadcast_contract(contract_doc)
     
+    # Broadcast via SSE for real-time notifications
+    await broadcast_notification({
+        "type": "new_contract",
+        "sound": "notification",
+        "title": "New Contract Posted",
+        "message": f"{contract_doc['title']} - {contract_doc['category']}",
+        "contract_id": contract_doc['id']
+    })
+    
     return contract_doc
 
 
