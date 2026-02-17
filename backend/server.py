@@ -892,18 +892,28 @@ async def analyze_mission(request: IntelRequest):
             intel_summary=intel_summary
         )
     
-    # Combat
+    # Combat - Use real locations from UEXcorp
     if request.activity == 'combat':
         combat_desc = 'Engage hostile targets and complete bounty contracts.'
         if request.system == 'Pyro':
             combat_desc += ' ⚠️ PYRO: Full PvP - hostile players guaranteed!'
         combat_desc += pyro_warning + signals_warning
         
-        combat_locations = {
-            'Stanton': 'Security Post Kareah / Comm Arrays',
-            'Pyro': 'Ruin Station vicinity / Jump point camps',
-            'Nyx': 'Delamar patrol zones'
-        }
+        # Get real outpost locations from UEXcorp cache for combat zones
+        import random
+        pois = await get_uexcorp_pois()
+        system_outposts = [p for p in pois if 
+            p.get('star_system_name', '').lower() == request.system.lower() and
+            p.get('type') == 'Outpost'
+        ]
+        
+        if system_outposts:
+            outpost = random.choice(system_outposts)
+            combat_name = outpost.get('name', 'Security Post')
+            combat_context = outpost.get('moon_name') or outpost.get('planet_name') or ''
+        else:
+            combat_name = 'Security Post Kareah'
+            combat_context = ''
         
         intel_summary = None
         if signals_warnings:
@@ -912,7 +922,11 @@ async def analyze_mission(request: IntelRequest):
         return MissionResponse(
             type='combat', title='Combat Missions',
             description=combat_desc,
-            location={'name': f"📍 {request.system} System: {combat_locations.get(request.system, 'Security Post')}", 'description': 'Check bounty boards for VHRT/ERT contracts. Group bounties pay best.', 'activities': 'Bounty Hunting, PvE Combat' + (', PvP' if request.system == 'Pyro' else '')},
+            location={
+                'name': combat_name,
+                'description': f'{combat_context}, {request.system}' if combat_context else request.system,
+                'activities': 'Bounty Hunting, PvE Combat' + (', PvP' if request.system == 'Pyro' else '')
+            },
             duration=time_display, reward='15,000 - 100,000 aUEC',
             risk_level=effective_risk, fallback={'title': 'Mercenary Work', 'description': f'Security contracts from {request.system} mission givers'},
             intel_summary=intel_summary
