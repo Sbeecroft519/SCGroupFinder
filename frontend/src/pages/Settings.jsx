@@ -522,11 +522,39 @@ export default function Settings() {
                   <span className="logo-subtitle">MISSION ADVISOR</span>
                 </div>
                 <p className="about-version">Version 2.0.0-beta</p>
-                <p className="about-description">
-                  NavCom is a tactical companion application for Star Citizen pilots. 
-                  Get mission recommendations, track server health, connect with other 
-                  players for contracts, and support feature development.
-                </p>
+                
+                {/* Mission Statement - matching AboutModal */}
+                <div style={{ background: 'var(--nc-bg-secondary)', padding: 20, border: '1px solid var(--nc-border)', marginBottom: 24, marginTop: 24 }}>
+                  <h3 style={{ color: 'var(--nc-cyan)', fontSize: 14, marginBottom: 12, letterSpacing: 1 }}>// MISSION_STATEMENT</h3>
+                  <p style={{ color: 'var(--nc-text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+                    NavCom is a <span style={{ color: 'var(--nc-cyan)' }}>free</span>, community-built tool for Star Citizen players. 
+                    We're here to help you find crews, coordinate missions, and stay informed about the 'verse.
+                  </p>
+                </div>
+
+                {/* What NavCom Offers */}
+                <div style={{ background: 'var(--nc-bg-secondary)', padding: 20, border: '1px solid var(--nc-border)', marginBottom: 24 }}>
+                  <h3 style={{ color: 'var(--nc-cyan)', fontSize: 14, marginBottom: 16, letterSpacing: 1 }}>// FEATURES</h3>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
+                      <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Contract Board</strong> - Post and find player-to-player jobs
+                    </li>
+                    <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
+                      <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Intel Network</strong> - Mission planning based on your ship and playtime
+                    </li>
+                    <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
+                      <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Signals</strong> - Real-time community reports on piracy, bugs, and hot zones
+                    </li>
+                    <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
+                      <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Reputation System</strong> - Build trust in the community with ratings
+                    </li>
+                  </ul>
+                </div>
+
                 <div className="about-credits">
                   <h3 className="credits-title">CREDITS</h3>
                   <ul className="credits-list">
