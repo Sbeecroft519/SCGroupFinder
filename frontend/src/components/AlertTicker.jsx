@@ -142,6 +142,7 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
                     </span>
                     <span className="alert-location">{alert.location || alert.system}</span>
                     {alert.details && <span className="alert-details">"{alert.details}"</span>}
+                    {alert.description && <span className="alert-details" style={{ fontStyle: 'italic', color: '#aaa' }}>"{alert.description}"</span>}
                     {alert.shard ? (
                       <span className={`alert-shard ${isOnMyShard ? 'same' : ''}`} style={isOnMyShard ? { borderColor: config.color, color: config.color } : {}}>
                         {isOnMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
