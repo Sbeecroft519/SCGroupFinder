@@ -276,6 +276,7 @@ class ReportCreate(BaseModel):
     location: Optional[str] = None
     shard: Optional[str] = None
     details: Optional[str] = None
+    description: Optional[str] = None  # New field for additional context (max 150 chars)
     timestamp: Optional[str] = None
 
 # ===== Multi-Crew Manifest Models (defined before ContractCreate) =====
