@@ -2002,6 +2002,17 @@ async def submit_bid(contract_id: str, user = Depends(get_current_user)):
     }
     await db.contract_bids.insert_one(bid)
     bid.pop('_id', None)
+    
+    # Notify the contract poster about new bid
+    await broadcast_notification({
+        "type": "new_bid",
+        "sound": "notification",
+        "title": "New Bid Received",
+        "message": f"{user['rsi_handle']} bid on your contract",
+        "contract_id": contract_id,
+        "target_user_id": contract['poster_id']
+    })
+    
     return bid
 
 @api_router.post("/contracts/{contract_id}/bids/{bid_id}/accept")
