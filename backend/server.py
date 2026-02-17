@@ -18,9 +18,29 @@ import stripe
 import secrets
 
 from ships import SHIP_SPECS, get_ship_scu, get_all_ships
+import re
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# ===== Text Moderation =====
+# Basic profanity/hate speech filter
+BLOCKED_WORDS = [
+    'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy', 'cunt',
+    'nigger', 'nigga', 'faggot', 'fag', 'retard', 'chink', 'spic', 'kike',
+    'slut', 'whore', 'cock', 'penis', 'vagina', 'porn', 'nazi', 'hitler'
+]
+
+def moderate_text(text: str) -> str:
+    """Replace blocked words with asterisks"""
+    if not text:
+        return text
+    result = text
+    for word in BLOCKED_WORDS:
+        # Case insensitive replacement with asterisks
+        pattern = re.compile(re.escape(word), re.IGNORECASE)
+        result = pattern.sub('*' * len(word), result)
+    return result
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -1680,7 +1700,8 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
     if not is_poster and not is_merc:
         raise HTTPException(status_code=403, detail="Not a party to this contract")
     
-    if contract['status'] == 'in_progress':
+    # BUG FIX: Accept both 'in_progress' AND 'active' status (contracts are set to 'active' when accepted)
+    if contract['status'] in ['in_progress', 'active']:
         # First party marking complete
         completed_by = 'poster' if is_poster else 'merc'
         await db.contracts.update_one(
