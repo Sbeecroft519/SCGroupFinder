@@ -818,7 +818,12 @@ async def analyze_mission(request: IntelRequest):
         routes = system_routes.get(effective_risk, system_routes.get('MEDIUM', list(system_routes.values())[0]))
         route = random.choice(routes) if isinstance(routes, list) else routes
         
-        desc = route['desc'] + pyro_warning
+        desc = route['desc'] + pyro_warning + signals_warning
+        
+        # Build intel summary
+        intel_summary = None
+        if signals_warnings:
+            intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
         
         return MissionResponse(
             type='mining', title=f"Mining: {route['material'].split('(')[0].strip()}",
@@ -830,7 +835,8 @@ async def analyze_mission(request: IntelRequest):
             },
             duration=time_display, reward=route['yield'] + ' aUEC',
             risk_level=effective_risk, 
-            fallback={'title': 'Join Mining Crew', 'description': f'Operate lasers on a MOLE in {request.system} for guaranteed profit share'}
+            fallback={'title': 'Join Mining Crew', 'description': f'Operate lasers on a MOLE in {request.system} for guaranteed profit share'},
+            intel_summary=intel_summary
         )
     
     # Chill - unique interesting locations, Variable reward
