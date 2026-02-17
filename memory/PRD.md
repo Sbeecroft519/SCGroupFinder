@@ -38,6 +38,15 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] **Pyro risk adjustment** - LOW risk auto-elevated to MEDIUM in Pyro (full PvP)
 - [x] **System-specific warnings** - Pyro activities include PvP warnings
 - [x] "Thinking/Scanning" animation
+- [x] **Signals Integration** - Real-time risk adjustment based on player reports (Feb 17, 2026)
+  - Queries last 24h of piracy/PvP/crash reports from Signals database
+  - 3+ piracy reports = HIGH PIRACY ALERT, elevates risk by 2 levels
+  - 1-2 piracy reports = warning, elevates risk by 1 level
+  - Intel summary shows warnings and dangerous locations in mission modal
+- [x] **UEXcorp POI Integration** - Real game location data (Feb 17, 2026)
+  - GET /api/locations returns 168+ cached POI locations
+  - GET /api/locations/categorized groups by type (outposts, mining, trading, etc)
+  - 24-hour cache, only live game locations (is_available_live=1)
 
 ### SIGNALS Module - COMPLETE
 - [x] RSI server status (RSS feed) - Color-coded Green/Yellow/Red
