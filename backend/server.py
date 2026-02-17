@@ -75,7 +75,7 @@ async def get_uexcorp_pois():
     # Fetch fresh data
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get("https://api.uexcorp.space/2.0/pois")
+            response = await client.get("https://api.uexcorp.uk/2.0/poi")
             if response.status_code == 200:
                 data = response.json()
                 pois = data.get("data", data) if isinstance(data, dict) else data
