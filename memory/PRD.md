@@ -142,15 +142,29 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
   - [x] Badge Rack component showing supporter badges and gameplay badges
   - [x] Premium animated supporter badges (Bronze 🪙, Silver 🛡️, Gold 🏆 with pulse animation)
 
+## Real-Time Notifications - COMPLETE (Feb 17, 2026)
+- [x] **Server-Sent Events (SSE) Notification System**
+  - [x] Backend SSE endpoint `/api/notifications/stream` with keepalive pings
+  - [x] Broadcast notifications for: new_contract, new_bid, bid_accepted, intel_alert
+  - [x] Frontend `useSSENotifications` hook manages SSE connection and state
+  - [x] `NotificationBell` component in header with unread count badge
+  - [x] Sound alerts (UI_1.mp3 for notifications, UI_2.mp3 for alerts)
+  - [x] Sound toggle in Settings > Alert Tickers
+  - [x] Targeted notifications (new_bid to poster, bid_accepted to bidder)
+- [x] **Granular Contract Notifications**
+  - [x] Filter notifications by contract type (escort, rescue, transport, mining, combat)
+  - [x] Settings > Push Notifications > Contract Notifications section with toggle buttons
+  - [x] Backend includes `category` field in new_contract notifications
+  - [x] Frontend filters based on user's `contract_types` preference
+  - [x] Category mapping: Combat→combat, Medical→rescue, Logistics→transport, Industrial→mining, Other→escort
+
 ## Backlog
 
 ### P1 - High Priority
 - [ ] ~~User profile image upload~~ → Replaced with Avatar Preset system
 - [ ] Real Stripe payment flow (needs production keys)
-- [ ] WebSocket real-time contract notifications (foundation laid)
 
 ### P2 - Medium Priority
-- [ ] Granular push notifications (e.g., Medic only gets "Rescue" alerts)
 - [ ] Refactor Contracts.jsx into smaller components
 - [ ] Extract clipboard utility to shared function
 - [ ] Implement locked themes (Scavenger, Luxury, MilSpec)
