@@ -865,16 +865,26 @@ async def analyze_mission(request: IntelRequest):
         
         # Chill in Pyro still has elevated risk
         chill_risk = 'MEDIUM' if request.system == 'Pyro' else 'LOW'
+        # Also elevate if signals show danger
+        if signals_risk["risk_adjustment"] >= 2:
+            chill_risk = 'MEDIUM'
+        
         desc = 'Sightseeing, cave exploration, or scenic spots.'
         if request.system == 'Pyro':
             desc += ' ⚠️ PYRO: Even chill activities carry PvP risk!'
+        desc += signals_warning
+        
+        intel_summary = None
+        if signals_warnings:
+            intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
         
         return MissionResponse(
             type='chill', title='Exploration & Touring',
             description=desc,
             location={'name': f"📍 {request.system} System: {loc['name']}", 'description': loc['desc'], 'activities': loc['activities']},
             duration=time_display, reward='Variable',
-            risk_level=chill_risk, fallback={'title': 'Social Hub', 'description': f'Visit a landing zone in {request.system} and meet other pilots'}
+            risk_level=chill_risk, fallback={'title': 'Social Hub', 'description': f'Visit a landing zone in {request.system} and meet other pilots'},
+            intel_summary=intel_summary
         )
     
     # Combat
@@ -882,13 +892,17 @@ async def analyze_mission(request: IntelRequest):
         combat_desc = 'Engage hostile targets and complete bounty contracts.'
         if request.system == 'Pyro':
             combat_desc += ' ⚠️ PYRO: Full PvP - hostile players guaranteed!'
-        combat_desc += pyro_warning
+        combat_desc += pyro_warning + signals_warning
         
         combat_locations = {
             'Stanton': 'Security Post Kareah / Comm Arrays',
             'Pyro': 'Ruin Station vicinity / Jump point camps',
             'Nyx': 'Delamar patrol zones'
         }
+        
+        intel_summary = None
+        if signals_warnings:
+            intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
         
         return MissionResponse(
             type='combat', title='Combat Missions',
