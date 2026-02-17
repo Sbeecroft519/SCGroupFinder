@@ -53,6 +53,28 @@ export default function Signals() {
   const [reportShard, setReportShard] = useState('');
   const [reportConfirmed, setReportConfirmed] = useState(false);
   const [reportDetails, setReportDetails] = useState('');
+  const [uexLocations, setUexLocations] = useState(null);
+
+  // Fetch UEXcorp locations
+  useEffect(() => {
+    axios.get(`${API}/locations/categorized`)
+      .then(res => setUexLocations(res.data))
+      .catch(() => setUexLocations(null));
+  }, []);
+
+  // Get locations grouped by type for the current system
+  const getLocationsForSystem = (systemName) => {
+    if (!uexLocations?.all) return { outposts: [], other: [] };
+    
+    const systemPois = uexLocations.all.filter(p => 
+      p.star_system_name?.toLowerCase() === systemName.toLowerCase()
+    );
+    
+    const outposts = systemPois.filter(p => p.type === 'Outpost');
+    const other = systemPois.filter(p => p.type !== 'Outpost');
+    
+    return { outposts, other };
+  };
 
   // Handle ?action=report from QuickActions FAB
   useEffect(() => {
