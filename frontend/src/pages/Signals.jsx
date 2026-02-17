@@ -309,64 +309,35 @@ export default function Signals() {
 
                   <div className="form-group">
                     <label className="nc-label">LOCATION</label>
-                    <div className="location-grid">
-                      {LOCATIONS[reportSystem]?.planets.length > 0 && (
-                        <div className="location-group">
-                          <span className="location-group-label">Planets</span>
-                          {LOCATIONS[reportSystem].planets.map(loc => (
-                            <button
-                              key={loc}
-                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                              onClick={() => setReportLocation(loc)}
-                            >
-                              {loc}
-                            </button>
-                          ))}
-                        </div>
+                    <select 
+                      className="nc-input"
+                      value={reportLocation}
+                      onChange={e => setReportLocation(e.target.value)}
+                      style={{ width: '100%', padding: '12px 16px' }}
+                    >
+                      <option value="">Select Location...</option>
+                      {uexLocations?.all ? (
+                        <>
+                          <optgroup label={`${reportSystem} Locations`}>
+                            {uexLocations.all
+                              .filter(p => p.star_system_name?.toLowerCase() === reportSystem.toLowerCase())
+                              .slice(0, 50)
+                              .map(poi => (
+                                <option key={poi.id} value={poi.name}>
+                                  {poi.name}
+                                </option>
+                              ))
+                            }
+                          </optgroup>
+                          <optgroup label="General">
+                            <option value="Space (General)">Space (General)</option>
+                            <option value="Jump Point">Jump Point</option>
+                          </optgroup>
+                        </>
+                      ) : (
+                        <option disabled>Loading locations...</option>
                       )}
-                      {LOCATIONS[reportSystem]?.moons.length > 0 && (
-                        <div className="location-group">
-                          <span className="location-group-label">Moons</span>
-                          {LOCATIONS[reportSystem].moons.map(loc => (
-                            <button
-                              key={loc}
-                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                              onClick={() => setReportLocation(loc)}
-                            >
-                              {loc}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {LOCATIONS[reportSystem]?.stations.length > 0 && (
-                        <div className="location-group">
-                          <span className="location-group-label">Stations</span>
-                          {LOCATIONS[reportSystem].stations.map(loc => (
-                            <button
-                              key={loc}
-                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                              onClick={() => setReportLocation(loc)}
-                            >
-                              {loc}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {LOCATIONS[reportSystem]?.other.length > 0 && (
-                        <div className="location-group">
-                          <span className="location-group-label">Other</span>
-                          {LOCATIONS[reportSystem].other.map(loc => (
-                            <button
-                              key={loc}
-                              className={`location-btn ${reportLocation === loc ? 'active' : ''}`}
-                              onClick={() => setReportLocation(loc)}
-                            >
-                              {loc}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    </select>
                   </div>
 
                   {/* Confirmation Checkbox */}
