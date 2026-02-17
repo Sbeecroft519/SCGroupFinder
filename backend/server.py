@@ -1090,6 +1090,48 @@ async def get_signals_status():
         'reports_24h': reports_count or 0
     }
 
+
+# ===== SSE Notifications Endpoint =====
+
+@api_router.get("/notifications/stream")
+async def notification_stream(request: Request):
+    """SSE endpoint for real-time notifications"""
+    
+    async def event_generator():
+        queue = asyncio.Queue()
+        connected_clients.append(queue)
+        
+        try:
+            # Send initial connection message
+            yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+            
+            while True:
+                # Check if client disconnected
+                if await request.is_disconnected():
+                    break
+                
+                try:
+                    # Wait for message with timeout
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(message)}\n\n"
+                except asyncio.TimeoutError:
+                    # Send keepalive ping
+                    yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+        finally:
+            if queue in connected_clients:
+                connected_clients.remove(queue)
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 @api_router.get("/signals/reports")
 async def get_reports(days: int = 7):
     """Get reports from the last N days for trend analysis"""
