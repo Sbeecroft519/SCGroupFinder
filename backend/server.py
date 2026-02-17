@@ -944,17 +944,28 @@ async def analyze_mission(request: IntelRequest):
             intel_summary=intel_summary
         )
     
-    # FPS
+    # FPS - Use real bunker locations from UEXcorp
     fps_desc = 'Ground combat operations and bunker clearing.'
     if request.system == 'Pyro':
         fps_desc += ' ⚠️ PYRO: Other players may contest bunkers!'
     fps_desc += pyro_warning + signals_warning
     
-    fps_locations = {
-        'Stanton': 'Underground Bunkers (Hurston/microTech)',
-        'Pyro': 'Contested outposts / Ruin Station interior',
-        'Nyx': 'Levski underground / Delamar facilities'
-    }
+    # Get real bunker locations from UEXcorp cache
+    import random
+    pois = await get_uexcorp_pois()
+    system_bunkers = [p for p in pois if 
+        p.get('star_system_name', '').lower() == request.system.lower() and
+        ('UGF' in (p.get('subtype') or '') or 'Bunker' in (p.get('subtype') or '') or p.get('type') == 'Outpost')
+    ]
+    
+    if system_bunkers:
+        bunker = random.choice(system_bunkers)
+        bunker_name = bunker.get('name', 'Underground Bunker')
+        bunker_context = bunker.get('moon_name') or bunker.get('planet_name') or ''
+    else:
+        # Fallback to generic
+        bunker_name = 'Underground Bunker'
+        bunker_context = ''
     
     intel_summary = None
     if signals_warnings:
@@ -963,7 +974,11 @@ async def analyze_mission(request: IntelRequest):
     return MissionResponse(
         type='fps', title='FPS Contracts',
         description=fps_desc,
-        location={'name': f"📍 {request.system} System: {fps_locations.get(request.system, 'Underground Bunker')}", 'description': 'Clear hostile occupants. Watch corners, bring meds and extra ammo.', 'activities': 'Bunker Clearing, Defense'},
+        location={
+            'name': bunker_name,
+            'description': f'{bunker_context}, {request.system}' if bunker_context else request.system,
+            'activities': 'Bunker Clearing, Defense'
+        },
         duration=time_display, reward='10,000 - 60,000 aUEC',
         risk_level=effective_risk, fallback={'title': 'Security Detail', 'description': f'Guard duty at {request.system} outposts - steady pay, less action'},
         intel_summary=intel_summary
