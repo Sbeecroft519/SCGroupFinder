@@ -188,6 +188,8 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 3. **Settings About Update**: About section in Settings now matches the public AboutModal content with mission statement and features list.
 4. **Privacy Policy & Terms of Service**: New `/privacy` and `/terms` pages created. Links added to global footer.
 5. **Removed test user profiles**: Cleaned up 4 test user accounts from database, keeping only real user (Mowri).
+6. **Real-Time SSE Notifications**: Implemented Server-Sent Events for live notifications. Backend broadcasts events on new contracts, bids, bid acceptance, and intel alerts. Frontend NotificationBell component displays notifications with sound alerts.
+7. **Granular Contract Notifications**: Users can filter which contract types trigger notifications. Settings > Push Notifications has toggle buttons for: Escort, Rescue/Medical, Transport, Mining Support, Combat/Security.
 
 ## Bug Fixes Applied Previous Session (Feb 5, 2026)
 1. **Missing redemption code UI**: The redemption code input/button was missing from the Settings page. Added the UI to the "About" section with proper styling.
