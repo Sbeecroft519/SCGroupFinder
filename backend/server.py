@@ -846,22 +846,23 @@ async def analyze_mission(request: IntelRequest):
     
     # Chill - unique interesting locations, Variable reward
     if request.activity == 'chill':
+        # Curated chill locations with rich descriptions
         chill_locations = {
             'Stanton': [
-                {'name': 'microTech Ice Caves', 'desc': 'Land near frozen lakes. Crystalline formations and bioluminescent flora inside. Pembroke suit required!', 'activities': 'Spelunking, Photography'},
-                {'name': 'Daymar Racing Canyons', 'desc': 'Tight canyon networks for low-altitude racing. Community events on weekends.', 'activities': 'Racing, Stunt Flying'},
-                {'name': 'Hurston Savanna at Sunset', 'desc': 'Golden plains stretching to horizon. Drive a Cyclone and watch for wildlife.', 'activities': 'Ground Exploration, Photography'},
-                {'name': 'Orison Cloudview Gardens', 'desc': 'Floating platforms with stunning Crusader views. Best sunset in the verse.', 'activities': 'Sightseeing, Social'},
-                {'name': 'GrimHEX Underground', 'desc': 'Asteroid bar with live music and underground racing. Watch your credits.', 'activities': 'Nightlife, Gambling'},
-                {'name': 'Port Tressler Observatory', 'desc': 'Premium lounge overlooking Crusader. Ship spotting and relaxation.', 'activities': 'Relaxation, Ship Watching'}
+                {'name': 'microTech Ice Caves', 'desc': 'Crystalline formations and bioluminescent flora', 'activities': 'Spelunking, Photography', 'context': 'microTech'},
+                {'name': 'Daymar Racing Canyons', 'desc': 'Tight canyon networks for low-altitude racing', 'activities': 'Racing, Stunt Flying', 'context': 'Daymar'},
+                {'name': 'Hurston Savanna at Sunset', 'desc': 'Golden plains stretching to horizon', 'activities': 'Ground Exploration, Photography', 'context': 'Hurston'},
+                {'name': 'Orison Cloudview Gardens', 'desc': 'Floating platforms with stunning Crusader views', 'activities': 'Sightseeing, Social', 'context': 'Crusader'},
+                {'name': 'GrimHEX Underground', 'desc': 'Asteroid bar with live music and underground racing', 'activities': 'Nightlife, Gambling', 'context': 'Yela'},
+                {'name': 'Port Tressler Observatory', 'desc': 'Premium lounge overlooking Crusader', 'activities': 'Relaxation, Ship Watching', 'context': 'Crusader'}
             ],
             'Pyro': [
-                {'name': 'Pyro Star Overlook', 'desc': 'Abandoned station with views of the burning star. Eerie and beautiful. Stay armed!', 'activities': 'Photography, Danger Tourism'},
-                {'name': 'Ruin Station Art Walk', 'desc': 'Player graffiti installations in derelicts. Living museum of verse culture. Watch for ambushes.', 'activities': 'Art, Culture'}
+                {'name': 'Pyro Star Overlook', 'desc': 'Abandoned station with views of the burning star', 'activities': 'Photography, Danger Tourism', 'context': 'Pyro'},
+                {'name': 'Ruin Station Art Walk', 'desc': 'Player graffiti installations in derelicts', 'activities': 'Art, Culture', 'context': 'Pyro'}
             ],
             'Nyx': [
-                {'name': 'Levski Memorial Plaza', 'desc': 'Revolutionary monument. Rich history of the independence movement.', 'activities': 'History, Culture'},
-                {'name': 'Delamar Caverns', 'desc': 'Deep cave systems with unique geological formations.', 'activities': 'Spelunking, Exploration'}
+                {'name': 'Levski Memorial Plaza', 'desc': 'Revolutionary monument with rich history', 'activities': 'History, Culture', 'context': 'Delamar'},
+                {'name': 'Delamar Caverns', 'desc': 'Deep cave systems with unique geological formations', 'activities': 'Spelunking, Exploration', 'context': 'Delamar'}
             ]
         }
         import random
@@ -886,7 +887,11 @@ async def analyze_mission(request: IntelRequest):
         return MissionResponse(
             type='chill', title='Exploration & Touring',
             description=desc,
-            location={'name': f"📍 {request.system} System: {loc['name']}", 'description': loc['desc'], 'activities': loc['activities']},
+            location={
+                'name': loc['name'],
+                'description': f"{loc['context']}, {request.system}",
+                'activities': loc['activities']
+            },
             duration=time_display, reward='Variable',
             risk_level=chill_risk, fallback={'title': 'Social Hub', 'description': f'Visit a landing zone in {request.system} and meet other pilots'},
             intel_summary=intel_summary
