@@ -204,12 +204,15 @@ export default function Signals() {
         location: reportLocation || null,
         shard: reportShard || null,
         details: reportDetails || null,
+        description: reportDescription || null,
         timestamp: new Date().toISOString()
       });
       setShowReportModal(null);
       setReportLocation('');
       setReportConfirmed(false);
       setReportDetails('');
+      setReportDescription('');
+      setDescriptionError('');
       fetchSignalsData();
     } catch (error) {
       console.error('Failed to submit report:', error);
