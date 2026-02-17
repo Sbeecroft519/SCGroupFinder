@@ -1457,6 +1457,12 @@ async def delete_roadmap_item(item_id: str, admin = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Item not found")
     return {'message': 'Item deleted'}
 
+@api_router.get("/roadmap")
+async def get_public_roadmap():
+    """Get roadmap items for public display"""
+    items = await db.roadmap_items.find({}, {'_id': 0}).sort('created_at', 1).to_list(100)
+    return items
+
 
 # ===== User Notification Settings =====
 
