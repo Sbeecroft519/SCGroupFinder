@@ -158,6 +158,17 @@ async def get_signals_risk_for_location(system: str, location: str = None):
         "crash_count": crash_count
     }
 
+# ===== SSE Notification System =====
+connected_clients: List[asyncio.Queue] = []
+
+async def broadcast_notification(notification: dict):
+    """Send notification to all connected SSE clients"""
+    for queue in connected_clients:
+        try:
+            await queue.put(notification)
+        except:
+            pass  # Client may have disconnected
+
 # Create the main app
 app = FastAPI(title="NavCom API", version="2.0.0")
 socket_app = socketio.ASGIApp(sio, app)
