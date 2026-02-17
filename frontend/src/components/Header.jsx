@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback } from './ui/avatar';
+import NotificationBell from './NotificationBell';
 
 const NAV_ITEMS = [
   { id: 'intel', label: 'INTEL', icon: Radar, path: '/intel' },
