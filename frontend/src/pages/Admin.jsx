@@ -71,6 +71,37 @@ export default function Admin() {
     }
   };
 
+  // Roadmap handlers
+  const handleSaveRoadmapItem = async () => {
+    try {
+      if (editingItem) {
+        await axios.put(`${API}/admin/roadmap/${editingItem.id}`, newItem);
+      } else {
+        await axios.post(`${API}/admin/roadmap`, newItem);
+      }
+      setNewItem({ title: '', description: '', status: 'PLANNED' });
+      setEditingItem(null);
+      fetchData();
+    } catch (e) {
+      alert('Failed to save roadmap item');
+    }
+  };
+
+  const handleDeleteRoadmapItem = async (id) => {
+    if (!window.confirm('Delete this roadmap item?')) return;
+    try {
+      await axios.delete(`${API}/admin/roadmap/${id}`);
+      fetchData();
+    } catch (e) {
+      alert('Failed to delete item');
+    }
+  };
+
+  const startEditItem = (item) => {
+    setEditingItem(item);
+    setNewItem({ title: item.title, description: item.description, status: item.status });
+  };
+
   if (!user?.is_admin) {
     return (
       <div className="navcom-page" data-testid="admin-denied">
