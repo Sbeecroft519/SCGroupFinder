@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell, X, Check, Wifi, WifiOff } from 'lucide-react';
 import { useSSENotifications } from '../hooks/useSSENotifications';
 
-const NotificationBell = ({ currentUserId }) => {
-  const { notifications, connected, markAsRead, clearAll } = useSSENotifications(currentUserId);
+const NotificationBell = ({ currentUserId, notificationSettings }) => {
+  const { notifications, connected, markAsRead, clearAll } = useSSENotifications(currentUserId, notificationSettings);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
