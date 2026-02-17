@@ -22,6 +22,7 @@ const NAV_ITEMS = [
 export const Header = ({ user, onLogout, userShard, onShardClick }) => {
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { notificationSettings } = useAuth();
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
