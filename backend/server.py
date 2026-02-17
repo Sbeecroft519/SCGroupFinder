@@ -99,8 +99,8 @@ async def get_signals_risk_for_location(system: str, location: str = None):
     # Get reports from last 24 hours
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     
-    # Build query
-    query = {"timestamp": {"$gte": cutoff.isoformat()}}
+    # Build query - use created_at field
+    query = {"created_at": {"$gte": cutoff.isoformat()}}
     if system:
         query["$or"] = [
             {"system": {"$regex": system, "$options": "i"}},
