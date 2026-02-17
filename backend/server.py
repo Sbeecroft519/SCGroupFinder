@@ -58,6 +58,103 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
 # Socket.IO for real-time notifications
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 
+# ===== UEXcorp POI Cache =====
+poi_cache = {
+    "data": None,
+    "fetched_at": None
+}
+POI_CACHE_DURATION = timedelta(hours=24)
+
+async def get_uexcorp_pois():
+    """Fetch POIs from UEXcorp API with 24hr cache"""
+    # Return cached data if fresh
+    if poi_cache["data"] and poi_cache["fetched_at"]:
+        if datetime.now(timezone.utc) - poi_cache["fetched_at"] < POI_CACHE_DURATION:
+            return poi_cache["data"]
+    
+    # Fetch fresh data
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get("https://api.uexcorp.space/2.0/pois")
+            if response.status_code == 200:
+                data = response.json()
+                pois = data.get("data", data) if isinstance(data, dict) else data
+                
+                # Filter to only locations available in live game
+                live_pois = [poi for poi in pois if poi.get("is_available_live") == 1]
+                
+                # Update cache
+                poi_cache["data"] = live_pois
+                poi_cache["fetched_at"] = datetime.now(timezone.utc)
+                
+                return live_pois
+    except Exception as e:
+        logger.error(f"UEXcorp POI fetch error: {e}")
+    
+    # Return cached data even if stale, or empty list
+    return poi_cache["data"] or []
+
+async def get_signals_risk_for_location(system: str, location: str = None):
+    """Get risk assessment based on recent Signals reports"""
+    # Get reports from last 24 hours
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    
+    # Build query
+    query = {"timestamp": {"$gte": cutoff.isoformat()}}
+    if system:
+        query["$or"] = [
+            {"system": {"$regex": system, "$options": "i"}},
+            {"location": {"$regex": system, "$options": "i"}}
+        ]
+    
+    reports = await db.reports.find(query).to_list(100)
+    
+    if not reports:
+        return {"risk_adjustment": 0, "warnings": [], "report_count": 0}
+    
+    # Count by type
+    piracy_count = sum(1 for r in reports if r.get("type") == "piracy")
+    pvp_count = sum(1 for r in reports if r.get("type") == "pvp")
+    crash_count = sum(1 for r in reports if r.get("type") in ["30k", "crash", "bug"])
+    
+    warnings = []
+    risk_adjustment = 0
+    
+    # Generate warnings and risk adjustment
+    if piracy_count >= 3:
+        warnings.append(f"⚠️ HIGH PIRACY ALERT: {piracy_count} reports in last 24h")
+        risk_adjustment += 2
+    elif piracy_count >= 1:
+        warnings.append(f"⚠️ Piracy activity reported ({piracy_count}x)")
+        risk_adjustment += 1
+    
+    if pvp_count >= 3:
+        warnings.append(f"⚠️ PVP HOTSPOT: {pvp_count} engagements reported")
+        risk_adjustment += 2
+    elif pvp_count >= 1:
+        warnings.append(f"⚠️ PvP activity in area ({pvp_count}x)")
+        risk_adjustment += 1
+    
+    if crash_count >= 2:
+        warnings.append(f"⚠️ Server instability: {crash_count} crash reports")
+        risk_adjustment += 1
+    
+    # Get specific dangerous locations mentioned
+    dangerous_locations = set()
+    for r in reports:
+        if r.get("type") in ["piracy", "pvp"] and r.get("location"):
+            dangerous_locations.add(r.get("location"))
+    
+    return {
+        "risk_adjustment": min(risk_adjustment, 3),  # Cap at 3
+        "warnings": warnings,
+        "report_count": len(reports),
+        "dangerous_locations": list(dangerous_locations)[:5],  # Top 5
+        "piracy_count": piracy_count,
+        "pvp_count": pvp_count,
+        "crash_count": crash_count
+    }
+
 # Create the main app
 app = FastAPI(title="NavCom API", version="2.0.0")
 socket_app = socketio.ASGIApp(sio, app)
