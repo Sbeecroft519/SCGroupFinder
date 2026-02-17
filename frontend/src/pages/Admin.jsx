@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, X, Check, RefreshCw, Activity } from 'lucide-react';
+import { Shield, Users, X, Check, RefreshCw, Activity, Map, Plus, Edit, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
+
+const ROADMAP_STATUSES = ['STABLE', 'IN_PROGRESS', 'PLANNED', 'BACKLOG'];
+const STATUS_COLORS = {
+  STABLE: '#00ff88',
+  IN_PROGRESS: '#00f0ff',
+  PLANNED: '#ffd700',
+  BACKLOG: '#888'
+};
 
 export default function Admin() {
   const { user } = useAuth();
@@ -9,6 +17,12 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [lastReset, setLastReset] = useState(null);
   const [resetting, setResetting] = useState(false);
+  const [activeTab, setActiveTab] = useState('users');
+  
+  // Roadmap state
+  const [roadmapItems, setRoadmapItems] = useState([]);
+  const [editingItem, setEditingItem] = useState(null);
+  const [newItem, setNewItem] = useState({ title: '', description: '', status: 'PLANNED' });
 
   useEffect(() => {
     if (user?.is_admin) fetchData();
