@@ -562,6 +562,33 @@ async def get_ships():
     ]
 
 
+# ===== Location/POI Routes =====
+
+@api_router.get("/locations")
+async def get_locations():
+    """Return cached UEXcorp POI data"""
+    pois = await get_uexcorp_pois()
+    return {"locations": pois, "count": len(pois)}
+
+@api_router.get("/locations/categorized")
+async def get_categorized_locations():
+    """Return POIs grouped by useful categories"""
+    pois = await get_uexcorp_pois()
+    
+    categorized = {
+        "trading": [p for p in pois if p.get("has_trade_terminal")],
+        "mining": [p for p in pois if p.get("has_refinery")],
+        "medical": [p for p in pois if p.get("has_clinic")],
+        "safe_zones": [p for p in pois if p.get("is_armistice")],
+        "stations": [p for p in pois if p.get("space_station_name")],
+        "outposts": [p for p in pois if p.get("outpost_name")],
+        "cities": [p for p in pois if p.get("city_name")],
+        "all": pois
+    }
+    
+    return categorized
+
+
 # ===== Intel Routes =====
 
 @api_router.post("/intel/analyze", response_model=MissionResponse)
@@ -569,9 +596,27 @@ async def analyze_mission(request: IntelRequest):
     ship_scu = get_ship_scu(request.ship)
     time_display = {'15m': '15-30 min', '30m': '30-45 min', '1h': '30-60 min', '2h': '60-120 min'}.get(request.time, '30-60 min')
     
+    # ===== Signals Integration: Get real-time risk from player reports =====
+    signals_risk = await get_signals_risk_for_location(request.system)
+    signals_warnings = signals_risk.get("warnings", [])
+    dangerous_locations = signals_risk.get("dangerous_locations", [])
+    
     # Pyro is always moderate-to-high risk due to full PvP
     effective_risk = request.risk
     pyro_warning = ""
+    signals_warning = ""
+    
+    # Apply signals-based risk elevation
+    if signals_risk["risk_adjustment"] >= 2:
+        if effective_risk == 'LOW':
+            effective_risk = 'MEDIUM'
+            signals_warning = " 📡 INTEL: Risk elevated based on recent player reports"
+        elif effective_risk == 'MEDIUM':
+            effective_risk = 'HIGH'
+            signals_warning = " 📡 INTEL: High threat level from player reports"
+    elif signals_risk["risk_adjustment"] == 1 and effective_risk == 'LOW':
+        signals_warning = " 📡 INTEL: Caution advised - recent activity reports"
+    
     if request.system == 'Pyro':
         if request.risk == 'LOW':
             effective_risk = 'MEDIUM'
