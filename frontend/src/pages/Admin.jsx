@@ -31,12 +31,14 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, resetRes] = await Promise.all([
+      const [usersRes, resetRes, roadmapRes] = await Promise.all([
         axios.get(`${API}/admin/users`),
-        axios.get(`${API}/admin/last-reset`).catch(() => ({ data: { last_reset: null } }))
+        axios.get(`${API}/admin/last-reset`).catch(() => ({ data: { last_reset: null } })),
+        axios.get(`${API}/admin/roadmap`).catch(() => ({ data: [] }))
       ]);
       setUsers(usersRes.data || []);
       setLastReset(resetRes.data?.last_reset);
+      setRoadmapItems(roadmapRes.data || []);
     } catch (error) {
       console.error('Admin fetch error:', error);
     } finally {
