@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
