@@ -909,7 +909,8 @@ async def analyze_mission(request: IntelRequest):
             description=combat_desc,
             location={'name': f"📍 {request.system} System: {combat_locations.get(request.system, 'Security Post')}", 'description': 'Check bounty boards for VHRT/ERT contracts. Group bounties pay best.', 'activities': 'Bounty Hunting, PvE Combat' + (', PvP' if request.system == 'Pyro' else '')},
             duration=time_display, reward='15,000 - 100,000 aUEC',
-            risk_level=effective_risk, fallback={'title': 'Mercenary Work', 'description': f'Security contracts from {request.system} mission givers'}
+            risk_level=effective_risk, fallback={'title': 'Mercenary Work', 'description': f'Security contracts from {request.system} mission givers'},
+            intel_summary=intel_summary
         )
     
     # Salvage
