@@ -171,7 +171,8 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Users Management */}
+      {/* Users Tab */}
+      {activeTab === 'users' && (
       <div className="nc-card">
         <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Users size={18} className="text-cyan" /> User Management
@@ -222,6 +223,133 @@ export default function Admin() {
           </table>
         </div>
       </div>
+      )}
+
+      {/* Roadmap Tab */}
+      {activeTab === 'roadmap' && (
+      <div className="nc-card">
+        <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Map size={18} className="text-cyan" /> Roadmap Management
+        </h3>
+        
+        {/* Add/Edit Form */}
+        <div style={{ background: 'var(--nc-bg-secondary)', padding: 20, marginBottom: 24, border: '1px solid var(--nc-border)' }}>
+          <h4 style={{ color: 'var(--nc-cyan)', fontSize: 12, letterSpacing: 1, marginBottom: 16 }}>
+            {editingItem ? '// EDIT_ITEM' : '// ADD_NEW_ITEM'}
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <input
+              type="text"
+              placeholder="Feature Title"
+              value={newItem.title}
+              onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+              className="nc-input"
+              style={{ padding: '12px 16px' }}
+              data-testid="roadmap-title-input"
+            />
+            <textarea
+              placeholder="Description"
+              value={newItem.description}
+              onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+              className="nc-input"
+              style={{ padding: '12px 16px', minHeight: 80, resize: 'vertical' }}
+              data-testid="roadmap-description-input"
+            />
+            <select
+              value={newItem.status}
+              onChange={(e) => setNewItem({ ...newItem, status: e.target.value })}
+              className="nc-input"
+              style={{ padding: '12px 16px' }}
+              data-testid="roadmap-status-select"
+            >
+              {ROADMAP_STATUSES.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                className="nc-btn nc-btn-primary" 
+                onClick={handleSaveRoadmapItem}
+                disabled={!newItem.title.trim()}
+                data-testid="roadmap-save-btn"
+              >
+                {editingItem ? 'Update' : 'Add'} Item
+              </button>
+              {editingItem && (
+                <button 
+                  className="nc-btn nc-btn-secondary"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setNewItem({ title: '', description: '', status: 'PLANNED' });
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Items List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {roadmapItems.length === 0 && (
+            <p style={{ color: 'var(--nc-text-muted)', textAlign: 'center', padding: 32 }}>
+              No roadmap items yet. Add one above.
+            </p>
+          )}
+          {roadmapItems.map(item => (
+            <div key={item.id} style={{ 
+              padding: 16, 
+              background: 'var(--nc-bg-secondary)', 
+              border: '1px solid var(--nc-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 16
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <span style={{ 
+                    fontSize: 11, 
+                    padding: '4px 8px', 
+                    background: `${STATUS_COLORS[item.status]}20`,
+                    border: `1px solid ${STATUS_COLORS[item.status]}`,
+                    color: STATUS_COLORS[item.status],
+                    letterSpacing: 1
+                  }}>
+                    {item.status}
+                  </span>
+                  <h4 style={{ color: 'var(--nc-text-primary)', fontSize: 15, margin: 0 }}>
+                    {item.title}
+                  </h4>
+                </div>
+                <p style={{ color: 'var(--nc-text-muted)', fontSize: 13, margin: 0 }}>
+                  {item.description}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button 
+                  className="nc-btn nc-btn-secondary"
+                  onClick={() => startEditItem(item)}
+                  style={{ padding: '8px 12px' }}
+                  data-testid={`edit-roadmap-${item.id}`}
+                >
+                  <Edit size={14} />
+                </button>
+                <button 
+                  className="nc-btn nc-btn-danger"
+                  onClick={() => handleDeleteRoadmapItem(item.id)}
+                  style={{ padding: '8px 12px' }}
+                  data-testid={`delete-roadmap-${item.id}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
 
       <style>{`
         .nc-btn-danger {
