@@ -200,14 +200,24 @@ export default function Intel() {
               
               {mission.location && (
                 <div className="mission-location">
-                  <div className="mission-location-title">
-                    <MapPin size={14} />
-                    {mission.location.name}
+                  <div className="mission-location-title" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <MapPin size={14} />
+                      <span style={{ fontWeight: 'bold', color: '#fff', fontSize: 16 }}>
+                        {mission.location.name}
+                      </span>
+                    </div>
+                    {mission.location.description && (
+                      <span style={{ color: '#666', fontSize: 12, marginLeft: 22 }}>
+                        {mission.location.description}
+                      </span>
+                    )}
                   </div>
-                  <p className="mission-location-desc">{mission.location.description}</p>
-                  <p className="mission-location-activities">
-                    Suggested activities: {mission.location.activities}
-                  </p>
+                  {mission.location.activities && (
+                    <p className="mission-location-activities" style={{ marginTop: 8 }}>
+                      Suggested activities: {mission.location.activities}
+                    </p>
+                  )}
                 </div>
               )}
 
