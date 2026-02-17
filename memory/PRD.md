@@ -146,7 +146,14 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
-## Bug Fixes Applied This Session (Feb 5, 2026)
+## Bug Fixes Applied This Session (Feb 17, 2026)
+1. **Multi-crew contracts not completing (BUG FIX 1)**: The `mark-complete` endpoint only accepted `in_progress` status, but contracts accepted via the `/accept` endpoint are set to `active`. Fixed to accept both statuses.
+2. **Mercenary profile link shows wrong profile (BUG FIX 2)**: In the bids modal, the "View Profile" button used `bid.bidder?.id` which doesn't exist. Fixed to use `bid.bidder_id` instead.
+3. **Recent Missions not populating (BUG FIX 3)**: The mission history endpoint and component were working correctly. Issue was simply that no completed contracts existed yet. Verified working with empty state display.
+4. **Contract descriptions not showing (BUG FIX 4)**: Descriptions were being saved to database but not displayed on contract cards. Added description rendering after contract title in the feed view.
+5. **Basic text moderation (BUG FIX 5)**: Added `moderate_text()` function in backend with ~25 blocked words. Profanity is replaced with asterisks (`****`) when contracts are created.
+
+## Bug Fixes Applied Previous Session (Feb 5, 2026)
 1. **Missing redemption code UI**: The redemption code input/button was missing from the Settings page. Added the UI to the "About" section with proper styling.
 
 ## Bug Fixes Applied Previous Session (Feb 4, 2026)
