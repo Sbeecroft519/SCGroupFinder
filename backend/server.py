@@ -749,7 +749,12 @@ async def analyze_mission(request: IntelRequest):
         note = ""
         if best_route.get('commodity') in ['WiDoW', 'Slam', 'Neon', 'E\'tam', 'Maze', 'Altruciatoxin', 'Contraband Mix']:
             note = " ⚠️ ILLEGAL - Scan risk, pirate activity"
-        note += pyro_warning
+        note += pyro_warning + signals_warning
+        
+        # Build intel summary for the response
+        intel_summary = None
+        if signals_warnings:
+            intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
         
         return MissionResponse(
             type='cargo', title='Cargo Hauling',
