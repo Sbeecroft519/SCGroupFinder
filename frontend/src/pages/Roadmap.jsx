@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Map, Target, Star, Shield, CheckCircle } from 'lucide-react';
-import { useAuth } from '../App';
+import axios from 'axios';
+import { useAuth, API } from '../App';
 
-// Roadmap items with status
-const ROADMAP_ITEMS = [
+// Default roadmap items (fallback if no DB items)
+const DEFAULT_ROADMAP_ITEMS = [
   {
     id: '1',
     title: 'Mercenary Board',
@@ -71,6 +73,20 @@ const getStatusColor = (status) => {
 
 export default function Roadmap() {
   const { user } = useAuth();
+  const [roadmapItems, setRoadmapItems] = useState(DEFAULT_ROADMAP_ITEMS);
+
+  useEffect(() => {
+    // Fetch roadmap items from API
+    axios.get(`${API}/roadmap`)
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setRoadmapItems(res.data);
+        }
+      })
+      .catch(() => {
+        // Use default items on error
+      });
+  }, []);
 
   return (
     <div className="navcom-page" data-testid="roadmap-page">
