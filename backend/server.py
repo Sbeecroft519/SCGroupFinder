@@ -1176,6 +1176,20 @@ async def get_reports(days: int = 7):
 
 @api_router.post("/signals/report")
 async def create_report(report: ReportCreate, user = Depends(get_current_user)):
+    # Validate and moderate description if provided
+    description = None
+    if report.description:
+        description = report.description.strip()
+        if len(description) > 150:
+            raise HTTPException(status_code=400, detail="Description too long (max 150 characters)")
+        # Check for profanity
+        description_lower = description.lower()
+        for word in BLOCKED_WORDS:
+            if word in description_lower:
+                raise HTTPException(status_code=400, detail="Please keep descriptions professional")
+        # Also moderate the text (replace any remaining issues)
+        description = moderate_text(description)
+    
     report_doc = {
         'id': str(uuid.uuid4()),
         'type': report.type,
@@ -1183,6 +1197,7 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
         'location': report.location,
         'shard': report.shard,
         'details': report.details,
+        'description': description,  # New field
         'user_id': user['id'] if user else None,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
