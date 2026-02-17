@@ -576,14 +576,18 @@ async def get_categorized_locations():
     """Return POIs grouped by useful categories"""
     pois = await get_uexcorp_pois()
     
+    # Categorize based on type and other flags
     categorized = {
-        "trading": [p for p in pois if p.get("has_trade_terminal")],
-        "mining": [p for p in pois if p.get("has_refinery")],
+        "trading": [p for p in pois if p.get("has_trade_terminal") or 'Trade' in (p.get("subtype") or '')],
+        "mining": [p for p in pois if p.get("has_refinery") or p.get("type") == "Asteroid" or 'Mining' in (p.get("subtype") or '')],
         "medical": [p for p in pois if p.get("has_clinic")],
         "safe_zones": [p for p in pois if p.get("is_armistice")],
-        "stations": [p for p in pois if p.get("space_station_name")],
-        "outposts": [p for p in pois if p.get("outpost_name")],
-        "cities": [p for p in pois if p.get("city_name")],
+        "outposts": [p for p in pois if p.get("type") == "Outpost"],
+        "bunkers": [p for p in pois if "UGF" in (p.get("subtype") or '') or "Bunker" in (p.get("subtype") or '')],
+        "comm_arrays": [p for p in pois if "Comm Array" in (p.get("subtype") or '')],
+        "racetracks": [p for p in pois if p.get("type") == "Racetrack"],
+        "stanton": [p for p in pois if p.get("star_system_name") == "Stanton"],
+        "pyro": [p for p in pois if p.get("star_system_name") == "Pyro"],
         "all": pois
     }
     
