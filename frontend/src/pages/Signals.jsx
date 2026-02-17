@@ -188,6 +188,8 @@ export default function Signals() {
     setReportShard(myShard);
     setReportConfirmed(false);
     setReportDetails('');
+    setReportDescription('');
+    setDescriptionError('');
   };
 
   const submitReport = async () => {
