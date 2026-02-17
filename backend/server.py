@@ -223,6 +223,7 @@ class MissionResponse(BaseModel):
     risk_level: str
     fallback: Optional[dict] = None
     profit_data: Optional[dict] = None  # For cargo: commodity, route, profit_per_scu, total_profit, roi
+    intel_summary: Optional[dict] = None  # Signals-based risk intel: warnings, dangerous_locations
 
 class ReportCreate(BaseModel):
     type: str
