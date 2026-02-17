@@ -783,7 +783,8 @@ async def analyze_mission(request: IntelRequest):
                 'investment': int(best_route['investment']),
                 'roi': round(best_route['roi'], 1),
                 'ship_scu': ship_scu
-            }
+            },
+            intel_summary=intel_summary
         )
     
     # Mining - specific locations, materials, refinery, sell point
