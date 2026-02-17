@@ -405,6 +405,40 @@ export default function Signals() {
                 </div>
               )}
 
+              {/* Description field for all reports */}
+              <div className="form-group" style={{ marginTop: 15 }}>
+                <label style={{ color: '#888', fontSize: 12, display: 'block', marginBottom: 5 }}>
+                  Additional Details (optional)
+                </label>
+                <textarea
+                  value={reportDescription}
+                  onChange={handleDescriptionChange}
+                  placeholder="Brief description of the situation..."
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                  style={{
+                    width: '100%',
+                    minHeight: 60,
+                    maxHeight: 80,
+                    padding: 10,
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(0, 240, 255, 0.3)',
+                    borderRadius: 4,
+                    color: '#fff',
+                    fontSize: 14,
+                    resize: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+                  {descriptionError && (
+                    <span style={{ color: '#ff4444', fontSize: 11 }}>{descriptionError}</span>
+                  )}
+                  <span style={{ color: '#666', fontSize: 11, marginLeft: 'auto' }}>
+                    {reportDescription.length}/{MAX_DESCRIPTION_LENGTH}
+                  </span>
+                </div>
+              </div>
+
               <button 
                 className="nc-btn nc-btn-primary" 
                 style={{ width: '100%', marginTop: 16, background: showReportModal.color, borderColor: showReportModal.color }}
