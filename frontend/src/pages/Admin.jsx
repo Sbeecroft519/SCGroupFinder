@@ -143,6 +143,16 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="nc-toggle-group" style={{ marginBottom: 24 }}>
+        <button className={`nc-toggle ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+          <Users size={14} /> Users
+        </button>
+        <button className={`nc-toggle ${activeTab === 'roadmap' ? 'active' : ''}`} onClick={() => setActiveTab('roadmap')}>
+          <Map size={14} /> Roadmap
+        </button>
+      </div>
+
       {/* Reset Reports Section */}
       <div className="nc-card" style={{ marginBottom: 24, padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
