@@ -350,18 +350,25 @@ export default function Signals() {
                       <option value="">Select Location...</option>
                       {uexLocations?.all ? (
                         <>
-                          <optgroup label={`${reportSystem} Locations`}>
-                            {uexLocations.all
-                              .filter(p => p.star_system_name?.toLowerCase() === reportSystem.toLowerCase())
-                              .slice(0, 50)
-                              .map(poi => (
-                                <option key={poi.id} value={poi.name}>
-                                  {poi.name}
-                                </option>
-                              ))
-                            }
-                          </optgroup>
-                          <optgroup label="General">
+                          {/* Group locations by system */}
+                          {['Stanton', 'Pyro', 'Nyx'].map(sys => {
+                            const systemLocs = uexLocations.all.filter(
+                              p => p.star_system_name?.toLowerCase() === sys.toLowerCase()
+                            );
+                            if (systemLocs.length === 0) return null;
+                            // Only show current system's locations
+                            if (sys.toLowerCase() !== reportSystem.toLowerCase()) return null;
+                            return (
+                              <optgroup key={sys} label={`── ${sys} ──`}>
+                                {systemLocs.map(poi => (
+                                  <option key={poi.id} value={poi.name}>
+                                    {poi.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
+                          <optgroup label="── General ──">
                             <option value="Space (General)">Space (General)</option>
                             <option value="Jump Point">Jump Point</option>
                           </optgroup>
