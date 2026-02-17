@@ -68,14 +68,38 @@ poi_cache = {
 }
 POI_CACHE_DURATION = timedelta(hours=24)
 
+# Fallback locations for Pyro and Nyx (UEXcorp API doesn't have these yet)
+PYRO_FALLBACK_LOCATIONS = [
+    {"id": "pyro-1", "name": "Ruin Station", "star_system_name": "Pyro", "type": "Station", "is_available_live": 1},
+    {"id": "pyro-2", "name": "Pyro Gateway", "star_system_name": "Pyro", "type": "Jump Point", "is_available_live": 1},
+    {"id": "pyro-3", "name": "Pyro I", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-4", "name": "Pyro II", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-5", "name": "Pyro III", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-6", "name": "Pyro IV", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-7", "name": "Pyro V", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-8", "name": "Pyro VI", "star_system_name": "Pyro", "type": "Planet", "is_available_live": 1},
+    {"id": "pyro-9", "name": "Checkmate Station", "star_system_name": "Pyro", "type": "Station", "is_available_live": 1},
+    {"id": "pyro-10", "name": "Stanton-Pyro Jump Point", "star_system_name": "Pyro", "type": "Jump Point", "is_available_live": 1},
+]
+
+NYX_FALLBACK_LOCATIONS = [
+    {"id": "nyx-1", "name": "Delamar", "star_system_name": "Nyx", "type": "Asteroid", "is_available_live": 1},
+    {"id": "nyx-2", "name": "Levski", "star_system_name": "Nyx", "type": "Outpost", "is_available_live": 1},
+    {"id": "nyx-3", "name": "Nyx I", "star_system_name": "Nyx", "type": "Planet", "is_available_live": 1},
+    {"id": "nyx-4", "name": "Nyx II", "star_system_name": "Nyx", "type": "Planet", "is_available_live": 1},
+    {"id": "nyx-5", "name": "Nyx III", "star_system_name": "Nyx", "type": "Planet", "is_available_live": 1},
+    {"id": "nyx-6", "name": "Nyx Gateway", "star_system_name": "Nyx", "type": "Jump Point", "is_available_live": 1},
+]
+
 async def get_uexcorp_pois():
-    """Fetch POIs from UEXcorp API with 24hr cache"""
+    """Fetch POIs from UEXcorp API with 24hr cache, includes fallbacks for Pyro/Nyx"""
     # Return cached data if fresh
     if poi_cache["data"] and poi_cache["fetched_at"]:
         if datetime.now(timezone.utc) - poi_cache["fetched_at"] < POI_CACHE_DURATION:
             return poi_cache["data"]
     
     # Fetch fresh data
+    all_pois = []
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get("https://api.uexcorp.uk/2.0/poi")
@@ -85,17 +109,24 @@ async def get_uexcorp_pois():
                 
                 # Filter to only locations available in live game
                 live_pois = [poi for poi in pois if poi.get("is_available_live") == 1]
-                
-                # Update cache
-                poi_cache["data"] = live_pois
-                poi_cache["fetched_at"] = datetime.now(timezone.utc)
-                
-                return live_pois
+                all_pois = live_pois
     except Exception as e:
         logger.error(f"UEXcorp POI fetch error: {e}")
     
-    # Return cached data even if stale, or empty list
-    return poi_cache["data"] or []
+    # Add fallback locations for Pyro and Nyx (UEXcorp doesn't have these)
+    pyro_in_data = any(p.get("star_system_name") == "Pyro" for p in all_pois)
+    nyx_in_data = any(p.get("star_system_name") == "Nyx" for p in all_pois)
+    
+    if not pyro_in_data:
+        all_pois.extend(PYRO_FALLBACK_LOCATIONS)
+    if not nyx_in_data:
+        all_pois.extend(NYX_FALLBACK_LOCATIONS)
+    
+    # Update cache
+    poi_cache["data"] = all_pois
+    poi_cache["fetched_at"] = datetime.now(timezone.utc)
+    
+    return all_pois
 
 async def get_signals_risk_for_location(system: str, location: str = None):
     """Get risk assessment based on recent Signals reports"""
