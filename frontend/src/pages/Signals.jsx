@@ -53,7 +53,34 @@ export default function Signals() {
   const [reportShard, setReportShard] = useState('');
   const [reportConfirmed, setReportConfirmed] = useState(false);
   const [reportDetails, setReportDetails] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
   const [uexLocations, setUexLocations] = useState(null);
+
+  // Profanity filter for description
+  const BLOCKED_WORDS = [
+    'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy', 'cunt',
+    'nigger', 'nigga', 'faggot', 'fag', 'retard', 'chink', 'spic', 'kike',
+    'slut', 'whore', 'cock', 'penis', 'vagina', 'porn', 'nazi', 'hitler'
+  ];
+  const MAX_DESCRIPTION_LENGTH = 150;
+
+  const containsProfanity = (text) => {
+    if (!text) return false;
+    const lowerText = text.toLowerCase();
+    return BLOCKED_WORDS.some(word => lowerText.includes(word));
+  };
+
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value;
+    if (value.length > MAX_DESCRIPTION_LENGTH) return;
+    if (containsProfanity(value)) {
+      setDescriptionError('Please keep it professional.');
+      return;
+    }
+    setDescriptionError('');
+    setReportDescription(value);
+  };
 
   // Fetch UEXcorp locations
   useEffect(() => {
