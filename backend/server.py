@@ -1399,6 +1399,65 @@ async def admin_get_users(admin = Depends(require_admin)):
     return users
 
 
+# ===== Admin Roadmap Management =====
+
+class RoadmapItemCreate(BaseModel):
+    title: str
+    description: str = ''
+    status: str = 'PLANNED'
+
+class RoadmapItemUpdate(BaseModel):
+    title: str = None
+    description: str = None
+    status: str = None
+
+@api_router.get("/admin/roadmap")
+async def get_roadmap_items(admin = Depends(require_admin)):
+    """Get all roadmap items for admin management"""
+    items = await db.roadmap_items.find({}, {'_id': 0}).sort('created_at', -1).to_list(100)
+    return items
+
+@api_router.post("/admin/roadmap")
+async def create_roadmap_item(item: RoadmapItemCreate, admin = Depends(require_admin)):
+    """Create a new roadmap item"""
+    if item.status not in ['STABLE', 'IN_PROGRESS', 'PLANNED', 'BACKLOG']:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    item_doc = {
+        'id': str(uuid.uuid4()),
+        'title': item.title,
+        'description': item.description,
+        'status': item.status,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.roadmap_items.insert_one(item_doc)
+    item_doc.pop('_id', None)
+    return item_doc
+
+@api_router.put("/admin/roadmap/{item_id}")
+async def update_roadmap_item(item_id: str, item: RoadmapItemUpdate, admin = Depends(require_admin)):
+    """Update a roadmap item"""
+    update_data = {k: v for k, v in item.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    if 'status' in update_data and update_data['status'] not in ['STABLE', 'IN_PROGRESS', 'PLANNED', 'BACKLOG']:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    result = await db.roadmap_items.update_one({'id': item_id}, {'$set': update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {'message': 'Item updated'}
+
+@api_router.delete("/admin/roadmap/{item_id}")
+async def delete_roadmap_item(item_id: str, admin = Depends(require_admin)):
+    """Delete a roadmap item"""
+    result = await db.roadmap_items.delete_one({'id': item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {'message': 'Item deleted'}
+
+
 # ===== User Notification Settings =====
 
 @api_router.get("/user/notification-settings")
