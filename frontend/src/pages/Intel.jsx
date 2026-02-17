@@ -276,6 +276,64 @@ export default function Intel() {
                   </div>
                 </div>
               )}
+              
+              {/* Signals Intel - Real-time Risk Assessment */}
+              {mission.intel_summary && mission.intel_summary.warnings?.length > 0 && (
+                <div className="intel-summary-section" style={{ marginTop: 16 }}>
+                  <div style={{ 
+                    background: 'rgba(255, 68, 68, 0.1)', 
+                    border: '1px solid rgba(255, 68, 68, 0.3)', 
+                    padding: 16 
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      marginBottom: 12,
+                      color: '#ff6644',
+                      fontFamily: 'var(--nc-font-display)',
+                      fontSize: 13,
+                      letterSpacing: 1
+                    }}>
+                      <Radar size={16} />
+                      SIGNALS INTEL - LIVE THREAT DATA
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {mission.intel_summary.warnings.map((warning, idx) => (
+                        <div key={idx} style={{ 
+                          color: 'var(--nc-text-secondary)', 
+                          fontSize: 13,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 8
+                        }}>
+                          <AlertTriangle size={14} style={{ color: '#ff6644', marginTop: 2, flexShrink: 0 }} />
+                          <span>{warning}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {mission.intel_summary.dangerous_locations?.length > 0 && (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255, 68, 68, 0.2)' }}>
+                        <div style={{ color: 'var(--nc-text-muted)', fontSize: 11, marginBottom: 6, letterSpacing: 1 }}>
+                          REPORTED HOTSPOTS:
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {mission.intel_summary.dangerous_locations.map((loc, idx) => (
+                            <span key={idx} style={{ 
+                              fontSize: 12, 
+                              padding: '4px 8px', 
+                              background: 'rgba(255, 68, 68, 0.15)',
+                              color: '#ff8866'
+                            }}>
+                              {loc}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
