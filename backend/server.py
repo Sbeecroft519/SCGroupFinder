@@ -960,10 +960,14 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
+    # Apply text moderation to title and description
+    moderated_title = moderate_text(contract.title)
+    moderated_description = moderate_text(contract.description) if contract.description else None
+    
     contract_doc = {
         'id': str(uuid.uuid4()),
-        'title': contract.title,
-        'description': contract.description,
+        'title': moderated_title,
+        'description': moderated_description,
         'compensation_type': contract.compensation_type,
         'split_profits': contract.split_profits or False,
         # Location
