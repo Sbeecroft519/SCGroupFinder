@@ -87,6 +87,12 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/search" className="dropdown-item" data-testid="dropdown-search">
+                  <Search size={14} />
+                  <span>Player Search</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/settings" className="dropdown-item" data-testid="dropdown-settings">
                   <Settings size={14} />
                   <span>Settings</span>
