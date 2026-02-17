@@ -153,6 +153,13 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 4. **Contract descriptions not showing (BUG FIX 4)**: Descriptions were being saved to database but not displayed on contract cards. Added description rendering after contract title in the feed view.
 5. **Basic text moderation (BUG FIX 5)**: Added `moderate_text()` function in backend with ~25 blocked words. Profanity is replaced with asterisks (`****`) when contracts are created.
 
+## New Features Implemented (Feb 17, 2026)
+1. **Admin Roadmap Management**: Updated Admin page with Users/Roadmap tabs. Roadmap items can be added/edited/deleted with STABLE/IN_PROGRESS/PLANNED/BACKLOG statuses. No more crowdfunding/dollar amounts.
+2. **Player-to-Player Profile Lookup**: New `/search` page accessible from user dropdown menu. Search by RSI handle with partial/case-insensitive matching. Results show handle, rank, and reputation with links to profiles.
+3. **Settings About Update**: About section in Settings now matches the public AboutModal content with mission statement and features list.
+4. **Privacy Policy & Terms of Service**: New `/privacy` and `/terms` pages created. Links added to global footer.
+5. **Removed test user profiles**: Cleaned up 4 test user accounts from database, keeping only real user (Mowri).
+
 ## Bug Fixes Applied Previous Session (Feb 5, 2026)
 1. **Missing redemption code UI**: The redemption code input/button was missing from the Settings page. Added the UI to the "About" section with proper styling.
 
