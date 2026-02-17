@@ -1,10 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { playNotification, playAlert } from '../utils/sounds';
 import { API } from '../App';
 
-export const useSSENotifications = (currentUserId) => {
+// Map contract categories to notification filter IDs
+const CATEGORY_TO_FILTER = {
+  'Combat': 'combat',
+  'Medical': 'rescue',
+  'Logistics': 'transport',
+  'Industrial': 'mining',
+  'Other': 'escort'  // Default mapping for "Other"
+};
+
+export const useSSENotifications = (currentUserId, notificationSettings) => {
   const [notifications, setNotifications] = useState([]);
   const [connected, setConnected] = useState(false);
+  // Use ref to always have latest settings without re-creating EventSource
+  const settingsRef = useRef(notificationSettings);
+  
+  // Keep settingsRef updated
+  useEffect(() => {
+    settingsRef.current = notificationSettings;
+  }, [notificationSettings]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -18,6 +34,7 @@ export const useSSENotifications = (currentUserId) => {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        const settings = settingsRef.current || {};
 
         // Ignore pings and connection messages
         if (data.type === 'ping' || data.type === 'connected') return;
@@ -25,6 +42,31 @@ export const useSSENotifications = (currentUserId) => {
         // Check if notification is targeted at specific user
         if (data.target_user_id && data.target_user_id !== currentUserId) {
           return; // Not for this user
+        }
+
+        // === GRANULAR NOTIFICATION FILTERING ===
+        
+        // Filter contract notifications based on user preferences
+        if (data.type === 'new_contract') {
+          // Check if contract alerts are enabled
+          if (settings.contract_alerts === false) {
+            return; // User disabled all contract alerts
+          }
+          
+          // Check if specific contract types are selected
+          const contractTypes = settings.contract_types || [];
+          if (contractTypes.length > 0 && data.category) {
+            // Map the contract category to filter ID
+            const filterType = CATEGORY_TO_FILTER[data.category] || 'escort';
+            if (!contractTypes.includes(filterType)) {
+              return; // User not subscribed to this contract type
+            }
+          }
+        }
+        
+        // Filter intel alerts (threat_alerts in settings)
+        if (data.type === 'intel_alert' && settings.threat_alerts === false) {
+          return; // User disabled threat alerts
         }
 
         // Play appropriate sound
