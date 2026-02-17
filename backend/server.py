@@ -917,7 +917,7 @@ async def analyze_mission(request: IntelRequest):
         salvage_desc = 'Recover materials from derelict ships and debris.'
         if request.system == 'Pyro':
             salvage_desc += ' ⚠️ PYRO: Expect combat over salvage rights!'
-        salvage_desc += pyro_warning
+        salvage_desc += pyro_warning + signals_warning
         
         salvage_locations = {
             'Stanton': 'Comm Array debris fields / Post-battle wrecks',
@@ -925,19 +925,24 @@ async def analyze_mission(request: IntelRequest):
             'Nyx': 'Delamar abandoned outposts'
         }
         
+        intel_summary = None
+        if signals_warnings:
+            intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
+        
         return MissionResponse(
             type='salvage', title='Salvage Operations',
             description=salvage_desc,
             location={'name': f"📍 {request.system} System: {salvage_locations.get(request.system, 'Wreck Sites')}", 'description': 'Fresh combat wrecks near comm arrays. Hull scraping and component recovery.', 'activities': 'Hull Scraping, Components'},
             duration=time_display, reward='20,000 - 80,000 aUEC',
-            risk_level=effective_risk, fallback={'title': 'Reclaimer Crew', 'description': f'Join a salvage ship in {request.system} for guaranteed cuts'}
+            risk_level=effective_risk, fallback={'title': 'Reclaimer Crew', 'description': f'Join a salvage ship in {request.system} for guaranteed cuts'},
+            intel_summary=intel_summary
         )
     
     # FPS
     fps_desc = 'Ground combat operations and bunker clearing.'
     if request.system == 'Pyro':
         fps_desc += ' ⚠️ PYRO: Other players may contest bunkers!'
-    fps_desc += pyro_warning
+    fps_desc += pyro_warning + signals_warning
     
     fps_locations = {
         'Stanton': 'Underground Bunkers (Hurston/microTech)',
@@ -945,12 +950,17 @@ async def analyze_mission(request: IntelRequest):
         'Nyx': 'Levski underground / Delamar facilities'
     }
     
+    intel_summary = None
+    if signals_warnings:
+        intel_summary = {"warnings": signals_warnings, "dangerous_locations": dangerous_locations}
+    
     return MissionResponse(
         type='fps', title='FPS Contracts',
         description=fps_desc,
         location={'name': f"📍 {request.system} System: {fps_locations.get(request.system, 'Underground Bunker')}", 'description': 'Clear hostile occupants. Watch corners, bring meds and extra ammo.', 'activities': 'Bunker Clearing, Defense'},
         duration=time_display, reward='10,000 - 60,000 aUEC',
-        risk_level=effective_risk, fallback={'title': 'Security Detail', 'description': f'Guard duty at {request.system} outposts - steady pay, less action'}
+        risk_level=effective_risk, fallback={'title': 'Security Detail', 'description': f'Guard duty at {request.system} outposts - steady pay, less action'},
+        intel_summary=intel_summary
     )
 
 
