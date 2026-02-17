@@ -18,6 +18,9 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import PlayerSearch from './pages/PlayerSearch';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 import { useContractPolling } from './hooks/useContractPolling';
 
