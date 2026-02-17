@@ -2055,6 +2055,16 @@ async def accept_bid(contract_id: str, bid_id: str, user = Depends(get_current_u
         {'$set': {'status': 'declined'}}
     )
     
+    # Notify the bidder that their bid was accepted (urgent!)
+    await broadcast_notification({
+        "type": "bid_accepted",
+        "sound": "alert",
+        "title": "Bid Accepted!",
+        "message": f"Your bid on '{contract['title']}' was accepted!",
+        "contract_id": contract_id,
+        "target_user_id": bid['bidder_id']
+    })
+    
     return {'message': 'Bid accepted', 'merc_handle': bid['bidder']['handle']}
 
 @api_router.post("/contracts/{contract_id}/bids/{bid_id}/decline")
