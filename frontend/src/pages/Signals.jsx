@@ -527,6 +527,34 @@ export default function Signals() {
         </div>
       </div>
 
+      {/* Report Section */}
+      <div style={{ marginBottom: 28 }}>
+        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 12 }}>
+          REPORT AN ISSUE
+        </h3>
+        <p className="text-muted" style={{ fontSize: 16, marginBottom: 20 }}>
+          Help improve intelligence with one-tap reports
+        </p>
+        <div className="report-grid" data-testid="report-grid">
+          {REPORT_TYPES.map(type => {
+            const Icon = type.icon;
+            return (
+              <button
+                key={type.id}
+                className="report-btn"
+                onClick={() => handleReport(type.id)}
+                data-testid={`report-${type.id}`}
+                style={{ '--hover-color': type.color }}
+              >
+                <Icon className="report-btn-icon" size={24} />
+                <span className="report-btn-label">{type.label}</span>
+                {type.timeSensitive && <span className="report-badge-live">LIVE</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Activity Reliability */}
       <div style={{ marginBottom: 28 }}>
         <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 20 }}>
@@ -591,34 +619,6 @@ export default function Signals() {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Report Section */}
-      <div style={{ marginBottom: 28 }}>
-        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 12 }}>
-          REPORT AN ISSUE
-        </h3>
-        <p className="text-muted" style={{ fontSize: 16, marginBottom: 20 }}>
-          Help improve intelligence with one-tap reports
-        </p>
-        <div className="report-grid" data-testid="report-grid">
-          {REPORT_TYPES.map(type => {
-            const Icon = type.icon;
-            return (
-              <button
-                key={type.id}
-                className="report-btn"
-                onClick={() => handleReport(type.id)}
-                data-testid={`report-${type.id}`}
-                style={{ '--hover-color': type.color }}
-              >
-                <Icon className="report-btn-icon" size={24} />
-                <span className="report-btn-label">{type.label}</span>
-                {type.timeSensitive && <span className="report-badge-live">LIVE</span>}
-              </button>
-            );
-          })}
         </div>
       </div>
 
