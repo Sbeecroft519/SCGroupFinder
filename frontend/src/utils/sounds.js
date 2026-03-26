@@ -21,7 +21,7 @@ const playSound = (key) => {
 
 // Contract category sounds
 export const playContractSound = (category) => {
-  const map = { 'Combat': 'combat', 'Logistics': 'logistics', 'Medical': 'medical' };
+  const map = { 'COMBAT': 'combat', 'Combat': 'combat', 'LOGISTICS': 'logistics', 'Logistics': 'logistics', 'MEDICAL': 'medical', 'Medical': 'medical', 'INDUSTRIAL': 'logistics', 'OTHER': 'logistics' };
   playSound(map[category] || 'logistics');
 };
 

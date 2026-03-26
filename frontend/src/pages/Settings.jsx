@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText, User, Shield } from 'lucide-react';
 import { useAuth, API } from '../App';
 import axios from 'axios';
-import { getSoundEnabled, setSoundEnabled } from '../utils/sounds';
+import { isSoundEnabled } from '../utils/sounds';
 
 const THEMES = [
   { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default NavCom theme' },
@@ -41,7 +41,7 @@ export default function Settings() {
   const [desktopNotifPermission, setDesktopNotifPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
-  const [soundOn, setSoundOn] = useState(getSoundEnabled());
+  const [soundOn, setSoundOn] = useState(isSoundEnabled());
   
   // Redeem code state
   const [redeemCode, setRedeemCode] = useState('');
@@ -69,7 +69,7 @@ export default function Settings() {
   const handleSoundToggle = () => {
     const newValue = !soundOn;
     setSoundOn(newValue);
-    setSoundEnabled(newValue);
+    localStorage.setItem('navcom_sound_enabled', newValue ? 'true' : 'false');
   };
 
   const handleRedeemCode = async () => {
