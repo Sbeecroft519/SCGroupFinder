@@ -1893,6 +1893,32 @@ async def update_theme(data: ThemeUpdate, user = Depends(get_current_user)):
     return {'message': 'Theme updated', 'theme_id': data.theme_id}
 
 
+# ===== Account Deletion =====
+
+class DeleteAccountRequest(BaseModel):
+    confirmation: str  # Must match "DELETE"
+
+@api_router.delete("/user/account")
+async def delete_account(request: DeleteAccountRequest, user = Depends(get_current_user)):
+    """Delete user account - requires confirmation text 'DELETE'"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if request.confirmation != "DELETE":
+        raise HTTPException(status_code=400, detail="Invalid confirmation")
+    
+    user_id = user['id']
+    
+    # Delete user's data
+    await db.contracts.delete_many({'poster_id': user_id})
+    await db.contract_bids.delete_many({'user_id': user_id})
+    await db.reports.delete_many({'user_id': user_id})
+    await db.notification_settings.delete_many({'user_id': user_id})
+    await db.users.delete_one({'id': user_id})
+    
+    return {'message': 'Account deleted'}
+
+
 # ===== Admin Data Reset Routes =====
 
 @api_router.post("/admin/reset-reports")
@@ -1923,23 +1949,32 @@ async def admin_assign_badge(user_id: str, request: BadgeAssignRequest, admin = 
     
     badges = user.get('badges', [])
     supporter_badges = ['SUPPORTER_BRONZE', 'SUPPORTER_SILVER', 'SUPPORTER_GOLD']
+    supporter_tier = 'NONE'
     
     if request.badge_id == 'REMOVE_SUPPORTER' or request.action == 'remove':
         # Remove all supporter badges
         badges = [b for b in badges if b not in supporter_badges]
+        supporter_tier = 'NONE'
     else:
         # Remove existing supporter badge first (only one tier allowed)
         badges = [b for b in badges if b not in supporter_badges]
         # Add new badge
         if request.badge_id not in badges:
             badges.append(request.badge_id)
+        # Set supporter_tier based on badge
+        if request.badge_id == 'SUPPORTER_GOLD':
+            supporter_tier = 'GOLD'
+        elif request.badge_id == 'SUPPORTER_SILVER':
+            supporter_tier = 'SILVER'
+        elif request.badge_id == 'SUPPORTER_BRONZE':
+            supporter_tier = 'BRONZE'
     
     await db.users.update_one(
         {'id': user_id},
-        {'$set': {'badges': badges}}
+        {'$set': {'badges': badges, 'supporter_tier': supporter_tier}}
     )
     
-    return {'message': 'Badge updated', 'badges': badges}
+    return {'message': 'Badge updated', 'badges': badges, 'supporter_tier': supporter_tier}
 
 
 @api_router.post("/redeem-code")

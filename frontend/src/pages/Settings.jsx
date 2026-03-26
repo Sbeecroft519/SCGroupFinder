@@ -33,7 +33,7 @@ const CONTRACT_TYPES = [
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, updateUser, tickerSettings, updateTickerSettings, notificationSettings, updateNotificationSettings, userShard, setShard, setShowShardPrompt } = useAuth();
+  const { user, updateUser, tickerSettings, updateTickerSettings, notificationSettings, updateNotificationSettings, userShard, setShard, setShowShardPrompt, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('alerts');
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar_preset || null);
@@ -47,6 +47,24 @@ export default function Settings() {
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemMessage, setRedeemMessage] = useState('');
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+
+  // Delete account state
+  const [deleteStep, setDeleteStep] = useState(0); // 0=none, 1=confirm, 2=type DELETE
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/user/account`, { data: { confirmation: 'DELETE' } });
+      logout();
+      navigate('/login');
+    } catch (e) {
+      alert('Failed to delete account');
+      setDeleting(false);
+    }
+  };
 
   const handleSoundToggle = () => {
     const newValue = !soundOn;
@@ -165,6 +183,18 @@ export default function Settings() {
           >
             <Info size={18} />
             <span>About</span>
+            <ChevronRight size={16} className="nav-arrow" />
+          </button>
+
+          <div style={{ borderTop: '1px solid var(--nc-border)', margin: '12px 0' }} />
+          
+          <button 
+            className={`settings-nav-item ${activeSection === 'account' ? 'active' : ''}`}
+            onClick={() => setActiveSection('account')}
+            style={{ color: 'var(--nc-red)' }}
+          >
+            <Skull size={18} />
+            <span>Danger Zone</span>
             <ChevronRight size={16} className="nav-arrow" />
           </button>
           
@@ -657,6 +687,133 @@ export default function Settings() {
                     </p>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'account' && (
+            <div className="settings-section">
+              <h2 className="section-title" style={{ color: 'var(--nc-red)' }}>Danger Zone</h2>
+              <p className="section-description">
+                Irreversible account actions. Proceed with caution.
+              </p>
+
+              <div className="nc-card" style={{ border: '1px solid var(--nc-red)', background: 'rgba(255, 0, 68, 0.05)' }}>
+                <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 16, color: 'var(--nc-red)', marginBottom: 12 }}>
+                  DELETE ACCOUNT
+                </h3>
+                <p style={{ color: 'var(--nc-text-secondary)', fontSize: 14, marginBottom: 16 }}>
+                  Permanently delete your account and all associated data including contracts, bids, and reports. This action cannot be undone.
+                </p>
+
+                {deleteStep === 0 && (
+                  <button
+                    onClick={() => setDeleteStep(1)}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'transparent',
+                      border: '1px solid var(--nc-red)',
+                      color: 'var(--nc-red)',
+                      fontFamily: 'var(--nc-font-display)',
+                      fontSize: 13,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    DELETE MY ACCOUNT
+                  </button>
+                )}
+
+                {deleteStep === 1 && (
+                  <div>
+                    <p style={{ color: 'var(--nc-red)', fontSize: 14, marginBottom: 12 }}>
+                      Are you sure? This will permanently delete all your data.
+                    </p>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button
+                        onClick={() => setDeleteStep(2)}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'var(--nc-red)',
+                          border: 'none',
+                          color: '#fff',
+                          fontFamily: 'var(--nc-font-display)',
+                          fontSize: 13,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        YES, DELETE
+                      </button>
+                      <button
+                        onClick={() => setDeleteStep(0)}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'transparent',
+                          border: '1px solid var(--nc-border)',
+                          color: 'var(--nc-text-secondary)',
+                          fontFamily: 'var(--nc-font-display)',
+                          fontSize: 13,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {deleteStep === 2 && (
+                  <div>
+                    <p style={{ color: 'var(--nc-red)', fontSize: 14, marginBottom: 12 }}>
+                      Type <strong>DELETE</strong> to confirm:
+                    </p>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                        style={{
+                          padding: '10px 16px',
+                          background: 'var(--nc-bg-secondary)',
+                          border: '1px solid var(--nc-red)',
+                          color: 'var(--nc-text-primary)',
+                          fontFamily: 'var(--nc-font-mono)',
+                          fontSize: 14,
+                          width: 120
+                        }}
+                      />
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmText !== 'DELETE' || deleting}
+                        style={{
+                          padding: '10px 20px',
+                          background: deleteConfirmText === 'DELETE' ? 'var(--nc-red)' : 'var(--nc-bg-secondary)',
+                          border: 'none',
+                          color: deleteConfirmText === 'DELETE' ? '#fff' : 'var(--nc-text-muted)',
+                          fontFamily: 'var(--nc-font-display)',
+                          fontSize: 13,
+                          cursor: deleteConfirmText === 'DELETE' ? 'pointer' : 'not-allowed'
+                        }}
+                      >
+                        {deleting ? 'DELETING...' : 'CONFIRM DELETE'}
+                      </button>
+                      <button
+                        onClick={() => { setDeleteStep(0); setDeleteConfirmText(''); }}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'transparent',
+                          border: '1px solid var(--nc-border)',
+                          color: 'var(--nc-text-secondary)',
+                          fontFamily: 'var(--nc-font-display)',
+                          fontSize: 13,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
