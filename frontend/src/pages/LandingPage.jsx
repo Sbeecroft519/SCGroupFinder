@@ -196,33 +196,33 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Community Badge */}
       <section style={{ 
-        padding: '80px 40px', 
+        padding: '60px 40px', 
         textAlign: 'center',
         position: 'relative',
         zIndex: 10
       }}>
-        <div className="cta-container">
-          <Shield size={40} style={{ color: 'var(--nc-cyan)', marginBottom: 16 }} />
-          <h2 style={{ 
-            fontFamily: 'var(--nc-font-display)', 
-            fontSize: 22, 
-            color: 'var(--nc-text-primary)',
-            marginBottom: 8
+        <div style={{ 
+          display: 'inline-flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 12,
+          opacity: 0.6
+        }}>
+          <svg width="60" height="60" viewBox="0 0 100 100" fill="none" style={{ opacity: 0.8 }}>
+            <circle cx="50" cy="50" r="48" stroke="#888" strokeWidth="2" fill="none"/>
+            <circle cx="50" cy="50" r="40" stroke="#888" strokeWidth="1" fill="none"/>
+            <path d="M50 15 L55 35 L75 35 L60 48 L65 68 L50 55 L35 68 L40 48 L25 35 L45 35 Z" fill="#888"/>
+          </svg>
+          <span style={{ 
+            fontFamily: 'var(--nc-font-mono)', 
+            fontSize: 11, 
+            color: 'var(--nc-text-muted)',
+            letterSpacing: 2
           }}>
-            Join the Network
-          </h2>
-          <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 24, fontSize: 14 }}>
-            Create your Citizen ID and start connecting today.
-          </p>
-          <button 
-            onClick={() => navigate('/register')}
-            className="landing-btn-primary"
-            style={{ padding: '14px 40px' }}
-          >
-            CREATE ACCOUNT
-          </button>
+            STAR CITIZEN • MADE BY THE COMMUNITY
+          </span>
         </div>
       </section>
 
