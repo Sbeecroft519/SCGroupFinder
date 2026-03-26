@@ -886,7 +886,7 @@ export default function Contracts() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div className="page-label">// NAVCOM_CONNECT</div>
-          <h1 className="page-title">Mercenary Beacons</h1>
+          <h1 className="page-title">Job Board</h1>
           <p className="page-subtitle">Player-to-player contracts and services</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

@@ -15,7 +15,7 @@ import { useAuth } from '../App';
 const NAV_ITEMS = [
   { id: 'intel', label: 'INTEL', icon: Radar, path: '/intel' },
   { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
-  { id: 'contracts', label: 'CONTRACTS', icon: FileText, path: '/contracts' },
+  { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
   { id: 'roadmap', label: 'ROADMAP', icon: Map, path: '/roadmap' },
 ];
 

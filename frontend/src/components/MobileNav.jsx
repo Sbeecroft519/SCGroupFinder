@@ -4,7 +4,7 @@ import { Radar, Activity, FileText, Map, User } from 'lucide-react';
 const NAV_ITEMS = [
   { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
   { id: 'signals', label: 'Signals', icon: Activity, path: '/signals' },
-  { id: 'contracts', label: 'Contracts', icon: FileText, path: '/contracts' },
+  { id: 'contracts', label: 'Job Board', icon: FileText, path: '/contracts' },
   { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
   { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
 ];
