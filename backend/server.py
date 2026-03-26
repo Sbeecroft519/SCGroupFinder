@@ -2436,7 +2436,7 @@ async def acknowledge_accepted_bid(bid_id: str, user = Depends(get_current_user)
 
 @api_router.get("/users/directory")
 async def get_user_directory(user = Depends(get_current_user)):
-    """Get all users for the citizen directory"""
+    """Get all users for the citizen directory with live stats"""
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
@@ -2444,6 +2444,29 @@ async def get_user_directory(user = Depends(get_current_user)):
         {},
         {"_id": 0, "password_hash": 0, "email": 0}
     ).to_list(500)
+    
+    # Enrich each user with live contract stats
+    for u in users:
+        user_id = u.get('id')
+        
+        # Count completed contracts (as poster or mercenary)
+        completed_as_poster = await db.contracts.count_documents({
+            'poster_id': user_id, 
+            'status': 'completed'
+        })
+        completed_as_merc = await db.contracts.count_documents({
+            'accepted_merc_id': user_id,
+            'status': 'completed'
+        })
+        total_completed = completed_as_poster + completed_as_merc
+        
+        # Get all ratings received by this user
+        ratings = await db.contract_ratings.find({'rated_user_id': user_id}).to_list(100)
+        avg_rating = sum(r.get('rating', 0) for r in ratings) / len(ratings) if ratings else 0
+        
+        u['contracts_completed'] = total_completed
+        u['reputation'] = round(avg_rating, 1)
+        u['total_reviews'] = len(ratings)
     
     return users
 

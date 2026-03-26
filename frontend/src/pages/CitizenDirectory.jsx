@@ -40,14 +40,14 @@ const CitizenDirectory = () => {
     .sort((a, b) => {
       let aVal, bVal;
       if (sortBy === 'rank') {
-        aVal = a.rank_points || 0;
-        bVal = b.rank_points || 0;
+        aVal = a.contracts_completed || 0;
+        bVal = b.contracts_completed || 0;
       } else if (sortBy === 'rating') {
-        aVal = a.reputation?.average || 0;
-        bVal = b.reputation?.average || 0;
+        aVal = a.reputation || 0;
+        bVal = b.reputation || 0;
       } else if (sortBy === 'jobs') {
-        aVal = a.reputation?.total_reviews || 0;
-        bVal = b.reputation?.total_reviews || 0;
+        aVal = a.contracts_completed || 0;
+        bVal = b.contracts_completed || 0;
       } else {
         aVal = a.rsi_handle?.toLowerCase() || '';
         bVal = b.rsi_handle?.toLowerCase() || '';
@@ -68,12 +68,13 @@ const CitizenDirectory = () => {
     </th>
   );
 
-  const getRankTitle = (points) => {
-    if (points >= 5000) return 'Admiral';
-    if (points >= 2500) return 'Captain';
-    if (points >= 1000) return 'Commander';
-    if (points >= 500) return 'Lieutenant';
-    if (points >= 100) return 'Ensign';
+  const getRankTitle = (contractsCompleted) => {
+    if (contractsCompleted >= 100) return 'Admiral';
+    if (contractsCompleted >= 50) return 'Captain';
+    if (contractsCompleted >= 25) return 'Commander';
+    if (contractsCompleted >= 10) return 'Lieutenant';
+    if (contractsCompleted >= 5) return 'Freelancer';
+    if (contractsCompleted >= 1) return 'Ensign';
     return 'Recruit';
   };
 
@@ -156,14 +157,14 @@ const CitizenDirectory = () => {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 13 }}>
-                      {getRankTitle(user.rank_points)}
+                      {getRankTitle(user.contracts_completed || 0)}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    {renderStars(Math.round(user.reputation?.average || 0))}
+                    {renderStars(Math.round(user.reputation || 0))}
                   </td>
                   <td style={{ padding: '12px 16px', color: 'var(--nc-text-secondary)' }}>
-                    {user.reputation?.total_reviews || 0}
+                    {user.contracts_completed || 0}
                   </td>
                 </tr>
               ))}
