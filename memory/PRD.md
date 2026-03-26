@@ -167,7 +167,6 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ### P2 - Medium Priority
 - [ ] Refactor Contracts.jsx into smaller components
 - [ ] Extract clipboard utility to shared function
-- [ ] Implement locked themes (Scavenger, Luxury, MilSpec)
 - [ ] Org/group support
 - [ ] Fleet manager
 
@@ -192,6 +191,7 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 7. **Granular Contract Notifications**: Users can filter which contract types trigger notifications. Settings > Push Notifications has toggle buttons for: Escort, Rescue/Medical, Transport, Mining Support, Combat/Security.
 8. **Pyro & Nyx Location Fallbacks**: UEXcorp API only returns Stanton POIs. Added fallback locations for Pyro (10 locations) and Nyx (6 locations) so all three systems have selectable locations in the Signals report form.
 9. **Alert Description Field**: Added optional description textarea (max 150 chars) to alert submission form with profanity filter. Description displayed in alert ticker feed.
+10. **Theme System Implementation**: Unlocked all 4 themes (MobiGlass, Scavenger, Luxury, MilSpec). Each theme has unique color schemes defined in CSS variables. Theme selection persists to database and applies via data-theme attribute on document root.
 
 ## Bug Fixes Applied Previous Session (Feb 5, 2026)
 1. **Missing redemption code UI**: The redemption code input/button was missing from the Settings page. Added the UI to the "About" section with proper styling.

@@ -107,6 +107,16 @@ function App() {
     }
   }, [token]);
 
+  // Apply theme based on user preference
+  useEffect(() => {
+    const themeId = user?.theme_id || 'default';
+    if (themeId === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', themeId);
+    }
+  }, [user?.theme_id]);
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {

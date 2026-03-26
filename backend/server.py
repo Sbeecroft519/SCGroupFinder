@@ -1874,6 +1874,25 @@ async def update_avatar(data: AvatarUpdate, user = Depends(get_current_user)):
     return {'message': 'Avatar updated', 'avatar_url': avatar_url}
 
 
+class ThemeUpdate(BaseModel):
+    theme_id: str
+
+@api_router.put("/user/theme")
+async def update_theme(data: ThemeUpdate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    valid_themes = ['default', 'scavenger', 'luxury', 'milspec']
+    if data.theme_id not in valid_themes:
+        raise HTTPException(status_code=400, detail="Invalid theme")
+    
+    await db.users.update_one(
+        {'id': user['id']},
+        {'$set': {'theme_id': data.theme_id}}
+    )
+    return {'message': 'Theme updated', 'theme_id': data.theme_id}
+
+
 # ===== Admin Data Reset Routes =====
 
 @api_router.post("/admin/reset-reports")

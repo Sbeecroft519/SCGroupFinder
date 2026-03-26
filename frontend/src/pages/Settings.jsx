@@ -86,9 +86,14 @@ export default function Settings() {
     }
   };
 
-  const handleThemeChange = (themeId) => {
+  const handleThemeChange = async (themeId) => {
     setSelectedTheme(themeId);
     updateUser({ theme_id: themeId });
+    try {
+      await axios.put(`${API}/user/theme`, { theme_id: themeId });
+    } catch (err) {
+      console.error('Failed to save theme:', err);
+    }
   };
 
   const handleAvatarChange = async (preset) => {
@@ -335,7 +340,7 @@ export default function Settings() {
             <div className="settings-section">
               <h2 className="section-title">Theme Selection</h2>
               <p className="section-description">
-                Choose your preferred visual theme. Supporter themes coming soon!
+                Choose your preferred visual theme for the NavCom interface.
               </p>
               <div className="theme-grid">
                 {THEMES.map(theme => (
@@ -343,7 +348,6 @@ export default function Settings() {
                     key={theme.id}
                     className={`theme-card ${selectedTheme === theme.id ? 'active' : ''}`}
                     onClick={() => handleThemeChange(theme.id)}
-                    disabled={theme.id !== 'default'}
                     data-testid={`theme-${theme.id}`}
                   >
                     <div 
@@ -361,9 +365,6 @@ export default function Settings() {
                     </div>
                     {selectedTheme === theme.id && (
                       <Check size={18} className="theme-check" />
-                    )}
-                    {theme.id !== 'default' && (
-                      <span className="theme-locked">COMING SOON</span>
                     )}
                   </button>
                 ))}
