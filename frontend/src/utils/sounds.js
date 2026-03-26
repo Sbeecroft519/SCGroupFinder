@@ -3,9 +3,12 @@ const SOUNDS = {
   combat: new Audio('/sounds/combat_contract.mp3'),
   logistics: new Audio('/sounds/logistics_contract.mp3'),
   medical: new Audio('/sounds/medical_contract.mp3'),
+  industrial: new Audio('/sounds/industrial_contract.mp3'),
   threat: new Audio('/sounds/threat_reported.mp3'),
   issue: new Audio('/sounds/server_issue.mp3'),
   stability: new Audio('/sounds/stability.mp3'),
+  bid: new Audio('/sounds/mercenary_bid.mp3'),
+  bidAccepted: new Audio('/sounds/bid_accepted.mp3'),
   login: new Audio('/sounds/login_success.mp3'),
 };
 
@@ -27,7 +30,7 @@ export const playContractSound = (category) => {
     'COMBAT': 'combat', 
     'LOGISTICS': 'logistics', 
     'MEDICAL': 'medical', 
-    'INDUSTRIAL': 'logistics', 
+    'INDUSTRIAL': 'industrial', 
     'OTHER': 'logistics' 
   };
   playSound(map[category?.toUpperCase()] || 'logistics');
@@ -41,6 +44,10 @@ export const playIssueSound = () => playSound('issue');
 
 // Stability sound (lag, desync, 30K)
 export const playStabilitySound = () => playSound('stability');
+
+// Bid sounds
+export const playBidSound = () => playSound('bid');
+export const playBidAcceptedSound = () => playSound('bidAccepted');
 
 // Login success sound
 export const playLoginSound = () => playSound('login');
