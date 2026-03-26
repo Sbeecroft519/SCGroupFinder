@@ -4,6 +4,7 @@ const SOUNDS = {
   logistics: new Audio('/sounds/logistics_contract.mp3'),
   medical: new Audio('/sounds/medical_contract.mp3'),
   threat: new Audio('/sounds/threat_reported.mp3'),
+  issue: new Audio('/sounds/server_issue.mp3'),
   login: new Audio('/sounds/login_success.mp3'),
 };
 
@@ -21,12 +22,21 @@ const playSound = (key) => {
 
 // Contract category sounds
 export const playContractSound = (category) => {
-  const map = { 'COMBAT': 'combat', 'Combat': 'combat', 'LOGISTICS': 'logistics', 'Logistics': 'logistics', 'MEDICAL': 'medical', 'Medical': 'medical', 'INDUSTRIAL': 'logistics', 'OTHER': 'logistics' };
-  playSound(map[category] || 'logistics');
+  const map = { 
+    'COMBAT': 'combat', 
+    'LOGISTICS': 'logistics', 
+    'MEDICAL': 'medical', 
+    'INDUSTRIAL': 'logistics', 
+    'OTHER': 'logistics' 
+  };
+  playSound(map[category?.toUpperCase()] || 'logistics');
 };
 
 // Alert/threat sound
 export const playThreatSound = () => playSound('threat');
+
+// Server issue sound (lag, bugs, cargo issues)
+export const playIssueSound = () => playSound('issue');
 
 // Login success sound
 export const playLoginSound = () => playSound('login');

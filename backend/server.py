@@ -1203,13 +1203,23 @@ async def create_report(report: ReportCreate, user = Depends(get_current_user)):
     }
     await db.reports.insert_one(report_doc)
     
-    # Broadcast intel alert for high-priority reports
+    # Broadcast intel alert for high-priority reports (threats)
     if report.type in ['pirates', 'pvp']:
         await broadcast_notification({
             "type": "intel_alert",
+            "report_type": report.type,
             "sound": "alert",
             "title": "⚠️ Intel Alert",
             "message": f"{report.type.upper()} reported at {report.location}"
+        })
+    # Broadcast for server/mission issues
+    elif report.type in ['lag', 'mission_bug', 'cargo_bug']:
+        await broadcast_notification({
+            "type": "intel_alert",
+            "report_type": report.type,
+            "sound": "notification",
+            "title": "Server Issue Reported",
+            "message": f"{report.type.replace('_', ' ').title()} at {report.location or report.system}"
         })
     
     # Broadcast via WebSocket for real-time notifications
