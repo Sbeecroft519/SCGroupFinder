@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { API } from '../App';
+import { getUserRank } from '../constants/ranks';
 
 const CitizenDirectory = () => {
   const navigate = useNavigate();
@@ -67,16 +68,6 @@ const CitizenDirectory = () => {
       </div>
     </th>
   );
-
-  const getRankTitle = (contractsCompleted) => {
-    if (contractsCompleted >= 100) return 'Admiral';
-    if (contractsCompleted >= 50) return 'Captain';
-    if (contractsCompleted >= 25) return 'Commander';
-    if (contractsCompleted >= 10) return 'Lieutenant';
-    if (contractsCompleted >= 5) return 'Freelancer';
-    if (contractsCompleted >= 1) return 'Ensign';
-    return 'Recruit';
-  };
 
   const renderStars = (rating) => {
     const stars = [];
@@ -156,8 +147,12 @@ const CitizenDirectory = () => {
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 13 }}>
-                      {getRankTitle(user.contracts_completed || 0)}
+                    <span style={{ 
+                      fontFamily: 'var(--nc-font-display)', 
+                      fontSize: 13,
+                      color: getUserRank(user.contracts_completed || 0).color 
+                    }}>
+                      {getUserRank(user.contracts_completed || 0).name}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
