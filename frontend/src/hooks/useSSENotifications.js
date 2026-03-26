@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { playContractSound, playThreatSound, playIssueSound } from '../utils/sounds';
+import { playContractSound, playThreatSound, playIssueSound, playStabilitySound } from '../utils/sounds';
 import { API } from '../App';
 
 // Map contract categories to notification filter IDs
@@ -73,11 +73,11 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
         if (data.type === 'new_contract' && data.category) {
           playContractSound(data.category);
         } else if (data.type === 'intel_alert') {
-          // Threat alerts: pirates, pvp
           if (data.report_type === 'pirates' || data.report_type === 'pvp') {
             playThreatSound();
+          } else if (data.report_type === 'lag') {
+            playStabilitySound();
           } else {
-            // Server issues: lag, mission_bug, cargo_bug
             playIssueSound();
           }
         } else if (data.sound === 'alert') {

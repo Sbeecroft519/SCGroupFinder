@@ -5,6 +5,7 @@ const SOUNDS = {
   medical: new Audio('/sounds/medical_contract.mp3'),
   threat: new Audio('/sounds/threat_reported.mp3'),
   issue: new Audio('/sounds/server_issue.mp3'),
+  stability: new Audio('/sounds/stability.mp3'),
   login: new Audio('/sounds/login_success.mp3'),
 };
 
@@ -35,8 +36,11 @@ export const playContractSound = (category) => {
 // Alert/threat sound
 export const playThreatSound = () => playSound('threat');
 
-// Server issue sound (lag, bugs, cargo issues)
+// Server issue sound (mission bug, cargo issues)
 export const playIssueSound = () => playSound('issue');
+
+// Stability sound (lag, desync, 30K)
+export const playStabilitySound = () => playSound('stability');
 
 // Login success sound
 export const playLoginSound = () => playSound('login');
