@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { id: 'intel', label: 'INTEL', icon: Radar, path: '/intel' },
   { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
   { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
+  { id: 'directory', label: 'DIRECTORY', icon: Users, path: '/directory' },
   { id: 'roadmap', label: 'ROADMAP', icon: Map, path: '/roadmap' },
 ];
 

@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User } from 'lucide-react';
+import { Radar, Activity, FileText, Map, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
   { id: 'signals', label: 'Signals', icon: Activity, path: '/signals' },
-  { id: 'contracts', label: 'Job Board', icon: FileText, path: '/contracts' },
+  { id: 'contracts', label: 'Jobs', icon: FileText, path: '/contracts' },
+  { id: 'directory', label: 'Directory', icon: Users, path: '/directory' },
   { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
-  { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
 ];
 
 export const MobileNav = () => {

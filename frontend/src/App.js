@@ -22,6 +22,8 @@ import Admin from './pages/Admin';
 import PlayerSearch from './pages/PlayerSearch';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import LandingPage from './pages/LandingPage';
+import CitizenDirectory from './pages/CitizenDirectory';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 import { useContractPolling } from './hooks/useContractPolling';
 
@@ -62,7 +64,7 @@ const ProtectedRoute = ({ children }) => {
 // Home redirect
 const Home = () => {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <LandingPage />;
   return <Navigate to="/intel" replace />;
 };
 
@@ -251,8 +253,8 @@ function App() {
         <BrowserRouter>
           {/* Only show tickers when logged in */}
           {user && <AlertTicker userShard={userShard} tickerSettings={tickerSettings} />}
-          <Header user={user} onLogout={logout} userShard={userShard} onShardClick={() => setShowShardPrompt(true)} />
-          <main className="navcom-main">
+          {user && <Header user={user} onLogout={logout} userShard={userShard} onShardClick={() => setShowShardPrompt(true)} />}
+          <main className={user ? "navcom-main" : ""}>
             {/* Onboarding Carousel for first-time users */}
             {showOnboarding && user && (
               <OnboardingCarousel 
@@ -333,6 +335,7 @@ function App() {
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><PlayerSearch /></ProtectedRoute>} />
+              <Route path="/directory" element={<ProtectedRoute><CitizenDirectory /></ProtectedRoute>} />
             </Routes>
             
             {/* Footer - shown when logged in */}

@@ -2434,6 +2434,20 @@ async def acknowledge_accepted_bid(bid_id: str, user = Depends(get_current_user)
 
 # ===== User Search Endpoint =====
 
+@api_router.get("/users/directory")
+async def get_user_directory(user = Depends(get_current_user)):
+    """Get all users for the citizen directory"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    users = await db.users.find(
+        {},
+        {"_id": 0, "password_hash": 0, "email": 0}
+    ).to_list(500)
+    
+    return users
+
+
 @api_router.get("/users/search")
 async def search_users(q: str):
     """Search for users by RSI handle (case-insensitive partial match)"""
