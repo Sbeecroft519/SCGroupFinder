@@ -42,6 +42,9 @@ export default function Settings() {
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [popupsEnabled, setPopupsEnabled] = useState(
+    localStorage.getItem('navcom_popups_enabled') !== 'false'
+  );
   
   // Redeem code state
   const [redeemCode, setRedeemCode] = useState('');
@@ -450,15 +453,18 @@ export default function Settings() {
                     </span>
                   </div>
                   {desktopNotifPermission === 'granted' ? (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 6, 
-                      color: 'var(--nc-green)', 
-                      fontFamily: 'var(--nc-font-mono)', 
-                      fontSize: 11 
-                    }}>
-                      <Check size={14} /> ENABLED
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div 
+                        className={`toggle-switch ${popupsEnabled ? 'active' : ''}`}
+                        onClick={() => {
+                          const newVal = !popupsEnabled;
+                          setPopupsEnabled(newVal);
+                          localStorage.setItem('navcom_popups_enabled', newVal ? 'true' : 'false');
+                        }}
+                        data-testid="popup-notif-toggle"
+                      >
+                        <div className="toggle-thumb" />
+                      </div>
                     </div>
                   ) : desktopNotifPermission === 'denied' ? (
                     <div style={{ 
