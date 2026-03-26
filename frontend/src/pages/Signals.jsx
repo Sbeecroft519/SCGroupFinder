@@ -529,8 +529,8 @@ export default function Signals() {
 
       {/* Report Section */}
       <div style={{ marginBottom: 28 }}>
-        <h3 className="font-mono text-muted uppercase tracking-wide" style={{ fontSize: 18, marginBottom: 12 }}>
-          REPORT AN ISSUE
+        <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, marginBottom: 12, color: 'var(--nc-cyan)', letterSpacing: 2 }}>
+          MAKE A REPORT
         </h3>
         <p className="text-muted" style={{ fontSize: 16, marginBottom: 20 }}>
           Help improve intelligence with one-tap reports
