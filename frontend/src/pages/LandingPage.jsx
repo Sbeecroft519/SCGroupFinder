@@ -203,27 +203,14 @@ const LandingPage = () => {
         position: 'relative',
         zIndex: 10
       }}>
-        <div style={{ 
-          display: 'inline-flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 12,
-          opacity: 0.6
-        }}>
-          <svg width="60" height="60" viewBox="0 0 100 100" fill="none" style={{ opacity: 0.8 }}>
-            <circle cx="50" cy="50" r="48" stroke="#888" strokeWidth="2" fill="none"/>
-            <circle cx="50" cy="50" r="40" stroke="#888" strokeWidth="1" fill="none"/>
-            <path d="M50 15 L55 35 L75 35 L60 48 L65 68 L50 55 L35 68 L40 48 L25 35 L45 35 Z" fill="#888"/>
-          </svg>
-          <span style={{ 
-            fontFamily: 'var(--nc-font-mono)', 
-            fontSize: 11, 
-            color: 'var(--nc-text-muted)',
-            letterSpacing: 2
-          }}>
-            STAR CITIZEN • MADE BY THE COMMUNITY
-          </span>
-        </div>
+        <img 
+          src="https://customer-assets.emergentagent.com/job_space-contracts/artifacts/cs2lc5r9_ola6jl4j_MadeByTheCommunity_White.png"
+          alt="Star Citizen - Made by the Community"
+          style={{ 
+            height: 80,
+            opacity: 0.5
+          }}
+        />
       </section>
 
       {/* Footer */}
