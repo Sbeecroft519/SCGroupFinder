@@ -8,10 +8,12 @@ const LandingPage = () => {
   const [showAbout, setShowAbout] = useState(false);
 
   const features = [
-    { icon: Star, title: 'Two-Way Reputation System', desc: 'Rate and review contractors and mercenaries. Build trust through verified job history.', color: '#FFD700' },
+    { icon: Star, title: 'Two-Way Reputation System', desc: 'Rate and review contractors and mercenaries. Build trust through verified job history and player ratings.', color: '#FFD700' },
     { icon: FileText, title: 'Community-Driven Job Board', desc: 'Post contracts, bid on jobs, and connect with skilled pilots across the verse.', color: '#00F0FF' },
-    { icon: Users, title: 'Friend Finder', desc: 'Discover like-minded citizens. Search by specialization, rating, or availability.', color: '#00FF88' },
-    { icon: Radio, title: 'Real-Time Intel', desc: 'Live threat alerts, server status, and crowd-sourced stability reports.', color: '#FF6600' },
+    { icon: Users, title: 'Citizen Directory', desc: 'Find pilots and mercenaries by specialization, rating, rank, or availability.', color: '#00FF88' },
+    { icon: Radio, title: 'Real-Time Intel & Alerts', desc: 'Shard-specific and global alerts powered by player-led reporting. Know before you go.', color: '#FF6600' },
+    { icon: Zap, title: 'Live Threat Reporting', desc: 'Report pirates, PvP activity, server issues, and bugs. Help the community stay informed.', color: '#FF0044' },
+    { icon: Target, title: 'Mission Advisor', desc: 'AI-powered mission recommendations based on your ship, playstyle, and current server conditions.', color: '#AA00FF' },
   ];
 
   const screenshots = [
@@ -118,34 +120,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Screenshots Carousel */}
-      <section style={{ 
-        padding: '40px 40px 80px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: 24, 
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          maxWidth: 1200,
-          margin: '0 auto'
-        }}>
-          {screenshots.map((shot, i) => (
-            <div key={i} className="screenshot-card">
-              <img src={shot.src} alt={shot.title} />
-              <div className="screenshot-overlay">
-                <h4>{shot.title}</h4>
-                <p>{shot.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Features */}
-      <section style={{ padding: '60px 40px', position: 'relative', zIndex: 10 }}>
+      <section style={{ padding: '60px 40px 40px', position: 'relative', zIndex: 10 }}>
         <h2 style={{ 
           fontFamily: 'var(--nc-font-display)', 
           fontSize: 12, 
@@ -179,6 +155,42 @@ const LandingPage = () => {
               <p style={{ fontSize: 13, color: 'var(--nc-text-secondary)', lineHeight: 1.6 }}>
                 {f.desc}
               </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Screenshots */}
+      <section style={{ 
+        padding: '40px 40px 80px',
+        position: 'relative',
+        zIndex: 10
+      }}>
+        <h2 style={{ 
+          fontFamily: 'var(--nc-font-display)', 
+          fontSize: 12, 
+          color: 'var(--nc-cyan)',
+          textAlign: 'center',
+          marginBottom: 40,
+          letterSpacing: 4
+        }}>
+          // SEE IT IN ACTION
+        </h2>
+        <div style={{ 
+          display: 'flex', 
+          gap: 24, 
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          maxWidth: 1200,
+          margin: '0 auto'
+        }}>
+          {screenshots.map((shot, i) => (
+            <div key={i} className="screenshot-card">
+              <img src={shot.src} alt={shot.title} />
+              <div className="screenshot-overlay">
+                <h4>{shot.title}</h4>
+                <p>{shot.desc}</p>
+              </div>
             </div>
           ))}
         </div>
