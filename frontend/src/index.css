@@ -125,30 +125,30 @@
 
 /* ===== MilSpec Theme (Military Red) ===== */
 [data-theme="milspec"] {
-  --nc-bg-primary: #080406;
-  --nc-bg-secondary: #140a0c;
-  --nc-bg-card: #1c0e12;
-  --nc-bg-elevated: #241418;
+  --nc-bg-primary: #0a0404;
+  --nc-bg-secondary: #140808;
+  --nc-bg-card: #1a0c0c;
+  --nc-bg-elevated: #221010;
   
-  --nc-cyan: #ff0044;
-  --nc-cyan-dim: #aa0033;
-  --nc-cyan-glow: rgba(255, 0, 68, 0.3);
-  --nc-gold: #ff4466;
-  --nc-gold-glow: rgba(255, 68, 102, 0.3);
-  --nc-green: #00ff66;
-  --nc-red: #ff0044;
-  --nc-orange: #ff6633;
-  --nc-yellow: #ffcc00;
+  --nc-cyan: #cc0000;
+  --nc-cyan-dim: #880000;
+  --nc-cyan-glow: rgba(200, 0, 0, 0.3);
+  --nc-gold: #ff2222;
+  --nc-gold-glow: rgba(255, 34, 34, 0.3);
+  --nc-green: #00cc44;
+  --nc-red: #cc0000;
+  --nc-orange: #cc4400;
+  --nc-yellow: #ccaa00;
   
-  --nc-text-primary: #ffe0e8;
-  --nc-text-secondary: #b08090;
-  --nc-text-muted: #705060;
+  --nc-text-primary: #ffdddd;
+  --nc-text-secondary: #aa7777;
+  --nc-text-muted: #664444;
   
-  --nc-border: #3a1a24;
-  --nc-border-active: #ff0044;
+  --nc-border: #331515;
+  --nc-border-active: #cc0000;
   
-  --nc-glow-cyan: 0 0 10px rgba(255, 0, 68, 0.5), 0 0 20px rgba(255, 0, 68, 0.2);
-  --nc-glow-gold: 0 0 10px rgba(255, 68, 102, 0.5), 0 0 20px rgba(255, 68, 102, 0.2);
+  --nc-glow-cyan: 0 0 10px rgba(200, 0, 0, 0.5), 0 0 20px rgba(200, 0, 0, 0.2);
+  --nc-glow-gold: 0 0 10px rgba(255, 34, 34, 0.5), 0 0 20px rgba(255, 34, 34, 0.2);
 }
 
 /* ===== Base Styles ===== */
