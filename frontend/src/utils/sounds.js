@@ -1,37 +1,38 @@
-// Sound notification utilities
-// Preload audio files
-const notificationSound = typeof Audio !== 'undefined' ? new Audio('/sounds/UI_1.mp3') : null;
-const alertSound = typeof Audio !== 'undefined' ? new Audio('/sounds/UI_2.mp3') : null;
-
-// Set volume (0.0 to 1.0)
-if (notificationSound) notificationSound.volume = 0.5;
-if (alertSound) alertSound.volume = 0.6;
-
-// Get user preference from localStorage
-export const isSoundEnabled = () => {
-  return localStorage.getItem('navcom_sound_enabled') !== 'false';
+// Sound effects for NavCom
+const SOUNDS = {
+  combat: new Audio('/sounds/combat_contract.mp3'),
+  logistics: new Audio('/sounds/logistics_contract.mp3'),
+  medical: new Audio('/sounds/medical_contract.mp3'),
+  threat: new Audio('/sounds/threat_reported.mp3'),
+  login: new Audio('/sounds/login_success.mp3'),
 };
 
-// Play functions
-export const playNotification = () => {
-  if (isSoundEnabled() && notificationSound) {
-    notificationSound.currentTime = 0;
-    notificationSound.play().catch(() => {}); // Ignore autoplay errors
+// Set volumes
+Object.values(SOUNDS).forEach(s => s.volume = 0.5);
+
+const playSound = (key) => {
+  if (localStorage.getItem('navcom_sound_enabled') === 'false') return;
+  const sound = SOUNDS[key];
+  if (sound) {
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
   }
 };
 
-export const playAlert = () => {
-  if (isSoundEnabled() && alertSound) {
-    alertSound.currentTime = 0;
-    alertSound.play().catch(() => {}); // Ignore autoplay errors
-  }
+// Contract category sounds
+export const playContractSound = (category) => {
+  const map = { 'Combat': 'combat', 'Logistics': 'logistics', 'Medical': 'medical' };
+  playSound(map[category] || 'logistics');
 };
 
-// Toggle sound preference
-export const setSoundEnabled = (enabled) => {
-  localStorage.setItem('navcom_sound_enabled', enabled.toString());
-};
+// Alert/threat sound
+export const playThreatSound = () => playSound('threat');
 
-export const getSoundEnabled = () => {
-  return localStorage.getItem('navcom_sound_enabled') !== 'false';
-};
+// Login success sound
+export const playLoginSound = () => playSound('login');
+
+// Legacy exports (for backwards compatibility)
+export const playNotification = () => playSound('logistics');
+export const playAlert = () => playSound('threat');
+
+export const isSoundEnabled = () => localStorage.getItem('navcom_sound_enabled') !== 'false';

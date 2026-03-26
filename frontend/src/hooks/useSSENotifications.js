@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { playNotification, playAlert } from '../utils/sounds';
+import { playContractSound, playThreatSound } from '../utils/sounds';
 import { API } from '../App';
 
 // Map contract categories to notification filter IDs
@@ -69,11 +69,15 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
           return; // User disabled threat alerts
         }
 
-        // Play appropriate sound
-        if (data.sound === 'alert') {
-          playAlert();
+        // Play appropriate sound based on notification type
+        if (data.type === 'new_contract' && data.category) {
+          playContractSound(data.category);
+        } else if (data.type === 'intel_alert') {
+          playThreatSound();
+        } else if (data.sound === 'alert') {
+          playThreatSound();
         } else if (data.sound === 'notification') {
-          playNotification();
+          playContractSound('Logistics'); // Default
         }
 
         // Add to notifications list

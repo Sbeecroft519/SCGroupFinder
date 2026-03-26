@@ -8,6 +8,7 @@ import QuickActionsFAB from './components/QuickActionsFAB';
 import AlertTicker from './components/AlertTicker';
 import OnboardingCarousel from './components/OnboardingCarousel';
 import Footer from './components/Footer';
+import { playLoginSound } from './utils/sounds';
 import Intel from './pages/Intel';
 import Signals from './pages/Signals';
 import Contracts from './pages/Contracts';
@@ -167,6 +168,7 @@ function App() {
     localStorage.setItem('navcom_token', newToken);
     setToken(newToken);
     setUser(userData);
+    playLoginSound();
     
     // Check if first time user
     const onboardingDone = localStorage.getItem('navcom_onboarding_done');
