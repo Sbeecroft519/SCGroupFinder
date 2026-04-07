@@ -115,6 +115,14 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] Search by title/description
 - [x] "YOUR BROADCAST IS LIVE" banner for active broadcast
 - [x] All comprehensive data-testid attributes for testing
+- [x] **Quick Match Feature**:
+  - [x] Ship-to-activity mapping for all 29 ships
+  - [x] Multi-select activity preferences
+  - [x] Region preference filter
+  - [x] Match scoring algorithm (activity +10, region +3, available now +2)
+  - [x] Excludes own broadcasts, deprioritizes already-hailed
+  - [x] Preferences persist to user profile
+  - [x] Collapsible Quick Match panel with results display
 
 ### ADMIN Panel - COMPLETE
 - [x] Goals CRUD
@@ -200,6 +208,17 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
    - Backend: GET/POST /api/lounge/broadcasts, POST /api/lounge/broadcasts/{id}/hail, POST /api/lounge/broadcasts/{id}/close
    - Frontend: /lounge route with comprehensive data-testid attributes
    - All tests passed (15/15 backend, 100% frontend verified)
+
+2. **Quick Match Feature**: AI-powered broadcast matching based on ship and preferences
+   - Ship-to-activity mapping for all 29 ships (e.g., Prospector→mining, Cutlass Black→combat/trade/crew)
+   - Multi-select activity preferences (Mining, Combat, Trade, Exploration, Crew, Vibing, PvP, Org)
+   - Region preference filter
+   - Match scoring algorithm: activity match (+10), region match (+3), available now (+2), low responses (+1)
+   - Excludes user's own broadcasts, deprioritizes already-hailed broadcasts
+   - Preferences persist to user profile
+   - Backend: POST /api/lounge/quick-match, PUT/GET /api/user/lounge-preferences
+   - Frontend: Collapsible Quick Match panel with ship dropdown, activity toggles, results display
+   - All tests passed (20/20 backend, 100% frontend verified)
 
 ## Bug Fixes Applied This Session (Feb 17, 2026)
 1. **Multi-crew contracts not completing (BUG FIX 1)**: The `mark-complete` endpoint only accepted `in_progress` status, but contracts accepted via the `/accept` endpoint are set to `active`. Fixed to accept both statuses.
