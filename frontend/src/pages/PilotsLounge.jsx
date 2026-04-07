@@ -91,7 +91,7 @@ const PilotsLounge = () => {
 
   return (
     <div className="page-container" data-testid="pilots-lounge-page">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p className="page-label">// OPEN_COMMS</p>
           <h1 className="page-title">Pilot's Lounge</h1>
@@ -109,7 +109,7 @@ const PilotsLounge = () => {
       </div>
 
       {userBroadcast && (
-        <div className="nc-card" style={{ marginBottom: 20, border: '1px solid var(--nc-cyan)', background: 'rgba(0,240,255,0.05)' }} data-testid="your-active-broadcast">
+        <div className="nc-card" style={{ marginBottom: 24, border: '1px solid var(--nc-cyan)', background: 'rgba(0,240,255,0.05)' }} data-testid="your-active-broadcast">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-display)', fontSize: 12, letterSpacing: 2 }}>
               YOUR ACTIVE BROADCAST
@@ -122,7 +122,7 @@ const PilotsLounge = () => {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--nc-text-muted)' }} />
           <input className="nc-input" placeholder="Search broadcasts..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: 36, width: '100%' }} data-testid="search-input" />
