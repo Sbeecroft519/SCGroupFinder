@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Radio } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Radio, ChevronDown, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,21 +12,26 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import NotificationBell from './NotificationBell';
 import { useAuth } from '../App';
 
-const NAV_ITEMS = [
-  { id: 'intel', label: 'INTEL', icon: Radar, path: '/intel' },
+const MAIN_NAV = [
   { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
   { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
-  { id: 'directory', label: 'DIRECTORY', icon: Users, path: '/directory' },
-  { id: 'lounge', label: 'LOUNGE', icon: Radio, path: '/lounge' },
-  { id: 'roadmap', label: 'ROADMAP', icon: Map, path: '/roadmap' },
+  { id: 'lounge', label: 'LOUNGE (LFG)', icon: Radio, path: '/lounge' },
+];
+
+const OTHER_TOOLS = [
+  { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
+  { id: 'directory', label: 'Directory', icon: Users, path: '/directory' },
+  { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
 ];
 
 export const Header = ({ user, onLogout, userShard, onShardClick }) => {
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const { notificationSettings } = useAuth();
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isOtherToolActive = OTHER_TOOLS.some(t => isActive(t.path));
 
   const getInitials = (handle) => {
     if (!handle) return 'NC';
@@ -35,15 +40,13 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
 
   return (
     <header className="navcom-header" data-testid="navcom-header">
-      {/* Logo */}
       <Link to="/" className="navcom-logo" data-testid="navcom-logo">
         <span className="logo-text">NAVCOM</span>
         <span className="logo-subtitle">MISSION ADVISOR</span>
       </Link>
 
-      {/* Navigation */}
       <nav className="navcom-nav" data-testid="navcom-nav">
-        {NAV_ITEMS.map((item) => {
+        {MAIN_NAV.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
           return (
@@ -58,9 +61,31 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
             </Link>
           );
         })}
+        
+        <DropdownMenu open={toolsOpen} onOpenChange={setToolsOpen}>
+          <DropdownMenuTrigger asChild>
+            <button className={`nav-item tools-trigger ${isOtherToolActive ? 'active' : ''}`} data-testid="nav-other-tools">
+              <MoreHorizontal className="nav-icon" size={16} />
+              <span className="nav-label">OTHER TOOLS</span>
+              <ChevronDown size={12} style={{ marginLeft: 4, opacity: 0.7 }} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="navcom-dropdown tools-dropdown" align="start">
+            {OTHER_TOOLS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <DropdownMenuItem key={item.id} asChild>
+                  <Link to={item.path} className={`dropdown-item ${isActive(item.path) ? 'active' : ''}`} data-testid={`nav-${item.id}`}>
+                    <Icon size={14} />
+                    <span>{item.label}</span>
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
 
-      {/* Avatar Dropdown */}
       <div className="navcom-avatar-area" data-testid="avatar-area">
         {userShard && (
           <button className="shard-display" onClick={onShardClick} title="Click to change shard">

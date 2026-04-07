@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Radio, Search, Clock, Users, Globe, MessageCircle, X, Zap, Coffee, Headphones, Sparkles, ChevronDown, ChevronUp, Rocket } from 'lucide-react';
+import { Radio, Search, Clock, Users, Globe, MessageCircle, X, Zap } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -12,16 +12,6 @@ const ACTIVITY_TAGS = [
   { id: 'vibing', label: 'Just Vibing', icon: '☕', color: '#A855F7' },
   { id: 'pvp', label: 'PvP / Arena', icon: '⚔️', color: '#FF6600' },
   { id: 'org', label: 'Org Op', icon: '🏛️', color: '#3B82F6' },
-];
-
-const SHIPS = [
-  "Aurora MR", "Aurora CL", "Mustang Alpha", "C8X Pisces Expedition", "Cutter",
-  "Avenger Titan", "Nomad", "Cutlass Black", "Freelancer", "Freelancer MAX",
-  "Spirit C1", "Zeus Mk II CL", "Mercury Star Runner", "Raft",
-  "Constellation Andromeda", "Constellation Taurus", "Corsair",
-  "Caterpillar", "C2 Hercules", "M2 Hercules", "A2 Hercules",
-  "Hull A", "Hull C", "Carrack", "890 Jump",
-  "Vulture", "Reclaimer", "Prospector", "MOLE"
 ];
 
 const SERVER_REGIONS = ['Any', 'US', 'EU', 'AUS'];
@@ -40,32 +30,12 @@ const PilotsLounge = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userBroadcast, setUserBroadcast] = useState(null);
-  
-  // Quick Match state
-  const [showQuickMatch, setShowQuickMatch] = useState(false);
-  const [quickMatchShip, setQuickMatchShip] = useState('');
-  const [quickMatchActivities, setQuickMatchActivities] = useState([]);
-  const [quickMatchRegion, setQuickMatchRegion] = useState('Any');
-  const [quickMatchResults, setQuickMatchResults] = useState(null);
-  const [quickMatchLoading, setQuickMatchLoading] = useState(false);
 
   useEffect(() => {
     fetchBroadcasts();
-    loadQuickMatchPrefs();
     const interval = setInterval(fetchBroadcasts, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const loadQuickMatchPrefs = async () => {
-    try {
-      const res = await axios.get(`${API}/user/lounge-preferences`);
-      if (res.data) {
-        setQuickMatchShip(res.data.ship || '');
-        setQuickMatchActivities(res.data.preferred_activities || []);
-        setQuickMatchRegion(res.data.region || 'Any');
-      }
-    } catch (e) { console.error(e); }
-  };
 
   const fetchBroadcasts = async () => {
     try {
@@ -75,36 +45,6 @@ const PilotsLounge = () => {
       setUserBroadcast(mine || null);
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
-
-  const runQuickMatch = async () => {
-    setQuickMatchLoading(true);
-    try {
-      // Save preferences
-      await axios.put(`${API}/user/lounge-preferences`, {
-        ship: quickMatchShip || null,
-        preferred_activities: quickMatchActivities,
-        region: quickMatchRegion
-      });
-      
-      // Run matching
-      const res = await axios.post(`${API}/lounge/quick-match`, {
-        ship: quickMatchShip || null,
-        preferred_activities: quickMatchActivities,
-        region: quickMatchRegion
-      });
-      setQuickMatchResults(res.data);
-    } catch (e) { 
-      console.error(e);
-      alert('Failed to find matches');
-    }
-    setQuickMatchLoading(false);
-  };
-
-  const toggleQuickMatchActivity = (actId) => {
-    setQuickMatchActivities(prev => 
-      prev.includes(actId) ? prev.filter(a => a !== actId) : [...prev, actId]
-    );
   };
 
   const filtered = broadcasts.filter(b => {
@@ -128,10 +68,7 @@ const PilotsLounge = () => {
       await axios.post(`${API}/lounge/broadcasts/${id}/hail`);
       fetchBroadcasts();
     } catch (e) { 
-      console.error(e);
-      if (e.response?.data?.detail) {
-        alert(e.response.data.detail);
-      }
+      if (e.response?.data?.detail) alert(e.response.data.detail);
     }
   };
 
@@ -154,298 +91,104 @@ const PilotsLounge = () => {
 
   return (
     <div className="page-container" data-testid="pilots-lounge-page">
-      {/* Lounge Header */}
-      <div className="lounge-header" data-testid="lounge-header">
-        <div className="lounge-title-section">
-          <div className="lounge-icon-wrap">
-            <Headphones size={28} />
-          </div>
-          <div>
-            <p className="lounge-eyebrow">// OPEN_COMMS</p>
-            <h1 className="lounge-title">Pilot's Lounge</h1>
-            <p className="lounge-subtitle">
-              <Coffee size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-              {sorted.length} pilots broadcasting • casual grouping • no contracts
-            </p>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button 
-            className={`quick-match-toggle ${showQuickMatch ? 'active' : ''}`}
-            onClick={() => setShowQuickMatch(!showQuickMatch)}
-            data-testid="quick-match-toggle"
-          >
-            <Sparkles size={16} /> Quick Match
-            {showQuickMatch ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          <button 
-            className="broadcast-btn"
-            onClick={() => setShowCreateModal(true)}
-            disabled={!!userBroadcast}
-            data-testid="broadcast-btn"
-          >
-            <Radio size={18} /> 
-            <span>Broadcast</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Match Panel */}
-      {showQuickMatch && (
-        <div className="quick-match-panel" data-testid="quick-match-panel">
-          <div className="quick-match-header">
-            <Sparkles size={18} />
-            <span>Quick Match</span>
-            <p>Find broadcasts that match your ship and play style</p>
-          </div>
-          
-          <div className="quick-match-form">
-            <div className="qm-row">
-              <div className="qm-field">
-                <label>YOUR SHIP</label>
-                <select 
-                  value={quickMatchShip} 
-                  onChange={e => setQuickMatchShip(e.target.value)}
-                  data-testid="qm-ship-select"
-                >
-                  <option value="">Any Ship</option>
-                  {SHIPS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="qm-field">
-                <label>PREFERRED REGION</label>
-                <select 
-                  value={quickMatchRegion} 
-                  onChange={e => setQuickMatchRegion(e.target.value)}
-                  data-testid="qm-region-select"
-                >
-                  {SERVER_REGIONS.map(r => <option key={r} value={r}>{r === 'Any' ? 'Any Region' : r}</option>)}
-                </select>
-              </div>
-            </div>
-            
-            <div className="qm-field">
-              <label>INTERESTED IN (select multiple)</label>
-              <div className="qm-activities">
-                {ACTIVITY_TAGS.map(tag => (
-                  <button
-                    key={tag.id}
-                    className={`qm-activity-btn ${quickMatchActivities.includes(tag.id) ? 'active' : ''}`}
-                    onClick={() => toggleQuickMatchActivity(tag.id)}
-                    style={{ '--act-color': tag.color }}
-                    data-testid={`qm-activity-${tag.id}`}
-                  >
-                    {tag.icon} {tag.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <button 
-              className="qm-find-btn" 
-              onClick={runQuickMatch}
-              disabled={quickMatchLoading}
-              data-testid="qm-find-btn"
-            >
-              {quickMatchLoading ? 'Scanning...' : (
-                <><Rocket size={16} /> Find Matches</>
-              )}
-            </button>
-          </div>
-          
-          {/* Quick Match Results */}
-          {quickMatchResults && (
-            <div className="qm-results" data-testid="qm-results">
-              <div className="qm-results-header">
-                <span>{quickMatchResults.matches.length} matches found</span>
-                {quickMatchResults.compatible_activities?.length > 0 && (
-                  <span className="qm-compat">
-                    Compatible: {quickMatchResults.compatible_activities.map(a => 
-                      ACTIVITY_TAGS.find(t => t.id === a)?.icon
-                    ).join(' ')}
-                  </span>
-                )}
-              </div>
-              {quickMatchResults.matches.length === 0 ? (
-                <p className="qm-no-results">No matching broadcasts right now. Try broadening your preferences or check back later!</p>
-              ) : (
-                <div className="qm-matches">
-                  {quickMatchResults.matches.map(b => {
-                    const tag = getTag(b.activity);
-                    return (
-                      <div key={b.id} className="qm-match-card" style={{ '--card-accent': tag.color }}>
-                        <div className="qm-match-top">
-                          <span className="qm-match-tag" style={{ background: tag.color }}>{tag.icon} {tag.label}</span>
-                          <span className="qm-match-score">⭐ {b.match_score} pts</span>
-                        </div>
-                        <div className="qm-match-handle">{b.handle}</div>
-                        <div className="qm-match-title">{b.title}</div>
-                        <div className="qm-match-reasons">
-                          {b.match_reasons?.map((r, i) => <span key={i}>{r}</span>)}
-                        </div>
-                        <button 
-                          onClick={() => handleHail(b.id)} 
-                          className="qm-hail-btn"
-                          data-testid={`qm-hail-${b.id}`}
-                        >
-                          📡 Hail Pilot
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* User's Active Broadcast Banner */}
-      {userBroadcast && (
-        <div className="your-broadcast-banner" data-testid="your-active-broadcast">
-          <div className="your-broadcast-content">
-            <Radio size={18} className="pulse-icon" />
-            <div>
-              <span className="your-broadcast-label">YOUR BROADCAST IS LIVE</span>
-              <p className="your-broadcast-title">{userBroadcast.title}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => handleClose(userBroadcast.id)} 
-            className="close-comms-btn"
-            data-testid="close-comms-btn"
-          >
-            Close Comms
-          </button>
-        </div>
-      )}
-
-      {/* Filters Row */}
-      <div className="lounge-filters" data-testid="lounge-filters">
-        <div className="search-box">
-          <Search size={16} />
-          <input 
-            placeholder="Search broadcasts..." 
-            value={searchQuery} 
-            onChange={e => setSearchQuery(e.target.value)} 
-            data-testid="search-input"
-          />
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <p className="page-label">// OPEN_COMMS</p>
+          <h1 className="page-title">Pilot's Lounge</h1>
+          <p className="page-subtitle">{sorted.length} pilots broadcasting • casual grouping • no contracts</p>
         </div>
         <button 
-          className={`filter-btn ${availableNowOnly ? 'active' : ''}`} 
-          onClick={() => setAvailableNowOnly(!availableNowOnly)}
-          data-testid="available-now-filter"
+          className="nc-btn nc-btn-primary"
+          onClick={() => setShowCreateModal(true)}
+          disabled={!!userBroadcast}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          data-testid="broadcast-btn"
         >
+          <Radio size={16} /> Broadcast on Open Comms
+        </button>
+      </div>
+
+      {userBroadcast && (
+        <div className="nc-card" style={{ marginBottom: 20, border: '1px solid var(--nc-cyan)', background: 'rgba(0,240,255,0.05)' }} data-testid="your-active-broadcast">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-display)', fontSize: 12, letterSpacing: 2 }}>
+              YOUR ACTIVE BROADCAST
+            </span>
+            <button onClick={() => handleClose(userBroadcast.id)} className="nc-btn nc-btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} data-testid="close-comms-btn">
+              Close Comms
+            </button>
+          </div>
+          <p style={{ marginTop: 8, color: 'var(--nc-text-primary)' }}>{userBroadcast.title}</p>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--nc-text-muted)' }} />
+          <input className="nc-input" placeholder="Search broadcasts..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: 36, width: '100%' }} data-testid="search-input" />
+        </div>
+        <button className={`nc-btn ${availableNowOnly ? 'nc-btn-primary' : 'nc-btn-secondary'}`} onClick={() => setAvailableNowOnly(!availableNowOnly)} style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-testid="available-now-filter">
           <Zap size={14} /> Available Now
         </button>
-        <select 
-          value={regionFilter} 
-          onChange={e => setRegionFilter(e.target.value)} 
-          className="filter-select"
-          data-testid="region-filter"
-        >
+        <select className="nc-input" value={regionFilter} onChange={e => setRegionFilter(e.target.value)} style={{ width: 'auto' }} data-testid="region-filter">
           {SERVER_REGIONS.map(r => <option key={r} value={r}>{r === 'Any' ? 'All Regions' : r}</option>)}
         </select>
-        <select 
-          value={sortBy} 
-          onChange={e => setSortBy(e.target.value)} 
-          className="filter-select"
-          data-testid="sort-select"
-        >
+        <select className="nc-input" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width: 'auto' }} data-testid="sort-select">
           <option value="newest">Newest</option>
           <option value="expiring">Expiring Soon</option>
           <option value="popular">Most Responses</option>
         </select>
       </div>
 
-      {/* Activity Tags */}
-      <div className="activity-tags-row" data-testid="activity-tags">
-        <button 
-          className={`activity-chip ${activeFilter === 'all' ? 'active' : ''}`} 
-          onClick={() => setActiveFilter('all')}
-          data-testid="filter-all"
-        >
-          All
-        </button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }} data-testid="activity-tags">
+        <button className={`activity-tag ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')} data-testid="filter-all">All</button>
         {ACTIVITY_TAGS.map(tag => (
-          <button 
-            key={tag.id} 
-            className={`activity-chip ${activeFilter === tag.id ? 'active' : ''}`} 
-            onClick={() => setActiveFilter(tag.id)} 
-            style={{ '--chip-color': tag.color }}
-            data-testid={`filter-${tag.id}`}
-          >
+          <button key={tag.id} className={`activity-tag ${activeFilter === tag.id ? 'active' : ''}`} onClick={() => setActiveFilter(tag.id)} style={{ '--tag-color': tag.color }} data-testid={`filter-${tag.id}`}>
             {tag.icon} {tag.label}
           </button>
         ))}
       </div>
 
-      {/* Broadcasts Grid */}
       {loading ? (
-        <div className="lounge-empty" data-testid="loading-state">
-          <Radio size={48} className="scan-icon" />
-          <p>Scanning frequencies...</p>
-        </div>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--nc-text-muted)' }} data-testid="loading-state">Scanning frequencies...</div>
       ) : sorted.length === 0 ? (
-        <div className="lounge-empty" data-testid="empty-state">
-          <Radio size={48} />
-          <p>No signals detected on this frequency.</p>
-          <span>Adjust your filters or broadcast your own.</span>
+        <div className="nc-card" style={{ textAlign: 'center', padding: 60 }} data-testid="empty-state">
+          <Radio size={48} style={{ color: 'var(--nc-text-muted)', marginBottom: 16 }} />
+          <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 8 }}>No signals detected on this frequency.</p>
+          <p style={{ color: 'var(--nc-text-muted)', fontSize: 13 }}>Adjust your filters or broadcast your own.</p>
         </div>
       ) : (
-        <div className="broadcasts-grid" data-testid="broadcasts-grid">
+        <div style={{ display: 'grid', gap: 16 }} data-testid="broadcasts-grid">
           {sorted.map(b => {
             const tag = getTag(b.activity);
             const isOwn = b.user_id === user?.id;
             const hasHailed = b.hailers?.includes(user?.id);
             return (
-              <div 
-                key={b.id} 
-                className="broadcast-card" 
-                style={{ '--card-accent': tag.color }}
-                data-testid={`broadcast-card-${b.id}`}
-              >
-                <div className="broadcast-top">
-                  <span className="broadcast-tag" style={{ background: tag.color }}>
-                    {tag.icon} {tag.label}
-                  </span>
-                  <span className="broadcast-time">
-                    <Clock size={12} /> {getTimeRemaining(b.expires_at)}
-                  </span>
+              <div key={b.id} className="nc-card broadcast-card" style={{ '--tag-color': tag.color }} data-testid={`broadcast-card-${b.id}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ background: tag.color, color: '#000', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-display)' }}>
+                      {tag.icon} {tag.label}
+                    </span>
+                    <span style={{ color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-display)', fontSize: 13 }}>{b.handle}</span>
+                  </div>
+                  <span style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}><Clock size={12} style={{ verticalAlign: 'middle' }} /> {getTimeRemaining(b.expires_at)}</span>
                 </div>
-                
-                <div className="broadcast-handle">{b.handle}</div>
-                <h3 className="broadcast-title">{b.title}</h3>
-                {b.description && <p className="broadcast-desc">{b.description}</p>}
-                
-                <div className="broadcast-meta">
-                  <span><Clock size={13} /> {b.available_from} — {b.available_until}</span>
-                  <span><Users size={13} /> {b.group_size}</span>
-                  {b.region !== 'Any' && <span><Globe size={13} /> {b.region}</span>}
+                <h3 style={{ fontSize: 16, color: 'var(--nc-text-primary)', marginBottom: 8, fontFamily: 'var(--nc-font-display)' }}>{b.title}</h3>
+                {b.description && <p style={{ color: 'var(--nc-text-secondary)', fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>{b.description}</p>}
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12, fontSize: 13, color: 'var(--nc-text-muted)' }}>
+                  <span><Clock size={14} style={{ verticalAlign: 'middle' }} /> {b.available_from} — {b.available_until}</span>
+                  <span><Users size={14} style={{ verticalAlign: 'middle' }} /> {b.group_size}</span>
+                  {b.region !== 'Any' && <span><Globe size={14} style={{ verticalAlign: 'middle' }} /> {b.region}</span>}
                 </div>
-                
-                <div className="broadcast-footer">
-                  <span className="response-count">
-                    <MessageCircle size={14} /> {b.responses} {b.responses === 1 ? 'response' : 'responses'}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--nc-border)', paddingTop: 12 }}>
+                  <span style={{ color: 'var(--nc-text-muted)', fontSize: 13 }}><MessageCircle size={14} style={{ verticalAlign: 'middle' }} /> {b.responses} responses</span>
                   {isOwn ? (
-                    <button 
-                      onClick={() => handleClose(b.id)} 
-                      className="card-btn secondary"
-                      data-testid={`close-btn-${b.id}`}
-                    >
-                      Close Comms
-                    </button>
+                    <button onClick={() => handleClose(b.id)} className="nc-btn nc-btn-secondary" style={{ padding: '8px 16px' }} data-testid={`close-btn-${b.id}`}>Close Comms</button>
                   ) : hasHailed ? (
-                    <span className="hailed-badge" data-testid={`hailed-badge-${b.id}`}>✓ HAIL SENT</span>
+                    <span style={{ color: 'var(--nc-green)', fontFamily: 'var(--nc-font-display)', fontSize: 12 }} data-testid={`hailed-badge-${b.id}`}>✓ HAIL SENT</span>
                   ) : (
-                    <button 
-                      onClick={() => handleHail(b.id)} 
-                      className="card-btn primary"
-                      data-testid={`hail-btn-${b.id}`}
-                    >
-                      📡 Hail Pilot
-                    </button>
+                    <button onClick={() => handleHail(b.id)} className="nc-btn nc-btn-primary" style={{ padding: '8px 16px' }} data-testid={`hail-btn-${b.id}`}>📡 Hail Pilot</button>
                   )}
                 </div>
               </div>
@@ -454,378 +197,11 @@ const PilotsLounge = () => {
         </div>
       )}
 
-      {showCreateModal && (
-        <CreateBroadcastModal 
-          onClose={() => setShowCreateModal(false)} 
-          onCreated={() => { setShowCreateModal(false); fetchBroadcasts(); }} 
-        />
-      )}
+      {showCreateModal && <CreateBroadcastModal onClose={() => setShowCreateModal(false)} onCreated={() => { setShowCreateModal(false); fetchBroadcasts(); }} />}
 
       <style>{`
-        .lounge-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          flex-wrap: wrap;
-          gap: 20px;
-          margin-bottom: 24px;
-          padding-bottom: 24px;
-          border-bottom: 1px solid rgba(0, 240, 255, 0.1);
-        }
-        .lounge-title-section {
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-        }
-        .lounge-icon-wrap {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(168, 85, 247, 0.15));
-          border: 1px solid rgba(0, 240, 255, 0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--nc-cyan);
-        }
-        .lounge-eyebrow {
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          letter-spacing: 2px;
-          margin: 0 0 4px 0;
-        }
-        .lounge-title {
-          font-family: var(--nc-font-display);
-          font-size: 28px;
-          color: var(--nc-text-primary);
-          margin: 0;
-          letter-spacing: 1px;
-        }
-        .lounge-subtitle {
-          color: var(--nc-text-muted);
-          font-size: 13px;
-          margin: 6px 0 0 0;
-        }
-        .header-actions {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .quick-match-toggle {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 18px;
-          background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(99, 102, 241, 0.1));
-          border: 1px solid rgba(168, 85, 247, 0.5);
-          color: #A855F7;
-          font-family: var(--nc-font-display);
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .quick-match-toggle:hover, .quick-match-toggle.active {
-          background: rgba(168, 85, 247, 0.3);
-          box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
-        }
-        .broadcast-btn {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
-          border: 1px solid var(--nc-cyan);
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 13px;
-          letter-spacing: 1px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .broadcast-btn:hover:not(:disabled) {
-          background: rgba(0, 240, 255, 0.3);
-          box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-        }
-        .broadcast-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        
-        /* Quick Match Panel */
-        .quick-match-panel {
-          background: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(99, 102, 241, 0.05));
-          border: 1px solid rgba(168, 85, 247, 0.3);
-          padding: 20px;
-          margin-bottom: 24px;
-        }
-        .quick-match-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-          color: #A855F7;
-        }
-        .quick-match-header span {
-          font-family: var(--nc-font-display);
-          font-size: 14px;
-          letter-spacing: 1px;
-        }
-        .quick-match-header p {
-          width: 100%;
-          margin: 4px 0 0 0;
-          font-size: 13px;
-          color: var(--nc-text-muted);
-        }
-        .quick-match-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .qm-row {
-          display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-        .qm-field {
-          flex: 1;
-          min-width: 200px;
-        }
-        .qm-field label {
-          display: block;
-          color: var(--nc-text-muted);
-          font-family: var(--nc-font-display);
-          font-size: 10px;
-          letter-spacing: 2px;
-          margin-bottom: 6px;
-        }
-        .qm-field select {
-          width: 100%;
-          padding: 10px 12px;
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-primary);
-          font-size: 13px;
-        }
-        .qm-activities {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .qm-activity-btn {
-          padding: 8px 12px;
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-secondary);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .qm-activity-btn:hover {
-          border-color: var(--act-color);
-        }
-        .qm-activity-btn.active {
-          border-color: var(--act-color);
-          background: rgba(168, 85, 247, 0.15);
-          color: var(--nc-text-primary);
-        }
-        .qm-find-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 14px;
-          background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(99, 102, 241, 0.2));
-          border: 1px solid #A855F7;
-          color: #fff;
-          font-family: var(--nc-font-display);
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .qm-find-btn:hover:not(:disabled) {
-          background: rgba(168, 85, 247, 0.5);
-          box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-        }
-        .qm-find-btn:disabled {
-          opacity: 0.6;
-        }
-        
-        /* Quick Match Results */
-        .qm-results {
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid rgba(168, 85, 247, 0.2);
-        }
-        .qm-results-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-          font-family: var(--nc-font-display);
-          font-size: 13px;
-          color: var(--nc-text-secondary);
-        }
-        .qm-compat {
-          font-size: 16px;
-        }
-        .qm-no-results {
-          color: var(--nc-text-muted);
-          font-size: 13px;
-          text-align: center;
-          padding: 20px;
-        }
-        .qm-matches {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 12px;
-        }
-        .qm-match-card {
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          padding: 14px;
-          transition: all 0.2s;
-        }
-        .qm-match-card:hover {
-          border-color: var(--card-accent);
-        }
-        .qm-match-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-        .qm-match-tag {
-          padding: 3px 8px;
-          font-family: var(--nc-font-display);
-          font-size: 10px;
-          color: #000;
-        }
-        .qm-match-score {
-          color: #FFB800;
-          font-size: 12px;
-        }
-        .qm-match-handle {
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-        }
-        .qm-match-title {
-          color: var(--nc-text-primary);
-          font-size: 14px;
-          margin: 4px 0 8px 0;
-        }
-        .qm-match-reasons {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 12px;
-        }
-        .qm-match-reasons span {
-          font-size: 10px;
-          padding: 2px 6px;
-          background: rgba(0, 240, 255, 0.1);
-          border: 1px solid rgba(0, 240, 255, 0.2);
-          color: var(--nc-cyan);
-        }
-        .qm-hail-btn {
-          width: 100%;
-          padding: 10px;
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
-          border: 1px solid var(--nc-cyan);
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .qm-hail-btn:hover {
-          background: rgba(0, 240, 255, 0.3);
-        }
-        
-        .your-broadcast-banner {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), rgba(168, 85, 247, 0.05));
-          border: 1px solid var(--nc-cyan);
-          margin-bottom: 24px;
-        }
-        .your-broadcast-content {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-        .pulse-icon {
-          color: var(--nc-cyan);
-          animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .your-broadcast-label {
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          letter-spacing: 2px;
-          display: block;
-        }
-        .your-broadcast-title {
-          color: var(--nc-text-primary);
-          margin: 4px 0 0 0;
-          font-size: 14px;
-        }
-        .close-comms-btn {
-          padding: 8px 16px;
-          background: transparent;
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-secondary);
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .close-comms-btn:hover {
-          border-color: #FF4444;
-          color: #FF4444;
-        }
-        
-        .lounge-filters {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 20px;
-          flex-wrap: wrap;
-        }
-        .search-box {
-          position: relative;
-          flex: 1;
-          min-width: 200px;
-        }
-        .search-box svg {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--nc-text-muted);
-        }
-        .search-box input {
-          width: 100%;
-          padding: 10px 12px 10px 38px;
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-primary);
-          font-size: 14px;
-        }
-        .search-box input:focus {
-          border-color: var(--nc-cyan);
-          outline: none;
-        }
-        .filter-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 16px;
+        .activity-tag {
+          padding: 6px 12px;
           background: var(--nc-bg-card);
           border: 1px solid var(--nc-border);
           color: var(--nc-text-secondary);
@@ -834,184 +210,10 @@ const PilotsLounge = () => {
           cursor: pointer;
           transition: all 0.2s;
         }
-        .filter-btn:hover {
-          border-color: var(--nc-cyan);
-          color: var(--nc-text-primary);
-        }
-        .filter-btn.active {
-          background: rgba(0, 240, 255, 0.1);
-          border-color: var(--nc-cyan);
-          color: var(--nc-cyan);
-        }
-        .filter-select {
-          padding: 10px 12px;
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-primary);
-          font-size: 13px;
-          cursor: pointer;
-        }
-        
-        .activity-tags-row {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-        }
-        .activity-chip {
-          padding: 8px 14px;
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-secondary);
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .activity-chip:hover {
-          border-color: var(--chip-color, var(--nc-cyan));
-          color: var(--nc-text-primary);
-        }
-        .activity-chip.active {
-          border-color: var(--chip-color, var(--nc-cyan));
-          background: rgba(0, 240, 255, 0.1);
-          color: var(--nc-text-primary);
-        }
-        
-        .lounge-empty {
-          text-align: center;
-          padding: 80px 20px;
-          color: var(--nc-text-muted);
-        }
-        .lounge-empty svg {
-          margin-bottom: 16px;
-          opacity: 0.5;
-        }
-        .lounge-empty p {
-          color: var(--nc-text-secondary);
-          margin-bottom: 8px;
-        }
-        .lounge-empty span {
-          font-size: 13px;
-        }
-        .scan-icon {
-          animation: scan 1.5s infinite;
-        }
-        @keyframes scan {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-15deg); }
-          75% { transform: rotate(15deg); }
-        }
-        
-        .broadcasts-grid {
-          display: grid;
-          gap: 16px;
-        }
-        .broadcast-card {
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          padding: 20px;
-          transition: all 0.2s;
-        }
-        .broadcast-card:hover {
-          border-color: var(--card-accent);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-        .broadcast-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-        .broadcast-tag {
-          padding: 4px 10px;
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          color: #000;
-          letter-spacing: 0.5px;
-        }
-        .broadcast-time {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: var(--nc-text-muted);
-          font-size: 12px;
-        }
-        .broadcast-handle {
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 13px;
-          margin-bottom: 6px;
-        }
-        .broadcast-title {
-          color: var(--nc-text-primary);
-          font-family: var(--nc-font-display);
-          font-size: 16px;
-          margin: 0 0 8px 0;
-        }
-        .broadcast-desc {
-          color: var(--nc-text-secondary);
-          font-size: 14px;
-          line-height: 1.5;
-          margin: 0 0 12px 0;
-        }
-        .broadcast-meta {
-          display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-          font-size: 13px;
-          color: var(--nc-text-muted);
-        }
-        .broadcast-meta span {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .broadcast-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 16px;
-          border-top: 1px solid var(--nc-border);
-        }
-        .response-count {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: var(--nc-text-muted);
-          font-size: 13px;
-        }
-        .card-btn {
-          padding: 10px 18px;
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .card-btn.primary {
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
-          border: 1px solid var(--nc-cyan);
-          color: var(--nc-cyan);
-        }
-        .card-btn.primary:hover {
-          background: rgba(0, 240, 255, 0.3);
-        }
-        .card-btn.secondary {
-          background: transparent;
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-secondary);
-        }
-        .card-btn.secondary:hover {
-          border-color: #FF4444;
-          color: #FF4444;
-        }
-        .hailed-badge {
-          color: var(--nc-green, #00CC66);
-          font-family: var(--nc-font-display);
-          font-size: 12px;
-          letter-spacing: 1px;
-        }
+        .activity-tag:hover { border-color: var(--tag-color, var(--nc-cyan)); color: var(--nc-text-primary); }
+        .activity-tag.active { border-color: var(--tag-color, var(--nc-cyan)); background: rgba(0,240,255,0.1); color: var(--nc-text-primary); }
+        .broadcast-card { transition: border-color 0.2s; }
+        .broadcast-card:hover { border-color: var(--tag-color); }
       `}</style>
     </div>
   );
@@ -1045,285 +247,75 @@ const CreateBroadcastModal = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div className="modal-overlay" data-testid="create-broadcast-modal">
-      <div className="modal-content">
-        <div className="modal-header">
-          <div>
-            <p className="modal-eyebrow">// OPEN_COMMS</p>
-            <h2 className="modal-title">Broadcast on Open Comms</h2>
-          </div>
-          <button onClick={onClose} className="modal-close" data-testid="modal-close-btn">
-            <X size={20} />
-          </button>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} data-testid="create-broadcast-modal">
+      <div className="nc-card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, color: 'var(--nc-cyan)' }}>Broadcast on Open Comms</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--nc-text-muted)', cursor: 'pointer' }} data-testid="modal-close-btn"><X size={20} /></button>
         </div>
 
-        <div className="form-section">
-          <label className="form-label">ACTIVITY TYPE</label>
-          <div className="activity-select">
+        <div style={{ marginBottom: 16 }}>
+          <label className="nc-label">ACTIVITY TYPE</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {ACTIVITY_TAGS.map(tag => (
-              <button 
-                key={tag.id} 
-                onClick={() => setActivity(tag.id)} 
-                className={`activity-option ${activity === tag.id ? 'active' : ''}`} 
-                style={{ '--opt-color': tag.color }}
-                data-testid={`activity-${tag.id}`}
-              >
+              <button key={tag.id} onClick={() => setActivity(tag.id)} className={`activity-tag ${activity === tag.id ? 'active' : ''}`} style={{ '--tag-color': tag.color }} data-testid={`activity-${tag.id}`}>
                 {tag.icon} {tag.label}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="form-section">
-          <label className="form-label">BROADCAST TITLE</label>
-          <input 
-            className="form-input" 
-            value={title} 
-            onChange={e => setTitle(e.target.value)} 
-            maxLength={80} 
-            placeholder="e.g. Need a gunner for my Hammerhead"
-            data-testid="broadcast-title-input"
-          />
-          <span className="char-count">{title.length}/80</span>
+        <div style={{ marginBottom: 16 }}>
+          <label className="nc-label">BROADCAST TITLE</label>
+          <input className="nc-input" value={title} onChange={e => setTitle(e.target.value)} maxLength={80} placeholder="e.g. Need a gunner for my Hammerhead" style={{ width: '100%' }} data-testid="broadcast-title-input" />
+          <span style={{ fontSize: 11, color: 'var(--nc-text-muted)' }}>{title.length}/80</span>
         </div>
 
-        <div className="form-section">
-          <label className="form-label">DETAILS (optional)</label>
-          <textarea 
-            className="form-input" 
-            value={description} 
-            onChange={e => setDescription(e.target.value)} 
-            maxLength={280} 
-            rows={3} 
-            placeholder="What are you doing? What do you need?"
-            data-testid="broadcast-description-input"
-          />
-          <span className="char-count">{description.length}/280</span>
+        <div style={{ marginBottom: 16 }}>
+          <label className="nc-label">DETAILS (optional)</label>
+          <textarea className="nc-input" value={description} onChange={e => setDescription(e.target.value)} maxLength={280} rows={3} placeholder="What are you doing? What do you need?" style={{ width: '100%', resize: 'none' }} data-testid="broadcast-description-input" />
+          <span style={{ fontSize: 11, color: 'var(--nc-text-muted)' }}>{description.length}/280</span>
         </div>
 
-        <div className="form-row">
-          <div className="form-section half">
-            <label className="form-label">AVAILABLE FROM</label>
-            <select 
-              className="form-input" 
-              value={fromTime} 
-              onChange={e => setFromTime(e.target.value)}
-              data-testid="available-from-select"
-            >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div>
+            <label className="nc-label">AVAILABLE FROM</label>
+            <select className="nc-input" value={fromTime} onChange={e => setFromTime(e.target.value)} style={{ width: '100%' }} data-testid="available-from-select">
               {AVAILABILITY_FROM.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
-          <div className="form-section half">
-            <label className="form-label">AVAILABLE UNTIL</label>
-            <select 
-              className="form-input" 
-              value={untilTime} 
-              onChange={e => setUntilTime(e.target.value)}
-              data-testid="available-until-select"
-            >
+          <div>
+            <label className="nc-label">AVAILABLE UNTIL</label>
+            <select className="nc-input" value={untilTime} onChange={e => setUntilTime(e.target.value)} style={{ width: '100%' }} data-testid="available-until-select">
               {AVAILABILITY_UNTIL.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-section half">
-            <label className="form-label">GROUP SIZE</label>
-            <select 
-              className="form-input" 
-              value={groupSize} 
-              onChange={e => setGroupSize(e.target.value)}
-              data-testid="group-size-select"
-            >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div>
+            <label className="nc-label">GROUP SIZE</label>
+            <select className="nc-input" value={groupSize} onChange={e => setGroupSize(e.target.value)} style={{ width: '100%' }} data-testid="group-size-select">
               {GROUP_SIZES.map(g => <option key={g}>{g}</option>)}
             </select>
           </div>
-          <div className="form-section half">
-            <label className="form-label">SERVER REGION</label>
-            <select 
-              className="form-input" 
-              value={region} 
-              onChange={e => setRegion(e.target.value)}
-              data-testid="region-select"
-            >
+          <div>
+            <label className="nc-label">SERVER REGION</label>
+            <select className="nc-input" value={region} onChange={e => setRegion(e.target.value)} style={{ width: '100%' }} data-testid="region-select">
               {SERVER_REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
         </div>
 
-        <div className="expiry-notice">
-          <Clock size={14} />
-          <span>Your broadcast auto-expires when your availability window ends or after 4 hours max. You can close comms manually at any time.</span>
-        </div>
+        <p style={{ fontSize: 12, color: 'var(--nc-text-muted)', marginBottom: 16, padding: 12, background: 'var(--nc-bg-secondary)', border: '1px solid var(--nc-border)' }}>
+          Your broadcast auto-expires when your availability window ends or after 4 hours max.
+        </p>
 
-        <button 
-          onClick={handleSubmit} 
-          disabled={!canSubmit} 
-          className="submit-btn"
-          data-testid="submit-broadcast-btn"
-        >
+        <button onClick={handleSubmit} disabled={!canSubmit} className="nc-btn nc-btn-primary" style={{ width: '100%', padding: 14, opacity: canSubmit ? 1 : 0.5 }} data-testid="submit-broadcast-btn">
           📡 Broadcast
         </button>
-        <p className="submit-note">You can only have 1 active broadcast at a time.</p>
+        <p style={{ fontSize: 11, color: 'var(--nc-text-muted)', textAlign: 'center', marginTop: 8 }}>You can only have 1 active broadcast at a time.</p>
       </div>
-
-      <style>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.85);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-        }
-        .modal-content {
-          background: var(--nc-bg-card);
-          border: 1px solid var(--nc-border);
-          width: 100%;
-          max-width: 520px;
-          max-height: 90vh;
-          overflow-y: auto;
-          padding: 24px;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-        }
-        .modal-eyebrow {
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          letter-spacing: 2px;
-          margin: 0 0 4px 0;
-        }
-        .modal-title {
-          color: var(--nc-text-primary);
-          font-family: var(--nc-font-display);
-          font-size: 20px;
-          margin: 0;
-        }
-        .modal-close {
-          background: none;
-          border: none;
-          color: var(--nc-text-muted);
-          cursor: pointer;
-          padding: 4px;
-        }
-        .modal-close:hover {
-          color: var(--nc-text-primary);
-        }
-        
-        .form-section {
-          margin-bottom: 20px;
-        }
-        .form-section.half {
-          flex: 1;
-        }
-        .form-row {
-          display: flex;
-          gap: 16px;
-        }
-        .form-label {
-          display: block;
-          color: var(--nc-text-muted);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          letter-spacing: 2px;
-          margin-bottom: 8px;
-        }
-        .form-input {
-          width: 100%;
-          padding: 12px;
-          background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-primary);
-          font-size: 14px;
-          resize: none;
-        }
-        .form-input:focus {
-          border-color: var(--nc-cyan);
-          outline: none;
-        }
-        .char-count {
-          display: block;
-          text-align: right;
-          font-size: 11px;
-          color: var(--nc-text-muted);
-          margin-top: 4px;
-        }
-        
-        .activity-select {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .activity-option {
-          padding: 8px 12px;
-          background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-border);
-          color: var(--nc-text-secondary);
-          font-family: var(--nc-font-display);
-          font-size: 11px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .activity-option:hover {
-          border-color: var(--opt-color);
-          color: var(--nc-text-primary);
-        }
-        .activity-option.active {
-          border-color: var(--opt-color);
-          background: rgba(0, 240, 255, 0.1);
-          color: var(--nc-text-primary);
-        }
-        
-        .expiry-notice {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          padding: 12px;
-          background: var(--nc-bg-secondary);
-          border: 1px solid var(--nc-border);
-          margin-bottom: 20px;
-          font-size: 12px;
-          color: var(--nc-text-muted);
-          line-height: 1.5;
-        }
-        .expiry-notice svg {
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-        
-        .submit-btn {
-          width: 100%;
-          padding: 16px;
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
-          border: 1px solid var(--nc-cyan);
-          color: var(--nc-cyan);
-          font-family: var(--nc-font-display);
-          font-size: 14px;
-          letter-spacing: 1px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .submit-btn:hover:not(:disabled) {
-          background: rgba(0, 240, 255, 0.3);
-        }
-        .submit-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .submit-note {
-          text-align: center;
-          font-size: 11px;
-          color: var(--nc-text-muted);
-          margin: 12px 0 0 0;
-        }
-      `}</style>
     </div>
   );
 };

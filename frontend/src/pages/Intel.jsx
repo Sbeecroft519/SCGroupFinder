@@ -352,7 +352,7 @@ export default function Intel() {
       {/* Page Header */}
       <div className="page-header">
         <div className="page-label">// MISSION_ADVISOR</div>
-        <h1 className="page-title">OPERATIONAL PLANNING</h1>
+        <h1 className="page-title">Operational Planning</h1>
         <p className="page-subtitle">Define resource availability for optimized engagement protocols.</p>
       </div>
 

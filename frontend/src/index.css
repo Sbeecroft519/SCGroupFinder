@@ -245,6 +245,20 @@ body {
   opacity: 1;
 }
 
+.tools-trigger {
+  cursor: pointer;
+  background: none;
+}
+
+.tools-dropdown {
+  min-width: 160px;
+}
+
+.tools-dropdown .dropdown-item.active {
+  color: var(--nc-cyan);
+  background: rgba(0, 240, 255, 0.1);
+}
+
 .navcom-avatar-area {
   display: flex;
   align-items: center;

@@ -197,6 +197,12 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
 
+## UI/Navigation Updates (April 7, 2026)
+1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
+2. **Renamed Tab**: "LOUNGE" → "LOUNGE (LFG)" for clarity
+3. **Removed Quick Match**: Simplified Pilot's Lounge by removing Quick Match panel
+4. **Title Consistency**: All page titles now use consistent styling (page-label, page-title, page-subtitle classes)
+
 ## New Features Implemented (April 7, 2026)
 1. **Pilot's Lounge (LFG Feature)**: Casual grouping system distinct from Job Board
    - Activity-based tags: Mining Op, Combat Patrol, Trade Run, Exploration, Crew Up, Just Vibing, PvP/Arena, Org Op
