@@ -101,6 +101,21 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 - [x] **Stripe Checkout** - Creates checkout session, redirects to Stripe, handles success/cancel
 - [x] Progress tracking
 
+### PILOT'S LOUNGE Module - COMPLETE (April 7, 2026)
+- [x] Casual LFG system (distinct from formal Job Board)
+- [x] Activity-based tags: Mining, Combat, Trade, Exploration, Crew Up, Vibing, PvP, Org
+- [x] Broadcast creation modal with title, description, availability, group size, region
+- [x] 1-post-per-user limit enforced
+- [x] Auto-expiration based on availability window (max 4 hours)
+- [x] "Hail Pilot" response system with count tracking
+- [x] Cannot hail own broadcast
+- [x] Owner can close broadcast
+- [x] Filtering: Activity tags, Available Now toggle, Region dropdown
+- [x] Sorting: Newest, Expiring Soon, Most Responses
+- [x] Search by title/description
+- [x] "YOUR BROADCAST IS LIVE" banner for active broadcast
+- [x] All comprehensive data-testid attributes for testing
+
 ### ADMIN Panel - COMPLETE
 - [x] Goals CRUD
 - [x] Users/Contributions lists
@@ -173,6 +188,18 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
+
+## New Features Implemented (April 7, 2026)
+1. **Pilot's Lounge (LFG Feature)**: Casual grouping system distinct from Job Board
+   - Activity-based tags: Mining Op, Combat Patrol, Trade Run, Exploration, Crew Up, Just Vibing, PvP/Arena, Org Op
+   - 1 active broadcast per user limit
+   - Auto-expiration (max 4 hours based on availability window)
+   - "Hail Pilot" response system (cannot hail own broadcast)
+   - Filters: Activity tags, Available Now, Region (US/EU/AUS), Sort (Newest/Expiring/Popular)
+   - Search broadcasts by title/description
+   - Backend: GET/POST /api/lounge/broadcasts, POST /api/lounge/broadcasts/{id}/hail, POST /api/lounge/broadcasts/{id}/close
+   - Frontend: /lounge route with comprehensive data-testid attributes
+   - All tests passed (15/15 backend, 100% frontend verified)
 
 ## Bug Fixes Applied This Session (Feb 17, 2026)
 1. **Multi-crew contracts not completing (BUG FIX 1)**: The `mark-complete` endpoint only accepted `in_progress` status, but contracts accepted via the `/accept` endpoint are set to `active`. Fixed to accept both statuses.
