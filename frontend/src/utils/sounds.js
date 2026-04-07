@@ -12,8 +12,8 @@ const SOUNDS = {
   login: new Audio('/sounds/login_success.mp3'),
 };
 
-// Set volumes
-Object.values(SOUNDS).forEach(s => s.volume = 0.5);
+// Set volumes (60% to avoid startling users)
+Object.values(SOUNDS).forEach(s => s.volume = 0.6);
 
 const playSound = (key) => {
   if (localStorage.getItem('navcom_sound_enabled') === 'false') return;
