@@ -2692,6 +2692,45 @@ async def deploy_team(contract_id: str, user = Depends(get_current_user)):
 
 # ===== Pilot's Lounge (LFG) =====
 
+# Ship-to-activity compatibility mapping
+SHIP_ACTIVITY_MAP = {
+    # Mining ships -> mining activities
+    "Prospector": ["mining"],
+    "MOLE": ["mining", "crew"],
+    # Salvage ships -> salvage (mapped to exploration/crew in lounge)
+    "Vulture": ["exploration", "crew"],
+    "Reclaimer": ["exploration", "crew", "org"],
+    # Combat ships -> combat, pvp
+    "Aurora MR": ["combat", "pvp"],
+    "Cutlass Black": ["combat", "pvp", "trade", "crew"],
+    "Constellation Andromeda": ["combat", "crew", "org"],
+    "Corsair": ["combat", "exploration", "crew"],
+    "M2 Hercules": ["combat", "org"],
+    "A2 Hercules": ["combat", "pvp", "org"],
+    # Cargo/Trade ships -> trade
+    "Aurora CL": ["trade", "vibing"],
+    "Mustang Alpha": ["trade", "vibing"],
+    "Cutter": ["trade", "vibing"],
+    "Avenger Titan": ["trade", "combat", "vibing"],
+    "Nomad": ["trade", "vibing"],
+    "Freelancer": ["trade", "crew"],
+    "Freelancer MAX": ["trade"],
+    "Spirit C1": ["trade"],
+    "Zeus Mk II CL": ["trade"],
+    "Mercury Star Runner": ["trade", "exploration"],
+    "Raft": ["trade", "org"],
+    "Constellation Taurus": ["trade", "crew"],
+    "Caterpillar": ["trade", "org"],
+    "C2 Hercules": ["trade", "org"],
+    "Hull A": ["trade"],
+    "Hull C": ["trade", "org"],
+    # Exploration ships
+    "C8X Pisces Expedition": ["exploration", "vibing"],
+    "Carrack": ["exploration", "org", "crew"],
+    # Luxury
+    "890 Jump": ["vibing", "org"],
+}
+
 class BroadcastCreate(BaseModel):
     activity: str
     title: str
@@ -2700,6 +2739,120 @@ class BroadcastCreate(BaseModel):
     available_until: str = "2 hours"
     group_size: str = "Any"
     region: str = "Any"
+
+class QuickMatchPreferences(BaseModel):
+    ship: Optional[str] = None
+    preferred_activities: List[str] = []
+    region: str = "Any"
+
+@api_router.post("/lounge/quick-match")
+async def quick_match(prefs: QuickMatchPreferences, user = Depends(get_current_user)):
+    """Get broadcast suggestions based on ship and activity preferences"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Get all active broadcasts
+    now = datetime.now(timezone.utc)
+    broadcasts = await db.broadcasts.find(
+        {"status": "open", "expires_at": {"$gt": now.isoformat()}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    if not broadcasts:
+        return {"matches": [], "total": 0}
+    
+    # Build list of compatible activities
+    compatible_activities = set(prefs.preferred_activities)
+    
+    # Add ship-based activities
+    if prefs.ship and prefs.ship in SHIP_ACTIVITY_MAP:
+        compatible_activities.update(SHIP_ACTIVITY_MAP[prefs.ship])
+    
+    # If no preferences at all, return all available now
+    if not compatible_activities:
+        available_now = [b for b in broadcasts if b.get("available_from") == "Now"]
+        return {"matches": available_now[:5], "total": len(available_now)}
+    
+    # Score and rank broadcasts
+    scored_matches = []
+    for b in broadcasts:
+        score = 0
+        reasons = []
+        
+        # Activity match (highest weight)
+        if b.get("activity") in compatible_activities:
+            score += 10
+            reasons.append(f"Activity: {b.get('activity')}")
+        
+        # Region match
+        if prefs.region != "Any" and b.get("region") == prefs.region:
+            score += 3
+            reasons.append(f"Region: {prefs.region}")
+        elif b.get("region") == "Any":
+            score += 1  # Flexible region is good
+        
+        # Available now bonus
+        if b.get("available_from") == "Now":
+            score += 2
+            reasons.append("Available now")
+        
+        # Low response count (easier to join)
+        if b.get("responses", 0) < 3:
+            score += 1
+        
+        # Don't match own broadcast
+        if b.get("user_id") == user["id"]:
+            continue
+        
+        # Already hailed - lower priority
+        if user["id"] in b.get("hailers", []):
+            score -= 5
+        
+        if score > 0:
+            scored_matches.append({
+                **b,
+                "match_score": score,
+                "match_reasons": reasons
+            })
+    
+    # Sort by score descending
+    scored_matches.sort(key=lambda x: x["match_score"], reverse=True)
+    
+    return {
+        "matches": scored_matches[:5],
+        "total": len(scored_matches),
+        "compatible_activities": list(compatible_activities)
+    }
+
+@api_router.put("/user/lounge-preferences")
+async def update_lounge_preferences(prefs: QuickMatchPreferences, user = Depends(get_current_user)):
+    """Save user's Quick Match preferences"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "lounge_prefs": {
+                "ship": prefs.ship,
+                "preferred_activities": prefs.preferred_activities,
+                "region": prefs.region
+            }
+        }}
+    )
+    return {"message": "Preferences saved"}
+
+@api_router.get("/user/lounge-preferences")
+async def get_lounge_preferences(user = Depends(get_current_user)):
+    """Get user's Quick Match preferences"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    return user.get("lounge_prefs", {
+        "ship": None,
+        "preferred_activities": [],
+        "region": "Any"
+    })
 
 @api_router.get("/lounge/broadcasts")
 async def get_broadcasts():

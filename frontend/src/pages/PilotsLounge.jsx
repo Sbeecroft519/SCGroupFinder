@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Radio, Search, Clock, Users, Globe, MessageCircle, X, Zap, Coffee, Headphones } from 'lucide-react';
+import { Radio, Search, Clock, Users, Globe, MessageCircle, X, Zap, Coffee, Headphones, Sparkles, ChevronDown, ChevronUp, Rocket } from 'lucide-react';
 import axios from 'axios';
 import { API, useAuth } from '../App';
 
@@ -12,6 +12,16 @@ const ACTIVITY_TAGS = [
   { id: 'vibing', label: 'Just Vibing', icon: '☕', color: '#A855F7' },
   { id: 'pvp', label: 'PvP / Arena', icon: '⚔️', color: '#FF6600' },
   { id: 'org', label: 'Org Op', icon: '🏛️', color: '#3B82F6' },
+];
+
+const SHIPS = [
+  "Aurora MR", "Aurora CL", "Mustang Alpha", "C8X Pisces Expedition", "Cutter",
+  "Avenger Titan", "Nomad", "Cutlass Black", "Freelancer", "Freelancer MAX",
+  "Spirit C1", "Zeus Mk II CL", "Mercury Star Runner", "Raft",
+  "Constellation Andromeda", "Constellation Taurus", "Corsair",
+  "Caterpillar", "C2 Hercules", "M2 Hercules", "A2 Hercules",
+  "Hull A", "Hull C", "Carrack", "890 Jump",
+  "Vulture", "Reclaimer", "Prospector", "MOLE"
 ];
 
 const SERVER_REGIONS = ['Any', 'US', 'EU', 'AUS'];
@@ -30,12 +40,32 @@ const PilotsLounge = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userBroadcast, setUserBroadcast] = useState(null);
+  
+  // Quick Match state
+  const [showQuickMatch, setShowQuickMatch] = useState(false);
+  const [quickMatchShip, setQuickMatchShip] = useState('');
+  const [quickMatchActivities, setQuickMatchActivities] = useState([]);
+  const [quickMatchRegion, setQuickMatchRegion] = useState('Any');
+  const [quickMatchResults, setQuickMatchResults] = useState(null);
+  const [quickMatchLoading, setQuickMatchLoading] = useState(false);
 
   useEffect(() => {
     fetchBroadcasts();
+    loadQuickMatchPrefs();
     const interval = setInterval(fetchBroadcasts, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const loadQuickMatchPrefs = async () => {
+    try {
+      const res = await axios.get(`${API}/user/lounge-preferences`);
+      if (res.data) {
+        setQuickMatchShip(res.data.ship || '');
+        setQuickMatchActivities(res.data.preferred_activities || []);
+        setQuickMatchRegion(res.data.region || 'Any');
+      }
+    } catch (e) { console.error(e); }
+  };
 
   const fetchBroadcasts = async () => {
     try {
@@ -45,6 +75,36 @@ const PilotsLounge = () => {
       setUserBroadcast(mine || null);
     } catch (e) { console.error(e); }
     setLoading(false);
+  };
+
+  const runQuickMatch = async () => {
+    setQuickMatchLoading(true);
+    try {
+      // Save preferences
+      await axios.put(`${API}/user/lounge-preferences`, {
+        ship: quickMatchShip || null,
+        preferred_activities: quickMatchActivities,
+        region: quickMatchRegion
+      });
+      
+      // Run matching
+      const res = await axios.post(`${API}/lounge/quick-match`, {
+        ship: quickMatchShip || null,
+        preferred_activities: quickMatchActivities,
+        region: quickMatchRegion
+      });
+      setQuickMatchResults(res.data);
+    } catch (e) { 
+      console.error(e);
+      alert('Failed to find matches');
+    }
+    setQuickMatchLoading(false);
+  };
+
+  const toggleQuickMatchActivity = (actId) => {
+    setQuickMatchActivities(prev => 
+      prev.includes(actId) ? prev.filter(a => a !== actId) : [...prev, actId]
+    );
   };
 
   const filtered = broadcasts.filter(b => {
@@ -69,7 +129,6 @@ const PilotsLounge = () => {
       fetchBroadcasts();
     } catch (e) { 
       console.error(e);
-      // Show error if trying to hail own broadcast
       if (e.response?.data?.detail) {
         alert(e.response.data.detail);
       }
@@ -95,7 +154,7 @@ const PilotsLounge = () => {
 
   return (
     <div className="page-container" data-testid="pilots-lounge-page">
-      {/* Lounge Header - Distinct casual vibe */}
+      {/* Lounge Header */}
       <div className="lounge-header" data-testid="lounge-header">
         <div className="lounge-title-section">
           <div className="lounge-icon-wrap">
@@ -110,16 +169,136 @@ const PilotsLounge = () => {
             </p>
           </div>
         </div>
-        <button 
-          className="broadcast-btn"
-          onClick={() => setShowCreateModal(true)}
-          disabled={!!userBroadcast}
-          data-testid="broadcast-btn"
-        >
-          <Radio size={18} /> 
-          <span>Broadcast on Open Comms</span>
-        </button>
+        <div className="header-actions">
+          <button 
+            className={`quick-match-toggle ${showQuickMatch ? 'active' : ''}`}
+            onClick={() => setShowQuickMatch(!showQuickMatch)}
+            data-testid="quick-match-toggle"
+          >
+            <Sparkles size={16} /> Quick Match
+            {showQuickMatch ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <button 
+            className="broadcast-btn"
+            onClick={() => setShowCreateModal(true)}
+            disabled={!!userBroadcast}
+            data-testid="broadcast-btn"
+          >
+            <Radio size={18} /> 
+            <span>Broadcast</span>
+          </button>
+        </div>
       </div>
+
+      {/* Quick Match Panel */}
+      {showQuickMatch && (
+        <div className="quick-match-panel" data-testid="quick-match-panel">
+          <div className="quick-match-header">
+            <Sparkles size={18} />
+            <span>Quick Match</span>
+            <p>Find broadcasts that match your ship and play style</p>
+          </div>
+          
+          <div className="quick-match-form">
+            <div className="qm-row">
+              <div className="qm-field">
+                <label>YOUR SHIP</label>
+                <select 
+                  value={quickMatchShip} 
+                  onChange={e => setQuickMatchShip(e.target.value)}
+                  data-testid="qm-ship-select"
+                >
+                  <option value="">Any Ship</option>
+                  {SHIPS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="qm-field">
+                <label>PREFERRED REGION</label>
+                <select 
+                  value={quickMatchRegion} 
+                  onChange={e => setQuickMatchRegion(e.target.value)}
+                  data-testid="qm-region-select"
+                >
+                  {SERVER_REGIONS.map(r => <option key={r} value={r}>{r === 'Any' ? 'Any Region' : r}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <div className="qm-field">
+              <label>INTERESTED IN (select multiple)</label>
+              <div className="qm-activities">
+                {ACTIVITY_TAGS.map(tag => (
+                  <button
+                    key={tag.id}
+                    className={`qm-activity-btn ${quickMatchActivities.includes(tag.id) ? 'active' : ''}`}
+                    onClick={() => toggleQuickMatchActivity(tag.id)}
+                    style={{ '--act-color': tag.color }}
+                    data-testid={`qm-activity-${tag.id}`}
+                  >
+                    {tag.icon} {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <button 
+              className="qm-find-btn" 
+              onClick={runQuickMatch}
+              disabled={quickMatchLoading}
+              data-testid="qm-find-btn"
+            >
+              {quickMatchLoading ? 'Scanning...' : (
+                <><Rocket size={16} /> Find Matches</>
+              )}
+            </button>
+          </div>
+          
+          {/* Quick Match Results */}
+          {quickMatchResults && (
+            <div className="qm-results" data-testid="qm-results">
+              <div className="qm-results-header">
+                <span>{quickMatchResults.matches.length} matches found</span>
+                {quickMatchResults.compatible_activities?.length > 0 && (
+                  <span className="qm-compat">
+                    Compatible: {quickMatchResults.compatible_activities.map(a => 
+                      ACTIVITY_TAGS.find(t => t.id === a)?.icon
+                    ).join(' ')}
+                  </span>
+                )}
+              </div>
+              {quickMatchResults.matches.length === 0 ? (
+                <p className="qm-no-results">No matching broadcasts right now. Try broadening your preferences or check back later!</p>
+              ) : (
+                <div className="qm-matches">
+                  {quickMatchResults.matches.map(b => {
+                    const tag = getTag(b.activity);
+                    return (
+                      <div key={b.id} className="qm-match-card" style={{ '--card-accent': tag.color }}>
+                        <div className="qm-match-top">
+                          <span className="qm-match-tag" style={{ background: tag.color }}>{tag.icon} {tag.label}</span>
+                          <span className="qm-match-score">⭐ {b.match_score} pts</span>
+                        </div>
+                        <div className="qm-match-handle">{b.handle}</div>
+                        <div className="qm-match-title">{b.title}</div>
+                        <div className="qm-match-reasons">
+                          {b.match_reasons?.map((r, i) => <span key={i}>{r}</span>)}
+                        </div>
+                        <button 
+                          onClick={() => handleHail(b.id)} 
+                          className="qm-hail-btn"
+                          data-testid={`qm-hail-${b.id}`}
+                        >
+                          📡 Hail Pilot
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* User's Active Broadcast Banner */}
       {userBroadcast && (
@@ -327,11 +506,33 @@ const PilotsLounge = () => {
           font-size: 13px;
           margin: 6px 0 0 0;
         }
+        .header-actions {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .quick-match-toggle {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 18px;
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(99, 102, 241, 0.1));
+          border: 1px solid rgba(168, 85, 247, 0.5);
+          color: #A855F7;
+          font-family: var(--nc-font-display);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .quick-match-toggle:hover, .quick-match-toggle.active {
+          background: rgba(168, 85, 247, 0.3);
+          box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }
         .broadcast-btn {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 14px 24px;
+          padding: 12px 20px;
           background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
           border: 1px solid var(--nc-cyan);
           color: var(--nc-cyan);
@@ -348,6 +549,198 @@ const PilotsLounge = () => {
         .broadcast-btn:disabled {
           opacity: 0.4;
           cursor: not-allowed;
+        }
+        
+        /* Quick Match Panel */
+        .quick-match-panel {
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(99, 102, 241, 0.05));
+          border: 1px solid rgba(168, 85, 247, 0.3);
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+        .quick-match-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+          color: #A855F7;
+        }
+        .quick-match-header span {
+          font-family: var(--nc-font-display);
+          font-size: 14px;
+          letter-spacing: 1px;
+        }
+        .quick-match-header p {
+          width: 100%;
+          margin: 4px 0 0 0;
+          font-size: 13px;
+          color: var(--nc-text-muted);
+        }
+        .quick-match-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .qm-row {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .qm-field {
+          flex: 1;
+          min-width: 200px;
+        }
+        .qm-field label {
+          display: block;
+          color: var(--nc-text-muted);
+          font-family: var(--nc-font-display);
+          font-size: 10px;
+          letter-spacing: 2px;
+          margin-bottom: 6px;
+        }
+        .qm-field select {
+          width: 100%;
+          padding: 10px 12px;
+          background: var(--nc-bg-card);
+          border: 1px solid var(--nc-border);
+          color: var(--nc-text-primary);
+          font-size: 13px;
+        }
+        .qm-activities {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .qm-activity-btn {
+          padding: 8px 12px;
+          background: var(--nc-bg-card);
+          border: 1px solid var(--nc-border);
+          color: var(--nc-text-secondary);
+          font-family: var(--nc-font-display);
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .qm-activity-btn:hover {
+          border-color: var(--act-color);
+        }
+        .qm-activity-btn.active {
+          border-color: var(--act-color);
+          background: rgba(168, 85, 247, 0.15);
+          color: var(--nc-text-primary);
+        }
+        .qm-find-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 14px;
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(99, 102, 241, 0.2));
+          border: 1px solid #A855F7;
+          color: #fff;
+          font-family: var(--nc-font-display);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .qm-find-btn:hover:not(:disabled) {
+          background: rgba(168, 85, 247, 0.5);
+          box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        .qm-find-btn:disabled {
+          opacity: 0.6;
+        }
+        
+        /* Quick Match Results */
+        .qm-results {
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid rgba(168, 85, 247, 0.2);
+        }
+        .qm-results-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+          font-family: var(--nc-font-display);
+          font-size: 13px;
+          color: var(--nc-text-secondary);
+        }
+        .qm-compat {
+          font-size: 16px;
+        }
+        .qm-no-results {
+          color: var(--nc-text-muted);
+          font-size: 13px;
+          text-align: center;
+          padding: 20px;
+        }
+        .qm-matches {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 12px;
+        }
+        .qm-match-card {
+          background: var(--nc-bg-card);
+          border: 1px solid var(--nc-border);
+          padding: 14px;
+          transition: all 0.2s;
+        }
+        .qm-match-card:hover {
+          border-color: var(--card-accent);
+        }
+        .qm-match-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+        .qm-match-tag {
+          padding: 3px 8px;
+          font-family: var(--nc-font-display);
+          font-size: 10px;
+          color: #000;
+        }
+        .qm-match-score {
+          color: #FFB800;
+          font-size: 12px;
+        }
+        .qm-match-handle {
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
+          font-size: 12px;
+        }
+        .qm-match-title {
+          color: var(--nc-text-primary);
+          font-size: 14px;
+          margin: 4px 0 8px 0;
+        }
+        .qm-match-reasons {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .qm-match-reasons span {
+          font-size: 10px;
+          padding: 2px 6px;
+          background: rgba(0, 240, 255, 0.1);
+          border: 1px solid rgba(0, 240, 255, 0.2);
+          color: var(--nc-cyan);
+        }
+        .qm-hail-btn {
+          width: 100%;
+          padding: 10px;
+          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
+          border: 1px solid var(--nc-cyan);
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
+          font-size: 12px;
+          cursor: pointer;
+        }
+        .qm-hail-btn:hover {
+          background: rgba(0, 240, 255, 0.3);
         }
         
         .your-broadcast-banner {
