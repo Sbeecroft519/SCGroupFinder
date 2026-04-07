@@ -2689,5 +2689,108 @@ async def deploy_team(contract_id: str, user = Depends(get_current_user)):
     return {"message": "Team deployed", "crew_count": filled_count}
 
 
+
+# ===== Pilot's Lounge (LFG) =====
+
+class BroadcastCreate(BaseModel):
+    activity: str
+    title: str
+    description: Optional[str] = None
+    available_from: str = "Now"
+    available_until: str = "2 hours"
+    group_size: str = "Any"
+    region: str = "Any"
+
+@api_router.get("/lounge/broadcasts")
+async def get_broadcasts():
+    """Get all active broadcasts"""
+    now = datetime.now(timezone.utc)
+    # Auto-expire old broadcasts
+    await db.broadcasts.update_many(
+        {"status": "open", "expires_at": {"$lt": now.isoformat()}},
+        {"$set": {"status": "expired"}}
+    )
+    broadcasts = await db.broadcasts.find(
+        {"status": "open"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return broadcasts
+
+@api_router.post("/lounge/broadcasts")
+async def create_broadcast(data: BroadcastCreate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Check for existing active broadcast
+    existing = await db.broadcasts.find_one({"user_id": user["id"], "status": "open"})
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have an active broadcast. Close it first.")
+    
+    # Calculate expiry (max 4 hours)
+    hours_map = {"1 hour": 1, "2 hours": 2, "3 hours": 3, "4 hours": 4, "Late / No limit": 4}
+    hours = hours_map.get(data.available_until, 4)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=min(hours, 4))
+    
+    broadcast = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "handle": user.get("rsi_handle", "Unknown"),
+        "activity": data.activity,
+        "title": data.title[:80],
+        "description": (data.description or "")[:280],
+        "available_from": data.available_from,
+        "available_until": data.available_until,
+        "group_size": data.group_size,
+        "region": data.region,
+        "status": "open",
+        "responses": 0,
+        "hailers": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": expires_at.isoformat()
+    }
+    await db.broadcasts.insert_one(broadcast)
+    return {"message": "Broadcast created", "id": broadcast["id"]}
+
+@api_router.post("/lounge/broadcasts/{broadcast_id}/hail")
+async def hail_broadcast(broadcast_id: str, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    broadcast = await db.broadcasts.find_one({"id": broadcast_id})
+    if not broadcast:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    
+    # Cannot hail your own broadcast
+    if broadcast["user_id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot hail your own broadcast")
+    
+    if user["id"] in broadcast.get("hailers", []):
+        raise HTTPException(status_code=400, detail="Already hailed")
+    
+    await db.broadcasts.update_one(
+        {"id": broadcast_id},
+        {"$inc": {"responses": 1}, "$push": {"hailers": user["id"]}}
+    )
+    return {"message": "Hail sent"}
+
+@api_router.post("/lounge/broadcasts/{broadcast_id}/close")
+async def close_broadcast(broadcast_id: str, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    broadcast = await db.broadcasts.find_one({"id": broadcast_id})
+    if not broadcast:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    
+    if broadcast["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not your broadcast")
+    
+    await db.broadcasts.update_one(
+        {"id": broadcast_id},
+        {"$set": {"status": "closed"}}
+    )
+    return {"message": "Comms closed"}
+
+
 # Include router AFTER all routes are defined
 app.include_router(api_router)
