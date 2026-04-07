@@ -142,20 +142,7 @@ export default function Register() {
         {step === 1 ? (
           <form onSubmit={handleStep1Submit} className="auth-form">
             <div className="form-group">
-              <label className="nc-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                EMAIL
-                <span 
-                  title="Yep, I need your email. No one's going to sell it. They don't care. You're not that cool."
-                  style={{ 
-                    cursor: 'help', 
-                    color: 'var(--nc-text-muted)', 
-                    fontSize: 12,
-                    borderBottom: '1px dashed var(--nc-text-muted)'
-                  }}
-                >
-                  why?
-                </span>
-              </label>
+              <label className="nc-label">EMAIL</label>
               <input
                 type="email"
                 className="nc-input"
