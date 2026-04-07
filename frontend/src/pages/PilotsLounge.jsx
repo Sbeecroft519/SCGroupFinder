@@ -90,7 +90,7 @@ const PilotsLounge = () => {
   const getTag = (id) => ACTIVITY_TAGS.find(t => t.id === id) || ACTIVITY_TAGS[0];
 
   return (
-    <div className="page-container" data-testid="pilots-lounge-page">
+    <div className="navcom-page" data-testid="pilots-lounge-page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p className="page-label">// OPEN_COMMS</p>
