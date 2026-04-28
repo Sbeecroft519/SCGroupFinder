@@ -34,9 +34,9 @@ const LandingPage = () => {
   ];
 
   const screenshots = [
-    { src: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=700&h=440&fit=crop', title: 'Job Board', desc: 'Post and apply for jobs' },
-    { src: 'https://images.unsplash.com/photo-1534996858221-380b92700493?w=700&h=440&fit=crop', title: 'Applicant Review', desc: 'Choose teammates by reputation' },
-    { src: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=700&h=440&fit=crop', title: 'Signals', desc: 'Supporting intel & alerts' },
+    { src: '/screenshots/job-board.png', title: 'Job Board', desc: 'Post and apply for jobs' },
+    { src: '/screenshots/applicant-review.png', title: 'Applicant Review', desc: 'Choose teammates by reputation' },
+    { src: '/screenshots/signals.png', title: 'Signals', desc: 'Region-based intel & alerts' },
   ];
 
   return (
@@ -165,14 +165,7 @@ const LandingPage = () => {
         }}>
           // KEY FEATURES
         </h2>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', 
-          gap: 32,
-          maxWidth: 1200,
-          margin: '0 auto',
-          justifyItems: 'stretch',
-        }}>
+        <div className="features-grid">
           {features.map((f, i) => (
             <div key={i} className="feature-card" style={{ '--feature-color': f.color }}>
               <div className="feature-icon-wrap">
@@ -210,14 +203,7 @@ const LandingPage = () => {
         }}>
           // SEE IT IN ACTION
         </h2>
-        <div style={{ 
-          display: 'flex', 
-          gap: 24, 
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          maxWidth: 1200,
-          margin: '0 auto'
-        }}>
+        <div className="screenshots-row">
           {screenshots.map((shot, i) => (
             <div key={i} className="screenshot-card">
               <img src={shot.src} alt={shot.title} />
@@ -263,6 +249,59 @@ const LandingPage = () => {
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
       <style>{`
+        /* Features grid: 3 columns desktop, 2 columns tablet, 1 column mobile */
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 32px;
+          max-width: 1200px;
+          margin: 0 auto;
+          justify-items: stretch;
+        }
+        @media (max-width: 1024px) {
+          .features-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+        }
+        @media (max-width: 640px) {
+          .features-grid { grid-template-columns: 1fr; gap: 16px; padding: 0 8px; }
+        }
+
+        /* Screenshots row: side-by-side desktop, scroll-snap swipe on mobile */
+        .screenshots-row {
+          display: flex;
+          gap: 24px;
+          justify-content: center;
+          flex-wrap: wrap;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+          .screenshots-row {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding: 16px;
+            padding: 0 16px 16px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+          }
+          .screenshots-row .screenshot-card {
+            scroll-snap-align: center;
+            flex: 0 0 85%;
+            max-width: 85%;
+          }
+          .screenshots-row::after {
+            content: 'swipe →';
+            position: absolute;
+            right: 24px;
+            margin-top: -28px;
+            color: var(--nc-cyan);
+            font-family: var(--nc-font-mono);
+            font-size: 11px;
+            opacity: 0.7;
+            pointer-events: none;
+          }
+        }
+
         .landing-bg-effects {
           position: absolute;
           inset: 0;
@@ -469,7 +508,11 @@ const LandingPage = () => {
         }
         @media (max-width: 768px) {
           .hero-title { font-size: 36px; letter-spacing: 4px; }
-          .screenshot-card { width: 100%; max-width: 350px; }
+          .screenshot-card { width: auto; max-width: none; }
+          .landing-btn-hero { padding: 14px 28px !important; font-size: 14px !important; }
+        }
+        @media (max-width: 480px) {
+          .hero-title { font-size: 28px; letter-spacing: 2px; }
         }
       `}</style>
     </div>
