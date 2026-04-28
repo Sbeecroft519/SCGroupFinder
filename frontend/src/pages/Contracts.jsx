@@ -4,6 +4,45 @@ import { Shield, Heart, Package, Users, Copy, Star, MapPin, Clock, Check, Plus, 
 import axios from 'axios';
 import { API, useAuth } from '../App';
 import { CONTRACT_CATEGORIES, CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
+import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
+
+const RescueCardSummary = ({ contract }) => {
+  const { label, expired } = useBleedoutCountdown(contract.rescue_bleedout_expires_at);
+  const pills = [
+    contract.rescue_injury_tier && `Injury: ${contract.rescue_injury_tier}`,
+    contract.rescue_pvp_area && `PvP: ${contract.rescue_pvp_area}`,
+    contract.rescue_hostile_npcs && `NPCs: ${contract.rescue_hostile_npcs}`,
+    contract.rescue_aa_turrets && `AA: ${contract.rescue_aa_turrets}`,
+    contract.rescue_needs_food_hydration && `Food/Water: ${contract.rescue_needs_food_hydration}`,
+  ].filter(Boolean);
+  return (
+    <div data-testid="rescue-card-summary" style={{
+      marginTop: 8,
+      padding: '8px 12px',
+      background: 'rgba(255, 0, 68, 0.06)',
+      border: '1px solid rgba(255, 0, 68, 0.25)',
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      {contract.rescue_bleedout_expires_at && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: expired ? '#888' : '#ff4466', fontFamily: 'var(--nc-font-mono)', fontSize: 13 }}>
+          <HeartMonitor flatline={expired} />
+          <span data-testid="bleedout-countdown">{expired ? 'Deceased' : label}</span>
+        </div>
+      )}
+      {pills.map((p, i) => (
+        <span key={i} style={{ fontSize: 11, fontFamily: 'var(--nc-font-mono)', color: 'var(--nc-text-secondary)', padding: '2px 8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          {p}
+        </span>
+      ))}
+      <span style={{ fontSize: 11, fontFamily: 'var(--nc-font-mono)', color: 'var(--nc-text-muted)', marginLeft: 'auto' }}>
+        Exact location hidden until accepted
+      </span>
+    </div>
+  );
+};
 
 // Preset roles for multi-crew contracts
 const PRESET_ROLES = [
@@ -293,14 +332,45 @@ export default function Contracts() {
     payment_amount: '',
     compensation_type: 'Flat Fee',
     split_profits: false,
-    // Location fields
+    // Legacy location fields (kept for backward compatibility)
     system: 'Stanton',
     planet: '',
-    location: ''
+    location: '',
+    // Timing
+    timing_type: 'now',
+    scheduled_date: '',
+    scheduled_time: '',
+    scheduled_timezone: 'UTC',
+    // Simplified meeting location
+    meeting_visibility: 'public',
+    meeting_system: '',
+    meeting_major_location: '',
+    // Medical / Rescue PUBLIC fields
+    rescue_bleedout_minutes: 30,
+    rescue_injury_tier: 'Unknown',
+    rescue_pvp_area: 'Unknown',
+    rescue_hostile_npcs: 'Unknown',
+    rescue_aa_turrets: 'Unknown',
+    rescue_needs_food_hydration: 'Unknown',
+    // Medical / Rescue PRIVATE fields
+    rescue_exact_location: '',
+    rescue_body_location: '',
+    rescue_private_notes: '',
   });
 
   const isLfg = newContract.category === 'LFG';
+  const isMedical = newContract.category === 'MEDICAL';
+  const isFuture = newContract.timing_type === 'future';
   const showPaymentField = !isLfg && !isMultiCrew && newContract.compensation_type === 'Flat Fee' && !newContract.split_profits;
+
+  // Major locations per system (curated — major hubs only)
+  const MAJOR_LOCATIONS = {
+    Stanton: ['Area18', 'Baijini Point', 'Orison', 'Seraphim Station', 'Grim HEX', 'Lorville', 'Everus Harbor', 'New Babbage', 'Port Tressler'],
+    Pyro: ['Checkmate Station', 'Ruin Station', 'Pyro Gateway'],
+    Nyx: ['Levski', 'Delamar', 'Nyx Gateway'],
+  };
+
+  const TIMEZONES = ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Berlin', 'Asia/Tokyo', 'Australia/Sydney'];
 
   // Generate title based on category
   const generateTitle = (contract) => {
@@ -310,23 +380,26 @@ export default function Contracts() {
 
   // Check if contract form is valid
   const isContractValid = () => {
-    // LFG validation: only need title/location, no payout
-    if (isLfg) {
-      return newContract.title && newContract.planet && newContract.location;
+    const c = newContract;
+    // Title always required
+    if (!c.title) return false;
+    // Future scheduling requires date+time
+    if (c.timing_type === 'future' && (!c.scheduled_date || !c.scheduled_time)) return false;
+    // Public meeting location requires system
+    if (c.meeting_visibility === 'public' && !c.meeting_system) return false;
+
+    // Medical / Rescue
+    if (isMedical) {
+      if (!c.meeting_system) return false;
+      if (!c.rescue_exact_location) return false;
+      if (!c.payment_amount || isNaN(parseInt(c.payment_amount))) return false;
+      return true;
     }
 
-    // Multi-crew validation
-    if (isMultiCrew) {
-      return manifest.length > 0;
-    }
-    
-    // Payment validation (skip if split_profits is true)
-    if (showPaymentField && (!newContract.payment_amount || isNaN(parseInt(newContract.payment_amount)))) {
-      return false;
-    }
-    
-    // Simplified: just need title/description and location
-    return newContract.title && newContract.planet && newContract.location;
+    if (isLfg) return true;
+    if (isMultiCrew) return manifest.length > 0;
+    if (showPaymentField && (!c.payment_amount || isNaN(parseInt(c.payment_amount)))) return false;
+    return true;
   };
 
   useEffect(() => {
@@ -474,37 +547,79 @@ export default function Contracts() {
   const handleCreateContract = async () => {
     if (!isContractValid()) return;
 
-    const title = generateTitle(newContract);
-    const locationStr = `${newContract.planet} - ${newContract.location}`;
-    
-    const paymentAmount = showPaymentField ? parseInt(newContract.payment_amount) || 0 : 0;
-    const cat = CATEGORY_LABELS[newContract.category] || 'Contract';
+    const c = newContract;
+    const title = generateTitle(c);
+    const cat = CATEGORY_LABELS[c.category] || 'Contract';
+    const paymentAmount = (isMedical || showPaymentField) ? (parseInt(c.payment_amount) || 0) : 0;
+
+    // Build display location string (legacy compatibility + cards)
+    let locationStr;
+    if (c.meeting_visibility === 'disclosed_on_acceptance') {
+      locationStr = 'Disclosed on Acceptance';
+    } else if (c.meeting_system && c.meeting_major_location) {
+      locationStr = `${c.meeting_system} - ${c.meeting_major_location}`;
+    } else if (c.meeting_system) {
+      locationStr = c.meeting_system;
+    } else {
+      locationStr = '';
+    }
+
+    // Convert scheduled date+time to ISO UTC if future timing
+    let scheduledIso = null;
+    if (c.timing_type === 'future' && c.scheduled_date && c.scheduled_time) {
+      // Build ISO assuming user's local browser timezone if no tz selected, else UTC
+      try {
+        scheduledIso = new Date(`${c.scheduled_date}T${c.scheduled_time}:00`).toISOString();
+      } catch (e) {
+        scheduledIso = null;
+      }
+    }
 
     const contractData = {
-      title: isMultiCrew ? `Multi-Crew: ${cat} Operation` : (newContract.title || title),
-      description: isMultiCrew ? `Multi-crew ${cat.toLowerCase()} operation requiring ${manifest.length} crew members.` : (newContract.description || null),
-      category: newContract.category,
-      compensation_type: isLfg ? 'LFG' : newContract.compensation_type,
-      // Payment
+      title: isMultiCrew ? `Multi-Crew: ${cat} Operation` : (c.title || title),
+      description: isMultiCrew ? `Multi-crew ${cat.toLowerCase()} operation requiring ${manifest.length} crew members.` : (c.description || null),
+      category: c.category,
+      compensation_type: isLfg ? 'LFG' : (isMedical ? 'Flat Fee' : c.compensation_type),
       payment_amount: isLfg ? 0 : paymentAmount,
-      split_profits: isLfg ? false : newContract.split_profits,
-      // Location
-      system: newContract.system,
-      planet: newContract.planet,
+      split_profits: (isLfg || isMedical) ? false : c.split_profits,
+      // Legacy location fields kept for backward compatibility
+      system: c.meeting_system || c.system,
+      planet: c.meeting_major_location || null,
       location: locationStr,
       shard: myShard,
-      // Multi-crew
-      is_multi_crew: isLfg ? false : isMultiCrew,
-      manifest: (!isLfg && isMultiCrew) ? manifest : null,
-      // Duration
-      duration_minutes: duration
+      // Multi-crew (disabled for LFG and Medical)
+      is_multi_crew: (isLfg || isMedical) ? false : isMultiCrew,
+      manifest: (!isLfg && !isMedical && isMultiCrew) ? manifest : null,
+      // Listing duration only matters for "now" posts
+      duration_minutes: c.timing_type === 'now' ? duration : 60,
+      // New: timing
+      timing_type: c.timing_type,
+      scheduled_start_at: scheduledIso,
+      scheduled_timezone: c.scheduled_timezone || null,
+      // New: meeting location
+      meeting_visibility: c.meeting_visibility,
+      meeting_system: c.meeting_system || null,
+      meeting_major_location: c.meeting_major_location || null,
     };
+
+    if (isMedical) {
+      Object.assign(contractData, {
+        rescue_bleedout_minutes: parseInt(c.rescue_bleedout_minutes) || 30,
+        rescue_injury_tier: c.rescue_injury_tier,
+        rescue_pvp_area: c.rescue_pvp_area,
+        rescue_hostile_npcs: c.rescue_hostile_npcs,
+        rescue_aa_turrets: c.rescue_aa_turrets,
+        rescue_needs_food_hydration: c.rescue_needs_food_hydration,
+        rescue_exact_location: c.rescue_exact_location,
+        rescue_body_location: c.rescue_body_location,
+        rescue_private_notes: c.rescue_private_notes,
+      });
+    }
 
     try {
       const response = await axios.post(`${API}/contracts`, contractData);
       setContracts(prev => [response.data, ...prev]);
       setShowCreate(false);
-      // Reset form
       resetForm();
     } catch (error) {
       console.error('Failed to create contract:', error);
@@ -513,8 +628,13 @@ export default function Contracts() {
   
   const resetForm = () => {
     setNewContract({
-      category: 'COMBAT', title: '', description: '', compensation_type: 'Flat Fee', 
-      split_profits: false, payment_amount: '', system: 'Stanton', planet: '', location: ''
+      category: 'COMBAT', title: '', description: '', compensation_type: 'Flat Fee',
+      split_profits: false, payment_amount: '', system: 'Stanton', planet: '', location: '',
+      timing_type: 'now', scheduled_date: '', scheduled_time: '', scheduled_timezone: 'UTC',
+      meeting_visibility: 'public', meeting_system: '', meeting_major_location: '',
+      rescue_bleedout_minutes: 30, rescue_injury_tier: 'Unknown', rescue_pvp_area: 'Unknown',
+      rescue_hostile_npcs: 'Unknown', rescue_aa_turrets: 'Unknown', rescue_needs_food_hydration: 'Unknown',
+      rescue_exact_location: '', rescue_body_location: '', rescue_private_notes: '',
     });
     setManifest([]);
     setIsMultiCrew(false);
@@ -779,8 +899,133 @@ export default function Contracts() {
                 />
               </div>
 
-              {/* Multi-Crew Toggle - hidden for LFG posts */}
-              {!isLfg && (
+              {/* Timing — Looking Now vs Scheduled Future */}
+              <div className="form-group">
+                <label className="nc-label">TIMING</label>
+                <div style={{ display: 'flex', gap: 8 }} data-testid="timing-toggle">
+                  <button
+                    type="button"
+                    className={`nc-toggle ${!isFuture ? 'active' : ''}`}
+                    onClick={() => setNewContract(prev => ({ ...prev, timing_type: 'now' }))}
+                    style={{ flex: 1, padding: '10px 12px' }}
+                    data-testid="timing-now-btn"
+                  >
+                    🚨 Looking Now
+                  </button>
+                  <button
+                    type="button"
+                    className={`nc-toggle ${isFuture ? 'active' : ''}`}
+                    onClick={() => setNewContract(prev => ({ ...prev, timing_type: 'future' }))}
+                    style={{ flex: 1, padding: '10px 12px' }}
+                    data-testid="timing-future-btn"
+                  >
+                    📅 Future Time
+                  </button>
+                </div>
+                {isFuture && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 10 }}>
+                    <input
+                      type="date"
+                      className="nc-input"
+                      value={newContract.scheduled_date}
+                      onChange={e => setNewContract(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                      data-testid="scheduled-date-input"
+                    />
+                    <input
+                      type="time"
+                      className="nc-input"
+                      value={newContract.scheduled_time}
+                      onChange={e => setNewContract(prev => ({ ...prev, scheduled_time: e.target.value }))}
+                      data-testid="scheduled-time-input"
+                    />
+                    <select
+                      className="nc-input"
+                      value={newContract.scheduled_timezone}
+                      onChange={e => setNewContract(prev => ({ ...prev, scheduled_timezone: e.target.value }))}
+                      data-testid="scheduled-timezone-select"
+                    >
+                      {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Medical / Rescue specifics */}
+              {isMedical && (
+                <div style={{ background: 'rgba(255, 0, 68, 0.05)', border: '1px solid rgba(255,0,68,0.3)', padding: 16, marginBottom: 16 }}>
+                  <div style={{ color: '#ff4466', fontSize: 12, fontFamily: 'var(--nc-font-mono)', letterSpacing: 1, marginBottom: 12 }}>
+                    🏥 // MEDICAL_RESCUE_DETAILS (PUBLIC)
+                  </div>
+                  <div className="form-group">
+                    <label className="nc-label">BLEED-OUT / FULL DEATH MINUTES REMAINING</label>
+                    <input
+                      type="number"
+                      className="nc-input"
+                      min="1"
+                      max="600"
+                      value={newContract.rescue_bleedout_minutes}
+                      onChange={e => setNewContract(prev => ({ ...prev, rescue_bleedout_minutes: e.target.value.replace(/\D/g, '') }))}
+                      data-testid="rescue-bleedout-input"
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="nc-label">INJURY TIER</label>
+                      <select className="nc-input" value={newContract.rescue_injury_tier} onChange={e => setNewContract(prev => ({ ...prev, rescue_injury_tier: e.target.value }))} data-testid="rescue-tier-select">
+                        <option>Unknown</option><option>T1</option><option>T2</option><option>T3</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">PVP AREA?</label>
+                      <select className="nc-input" value={newContract.rescue_pvp_area} onChange={e => setNewContract(prev => ({ ...prev, rescue_pvp_area: e.target.value }))} data-testid="rescue-pvp-select">
+                        <option>Unknown</option><option>Yes</option><option>No</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">HOSTILE NPCs ACTIVE?</label>
+                      <select className="nc-input" value={newContract.rescue_hostile_npcs} onChange={e => setNewContract(prev => ({ ...prev, rescue_hostile_npcs: e.target.value }))} data-testid="rescue-npcs-select">
+                        <option>Unknown</option><option>Yes</option><option>No</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">AA TURRETS NEAR LZ?</label>
+                      <select className="nc-input" value={newContract.rescue_aa_turrets} onChange={e => setNewContract(prev => ({ ...prev, rescue_aa_turrets: e.target.value }))} data-testid="rescue-aa-select">
+                        <option>Unknown</option><option>Yes</option><option>No</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">NEEDS HYDRATION/FOOD?</label>
+                      <select className="nc-input" value={newContract.rescue_needs_food_hydration} onChange={e => setNewContract(prev => ({ ...prev, rescue_needs_food_hydration: e.target.value }))} data-testid="rescue-food-select">
+                        <option>Unknown</option><option>Yes</option><option>No</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed rgba(255,0,68,0.4)' }}>
+                    <div style={{ color: '#ff4466', fontSize: 12, fontFamily: 'var(--nc-font-mono)', letterSpacing: 1, marginBottom: 8 }}>
+                      🔒 // PRIVATE_RESCUE_DETAILS
+                    </div>
+                    <p style={{ color: 'var(--nc-text-muted)', fontSize: 12, marginBottom: 12 }}>
+                      Exact rescue details are private and will only be shown to the accepted rescuer after you approve them.
+                    </p>
+                    <div className="form-group">
+                      <label className="nc-label">EXACT LANDMARK / POI / AREA</label>
+                      <input className="nc-input" placeholder="e.g., Shubin SM0-10, Daymar bunker entrance" value={newContract.rescue_exact_location} onChange={e => setNewContract(prev => ({ ...prev, rescue_exact_location: e.target.value }))} data-testid="rescue-exact-input" />
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">APPROXIMATE BODY LOCATION (OPTIONAL)</label>
+                      <input className="nc-input" placeholder="e.g., Inside main building, top floor" value={newContract.rescue_body_location} onChange={e => setNewContract(prev => ({ ...prev, rescue_body_location: e.target.value }))} data-testid="rescue-body-input" />
+                    </div>
+                    <div className="form-group">
+                      <label className="nc-label">ADDITIONAL PRIVATE NOTES (OPTIONAL)</label>
+                      <textarea className="nc-input" style={{ minHeight: 50 }} placeholder="Codes, hazards, anything else for the rescuer" value={newContract.rescue_private_notes} onChange={e => setNewContract(prev => ({ ...prev, rescue_private_notes: e.target.value }))} data-testid="rescue-notes-input" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Multi-Crew Toggle - hidden for LFG and Medical posts */}
+              {!isLfg && !isMedical && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -822,45 +1067,58 @@ export default function Contracts() {
               {/* Single-crew fields only show when not multi-crew */}
               {!isMultiCrew && (
                 <>
-                  {/* Location Selectors */}
+                  {/* Simplified Meeting Location */}
                   <div className="form-group">
-                    <label className="nc-label">LOCATION</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                      <select 
+                    <label className="nc-label">MEETING LOCATION</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMedical ? '1fr' : '1fr 1fr', gap: 12 }}>
+                      {!isMedical && (
+                        <select
+                          className="nc-input"
+                          value={newContract.meeting_visibility}
+                          onChange={e => setNewContract(prev => ({ ...prev, meeting_visibility: e.target.value, meeting_system: e.target.value === 'disclosed_on_acceptance' ? '' : prev.meeting_system, meeting_major_location: e.target.value === 'disclosed_on_acceptance' ? '' : prev.meeting_major_location }))}
+                          data-testid="meeting-visibility-select"
+                        >
+                          <option value="public">Show System Publicly</option>
+                          <option value="disclosed_on_acceptance">Disclosed on Acceptance</option>
+                        </select>
+                      )}
+                      {(isMedical || newContract.meeting_visibility === 'public') && (
+                        <select
+                          className="nc-input"
+                          value={newContract.meeting_system}
+                          onChange={e => setNewContract(prev => ({ ...prev, meeting_system: e.target.value, meeting_major_location: '' }))}
+                          data-testid="meeting-system-select"
+                        >
+                          <option value="">{isMedical ? 'Patient is in...' : 'System...'}</option>
+                          <option value="Stanton">Stanton</option>
+                          <option value="Pyro">Pyro</option>
+                          <option value="Nyx">Nyx</option>
+                        </select>
+                      )}
+                    </div>
+                    {!isMedical && newContract.meeting_visibility === 'public' && newContract.meeting_system && (
+                      <select
                         className="nc-input"
-                        value={newContract.system}
-                        onChange={e => setNewContract(prev => ({ ...prev, system: e.target.value, planet: '', location: '' }))}
+                        style={{ marginTop: 8 }}
+                        value={newContract.meeting_major_location}
+                        onChange={e => setNewContract(prev => ({ ...prev, meeting_major_location: e.target.value }))}
+                        data-testid="meeting-major-location-select"
                       >
-                        {SYSTEMS.map(sys => (
-                          <option key={sys} value={sys}>{sys}</option>
-                        ))}
-                      </select>
-                      <select 
-                        className="nc-input"
-                        value={newContract.planet}
-                        onChange={e => setNewContract(prev => ({ ...prev, planet: e.target.value, location: '' }))}
-                      >
-                        <option value="">Planet/Area...</option>
-                        {newContract.system && Object.keys(LOCATIONS[newContract.system] || {}).map(planet => (
-                          <option key={planet} value={planet}>{planet}</option>
-                        ))}
-                      </select>
-                      <select 
-                        className="nc-input"
-                        value={newContract.location}
-                        onChange={e => setNewContract(prev => ({ ...prev, location: e.target.value }))}
-                        disabled={!newContract.planet}
-                      >
-                        <option value="">Specific location...</option>
-                        {newContract.planet && newContract.system && LOCATIONS[newContract.system]?.[newContract.planet]?.map(loc => (
+                        <option value="">Major port / city / station...</option>
+                        {(MAJOR_LOCATIONS[newContract.meeting_system] || []).map(loc => (
                           <option key={loc} value={loc}>{loc}</option>
                         ))}
                       </select>
-                    </div>
+                    )}
+                    {isMedical && (
+                      <p style={{ color: 'var(--nc-text-muted)', fontSize: 12, marginTop: 6, fontFamily: 'var(--nc-font-mono)' }}>
+                        Only the system is visible publicly. Exact rescue location is private.
+                      </p>
+                    )}
                   </div>
 
-                  {/* Split Profits Checkbox - hidden for LFG */}
-                  {!isLfg && (
+                  {/* Split Profits Checkbox - hidden for LFG and Medical */}
+                  {!isLfg && !isMedical && (
                   <div className="form-group">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <input
@@ -882,10 +1140,10 @@ export default function Contracts() {
                   </div>
                   )}
 
-                  {/* Payment Amount - only show if not split profits */}
-                  {showPaymentField && (
+                  {/* Payment Amount - shown for normal flat-fee or for medical (always required) */}
+                  {(showPaymentField || isMedical) && (
                     <div className="form-group">
-                      <label className="nc-label">CONTRACT PAYOUT (aUEC)</label>
+                      <label className="nc-label">{isMedical ? 'RESCUE PAYOUT (aUEC)' : 'CONTRACT PAYOUT (aUEC)'}</label>
                       <input
                         type="number"
                         className="nc-input"
@@ -911,7 +1169,8 @@ export default function Contracts() {
                 </div>
               )}
 
-              {/* Listing Duration */}
+              {/* Listing Duration — only for "Looking Now" posts */}
+              {!isFuture && (
               <div className="form-group" style={{ marginTop: 16 }}>
                 <label className="nc-label">LISTING DURATION</label>
                 <select
@@ -926,6 +1185,7 @@ export default function Contracts() {
                   <option value={1440}>📅 Scheduled (24 Hours)</option>
                 </select>
               </div>
+              )}
 
               <button 
                 className="nc-btn nc-btn-primary" 
@@ -1184,7 +1444,11 @@ export default function Contracts() {
               <div className="contract-meta">
                 <div className="contract-meta-item">
                   <MapPin size={12} />
-                  {contract.location || `${contract.planet} - ${contract.location}`}
+                  {contract.meeting_visibility === 'disclosed_on_acceptance'
+                    ? 'Disclosed on Acceptance'
+                    : (contract.category === 'MEDICAL'
+                        ? `${contract.meeting_system || contract.system || 'Unknown'} (exact location private)`
+                        : (contract.location || (contract.meeting_system && contract.meeting_major_location ? `${contract.meeting_system} - ${contract.meeting_major_location}` : (contract.meeting_system || contract.planet || 'Location TBD'))))}
                 </div>
                 <div className="contract-meta-item">
                   <Users size={12} />
@@ -1194,10 +1458,25 @@ export default function Contracts() {
                   <Star size={12} className="text-gold" />
                   {contract.poster?.reputation?.toFixed(1) || '5.0'}
                 </div>
+                {/* Timing badge */}
+                {contract.timing_type === 'future' && contract.scheduled_start_at ? (
+                  <div className="contract-meta-item" style={{ color: '#aa00ff', borderLeft: '1px solid rgba(170,0,255,0.4)', paddingLeft: 8 }} data-testid="timing-badge-future">
+                    📅 Scheduled: {new Date(contract.scheduled_start_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}{contract.scheduled_timezone ? ` ${contract.scheduled_timezone}` : ''}
+                  </div>
+                ) : (
+                  <div className="contract-meta-item" style={{ color: 'var(--nc-cyan)' }} data-testid="timing-badge-now">
+                    🚨 Looking Now
+                  </div>
+                )}
                 {contract.poster?.is_supporter && (
                   <span className="supporter-badge" style={{ marginLeft: 'auto' }}>SYNDICATE</span>
                 )}
               </div>
+
+              {/* Medical / Rescue public detail strip */}
+              {contract.category === 'MEDICAL' && (
+                <RescueCardSummary contract={contract} />
+              )}
 
               <div className="contract-actions">
                 {/* Status Badge */}

@@ -308,6 +308,25 @@ class ContractCreate(BaseModel):
     manifest: Optional[List[ManifestSlot]] = None
     # Duration
     duration_minutes: Optional[int] = 60
+    # Timing (looking now vs scheduled future)
+    timing_type: Optional[str] = 'now'  # 'now' | 'future'
+    scheduled_start_at: Optional[str] = None  # ISO UTC
+    scheduled_timezone: Optional[str] = None  # e.g. 'America/New_York'
+    # Meeting location simplification
+    meeting_visibility: Optional[str] = 'public'  # 'public' | 'disclosed_on_acceptance'
+    meeting_system: Optional[str] = None  # 'Stanton' | 'Pyro' | 'Nyx'
+    meeting_major_location: Optional[str] = None
+    # Medical / Rescue PUBLIC fields
+    rescue_bleedout_minutes: Optional[int] = None
+    rescue_injury_tier: Optional[str] = None  # 'T1' | 'T2' | 'T3' | 'Unknown'
+    rescue_pvp_area: Optional[str] = None  # 'Yes' | 'No' | 'Unknown'
+    rescue_hostile_npcs: Optional[str] = None
+    rescue_aa_turrets: Optional[str] = None
+    rescue_needs_food_hydration: Optional[str] = None
+    # Medical / Rescue PRIVATE fields (redacted server-side from unauthorized viewers)
+    rescue_exact_location: Optional[str] = None
+    rescue_body_location: Optional[str] = None
+    rescue_private_notes: Optional[str] = None
 
 class ReviewCreate(BaseModel):
     contract_id: str
@@ -412,6 +431,28 @@ async def require_admin(user = Depends(get_current_user)):
     if not user.get('is_admin', False):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+RESCUE_PRIVATE_FIELDS = ('rescue_exact_location', 'rescue_body_location', 'rescue_private_notes')
+
+def redact_private_fields(contract, user):
+    """Strip private rescue fields from contract dict unless caller is poster, accepted rescuer, or admin."""
+    if not contract:
+        return contract
+    if (contract.get('category') or '').upper() != 'MEDICAL':
+        return contract
+    user_id = user.get('id') if user else None
+    is_admin = bool(user and user.get('is_admin'))
+    is_poster = user_id and contract.get('poster_id') == user_id
+    accepted = contract.get('accepted_by') or {}
+    is_accepted = bool(user_id and accepted and accepted.get('id') == user_id)
+    if is_admin or is_poster or is_accepted:
+        return contract
+    for f in RESCUE_PRIVATE_FIELDS:
+        if f in contract:
+            contract[f] = None
+    return contract
+
 
 # Admin email constant
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'beecroft519@gmail.com')
@@ -1466,7 +1507,7 @@ async def get_commodity_prices(commodity_code: str):
 # ===== Contracts Routes =====
 
 @api_router.get("/contracts")
-async def get_contracts(category: Optional[str] = None):
+async def get_contracts(category: Optional[str] = None, user = Depends(get_current_user)):
     # Filter out expired/completed/cancelled contracts using expires_at or fallback to 1hr for legacy
     now = datetime.now(timezone.utc).isoformat()
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
@@ -1497,7 +1538,8 @@ async def get_contracts(category: Optional[str] = None):
         ]},
         {'$set': {'status': 'expired'}}
     )
-    
+
+    contracts = [redact_private_fields(c, user) for c in contracts]
     return contracts
 
 @api_router.post("/contracts")
@@ -1562,9 +1604,38 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     duration_mins = contract.duration_minutes or 60
     contract_doc['duration_minutes'] = duration_mins
     contract_doc['expires_at'] = (datetime.now(timezone.utc) + timedelta(minutes=duration_mins)).isoformat()
-    
+
+    # Timing fields
+    contract_doc['timing_type'] = contract.timing_type or 'now'
+    contract_doc['scheduled_start_at'] = contract.scheduled_start_at
+    contract_doc['scheduled_timezone'] = contract.scheduled_timezone
+
+    # Meeting location fields
+    contract_doc['meeting_visibility'] = contract.meeting_visibility or 'public'
+    contract_doc['meeting_system'] = contract.meeting_system
+    contract_doc['meeting_major_location'] = contract.meeting_major_location
+
+    # Medical / Rescue (only persisted if MEDICAL category, but harmless otherwise)
+    contract_doc['rescue_injury_tier'] = contract.rescue_injury_tier
+    contract_doc['rescue_pvp_area'] = contract.rescue_pvp_area
+    contract_doc['rescue_hostile_npcs'] = contract.rescue_hostile_npcs
+    contract_doc['rescue_aa_turrets'] = contract.rescue_aa_turrets
+    contract_doc['rescue_needs_food_hydration'] = contract.rescue_needs_food_hydration
+    contract_doc['rescue_bleedout_minutes'] = contract.rescue_bleedout_minutes
+    if contract.rescue_bleedout_minutes:
+        contract_doc['rescue_bleedout_expires_at'] = (
+            datetime.now(timezone.utc) + timedelta(minutes=contract.rescue_bleedout_minutes)
+        ).isoformat()
+    else:
+        contract_doc['rescue_bleedout_expires_at'] = None
+    # Private fields
+    contract_doc['rescue_exact_location'] = contract.rescue_exact_location
+    contract_doc['rescue_body_location'] = contract.rescue_body_location
+    contract_doc['rescue_private_notes'] = contract.rescue_private_notes
+
     await db.contracts.insert_one(contract_doc)
     contract_doc.pop('_id', None)
+    contract_doc = redact_private_fields(contract_doc, user)
     
     # Broadcast new contract via WebSocket
     await broadcast_contract(contract_doc)
@@ -2245,6 +2316,25 @@ async def startup_event():
         # Ensure existing admin has is_admin flag
         await db.users.update_one({'email': ADMIN_EMAIL}, {'$set': {'is_admin': True}})
 
+    # Background sweeper for deceased rescue contracts (runs every 6 hours)
+    async def deceased_cleanup_loop():
+        while True:
+            try:
+                cutoff = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
+                await db.contracts.update_many(
+                    {
+                        'category': 'MEDICAL',
+                        'status': {'$in': ['open', 'mustering']},
+                        'rescue_bleedout_expires_at': {'$ne': None, '$lt': cutoff},
+                    },
+                    {'$set': {'status': 'expired'}}
+                )
+            except Exception as e:
+                logger.error(f"Deceased cleanup error: {e}")
+            await asyncio.sleep(6 * 3600)
+
+    asyncio.create_task(deceased_cleanup_loop())
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
@@ -2712,6 +2802,7 @@ async def get_contract_details(contract_id: str, user = Depends(get_current_user
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
     contract.pop("_id", None)
+    contract = redact_private_fields(contract, user)
     return contract
 
 

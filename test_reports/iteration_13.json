@@ -1,0 +1,57 @@
+{
+  "summary": "Comprehensive testing of new contracts features: (1) Looking-Now vs Future timing, (2) simplified Meeting Location (visibility + system + curated major hubs), (3) Medical/Rescue privacy redaction. All backend and frontend behaviours match the spec. Backend 7/7 passed (1 skipped due to pre-existing 'demo user already has active contract' constraint - not a regression). Frontend modal/card/details flows fully verified for both poster (admin) and non-poster (demo) viewers including server-side privacy redaction.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "POST /api/auth/demo-login returns 200 with token and non-admin user",
+    "POST /api/contracts (paid COMBAT, timing=now, public Stanton-Lorville, payment 50000) creates and appears in GET list",
+    "POST /api/contracts (future scheduled COMBAT with scheduled_start_at + scheduled_timezone + Pyro-Checkmate) saved correctly",
+    "POST /api/contracts (LFG, no payout) returns category=LFG and payment_amount=0",
+    "POST /api/contracts (multi-crew COMBAT with manifest [Pilot 50k, Gunner 30k]) returns is_multi_crew=true, status=mustering, payment_amount=80000",
+    "PRIVACY (single GET): MEDICAL contract with rescue_exact_location='SECRET_LOC_*' returns full private fields to poster (admin) and null to non-authorized (demo) user; public risk fields (rescue_injury_tier=T2, rescue_pvp_area, rescue_bleedout_minutes) preserved for demo",
+    "PRIVACY (list GET): SECRET_LOC_* string absent from demo's /api/contracts list response body; present in admin's response",
+    "rescue_bleedout_expires_at is computed server-side from rescue_bleedout_minutes (verified for 1 and 15 minute inputs)",
+    "Frontend create modal: data-testid timing-now-btn / timing-future-btn present; selecting Future reveals scheduled-date-input + scheduled-time-input + scheduled-timezone-select",
+    "Frontend create modal: meeting-visibility-select + meeting-system-select present; selecting Stanton populates meeting-major-location-select with curated hubs (Area18, Baijini Point, Orison, Seraphim Station, Grim HEX, Lorville, Everus Harbor, New Babbage, Port Tressler) - no long POI list",
+    "Frontend create modal: selecting Pyro shows curated Pyro hubs (Checkmate Station, Ruin Station, Pyro Gateway)",
+    "Frontend create modal: switching category to MEDICAL hides meeting-major-location-select (single system select only) and shows all 9 medical inputs (rescue-bleedout-input, rescue-tier-select, rescue-pvp-select, rescue-npcs-select, rescue-aa-select, rescue-food-select, rescue-exact-input, rescue-body-input, rescue-notes-input)",
+    "Frontend job board cards: rescue-card-summary rendered for MEDICAL contracts, bleedout-countdown live counter present, timing-badge-now / timing-badge-future visible for now and future posts respectively",
+    "Frontend cards: SECRET_LOC string NOT present in card HTML even for poster (cards show 'Exact location hidden until accepted')",
+    "Frontend ContractDetails (poster/admin): rescue-public-panel + rescue-private-panel + details-bleedout-countdown + details-timing-now all present; SECRET_DETAILS_TEST_777, BODY_DTL_777, NOTES_DTL_777 all visible in private panel",
+    "Frontend ContractDetails (non-poster/demo): rescue-public-panel present + 'Exact location hidden until accepted' note visible; rescue-private-panel NOT rendered; SECRET/BODY/NOTES not present in HTML",
+    "Bleed-out countdown ticks live in details view (observed 59:55 -> 59:49 within seconds of view)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_contracts_rescue.py",
+    "/app/test_reports/pytest/pytest_contracts_rescue.xml",
+    "/app/test_reports/iteration_13.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend redact_private_fields uses early-return when user is poster/admin/accepted - good pattern. It mutates contract dict in-place; if same dict is later reused for another user this could leak, but the GET list rebuilds list per request so no leak in practice.",
+    "Demo user 'already has active contract' constraint prevents fully exercising bid->accept->review flow with a fresh demo user; consider either (a) auto-cleanup of stale demo contracts or (b) returning unique demo users per call to enable full end-to-end bid testing in automation. Bid endpoint itself is unchanged from prior iterations and reported working in iteration_11/12.",
+    "Frontend Contracts page POST_JOB modal still shows LISTING DURATION select for MEDICAL+now (correct per spec - only timing=future hides it). Spec compliance verified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_contracts_rescue.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 executed; 1 skipped due to environmental demo-user constraint, not a regression)",
+    "frontend": "100% (all create-modal, card, and contract-details privacy tests passed for both poster and non-poster viewers)"
+  },
+  "test_credentials": {
+    "admin": {"email": "beecroft519@gmail.com", "password": "Nv$C0m_Adm1n_2025!"},
+    "demo": "POST /api/auth/demo-login (no body) returns Demo_Player non-admin token"
+  },
+  "seed_data_creation": "Created multiple TEST_* contracts during testing: TEST_paid_combat (now/Stanton-Lorville), TEST_future_job (future/Pyro-Checkmate), TEST_lfg_grouping, TEST_multicrew, TEST_medical_privacy (with secret payload), TEST_medical_short_bleedout, TEST_UI_medical_card, TEST_UI_med_details. None of these need cleanup; they exercise legitimate flows.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Contract details route is /contracts/:id (plural), NOT /contract/:id. Demo login via POST /api/auth/demo-login with empty body. To test from frontend, set localStorage.navcom_token + navcom_user from the demo response then navigate. Region prompt modal blocks UI on every full page load - either click region-skip-btn or set localStorage navcom_onboarding_done='true' (this only skips the carousel, NOT the per-session region prompt, so always handle region-skip-btn). Privacy tests verify both list (/api/contracts) and single (/api/contracts/{id}) GET endpoints redact rescue_exact_location/rescue_body_location/rescue_private_notes. Bleedout countdown is client-side computed from rescue_bleedout_expires_at (server-set)."
+}

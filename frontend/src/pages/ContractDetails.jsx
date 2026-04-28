@@ -1,7 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield, Calendar, Lock } from 'lucide-react';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
+import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
+
+const RescuePublicPanel = ({ contract }) => {
+  const { label, expired } = useBleedoutCountdown(contract.rescue_bleedout_expires_at);
+  const rows = [
+    ['System', contract.meeting_system || contract.system || 'Unknown'],
+    ['Injury Tier', contract.rescue_injury_tier || 'Unknown'],
+    ['PvP Area', contract.rescue_pvp_area || 'Unknown'],
+    ['Hostile NPCs', contract.rescue_hostile_npcs || 'Unknown'],
+    ['AA Turrets', contract.rescue_aa_turrets || 'Unknown'],
+    ['Hydration / Food', contract.rescue_needs_food_hydration || 'Unknown'],
+  ];
+  return (
+    <div data-testid="rescue-public-panel" style={{ background: 'rgba(255,0,68,0.05)', border: '1px solid rgba(255,0,68,0.3)', padding: 16, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <HeartMonitor flatline={expired} />
+        <div style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, color: expired ? '#888' : '#ff4466' }} data-testid="details-bleedout-countdown">
+          {expired ? 'Deceased' : `Bleed-out: ${label}`}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 8 }}>
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#ccc', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ color: '#888', fontFamily: 'var(--nc-font-mono)' }}>{k}</span>
+            <span>{v}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 11, color: '#888', fontFamily: 'var(--nc-font-mono)' }}>
+        Exact location hidden until accepted.
+      </div>
+    </div>
+  );
+};
+
+const RescuePrivatePanel = ({ contract }) => (
+  <div data-testid="rescue-private-panel" style={{ background: 'rgba(0,255,136,0.05)', border: '1px solid rgba(0,255,136,0.4)', padding: 16, marginBottom: 16 }}>
+    <div style={{ color: '#00ff88', fontFamily: 'var(--nc-font-mono)', fontSize: 12, letterSpacing: 1, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Lock size={14} /> ACCEPTED RESCUE DETAILS
+    </div>
+    {contract.rescue_exact_location && (
+      <div style={{ marginBottom: 8, color: '#ccc' }}><strong style={{ color: '#00ff88', marginRight: 8 }}>Landmark / POI:</strong>{contract.rescue_exact_location}</div>
+    )}
+    {contract.rescue_body_location && (
+      <div style={{ marginBottom: 8, color: '#ccc' }}><strong style={{ color: '#00ff88', marginRight: 8 }}>Approx. body location:</strong>{contract.rescue_body_location}</div>
+    )}
+    {contract.rescue_private_notes && (
+      <div style={{ color: '#ccc', whiteSpace: 'pre-wrap' }}><strong style={{ color: '#00ff88', marginRight: 8 }}>Private notes:</strong>{contract.rescue_private_notes}</div>
+    )}
+  </div>
+);
 
 const ContractDetails = () => {
   const { id } = useParams();
@@ -139,9 +190,27 @@ const ContractDetails = () => {
   }
 
   const isOwner = currentUser && contract.poster_id === currentUser.id;
+  const isAdmin = currentUser && currentUser.is_admin;
+  const isAcceptedRescuer = currentUser && contract.accepted_by && contract.accepted_by.id === currentUser.id;
+  const canSeePrivateRescue = isOwner || isAdmin || isAcceptedRescuer;
+  const isMedical = contract.category === 'MEDICAL';
   const filledCount = contract.manifest?.filter(s => s.status === 'FILLED').length || 0;
   const totalSlots = contract.manifest?.length || 0;
   const totalPayout = contract.manifest?.reduce((sum, s) => sum + s.payout, 0) || contract.payout || contract.payment_amount || 0;
+
+  // Compute display location string respecting privacy and meeting visibility
+  const meetingDisplay = (() => {
+    if (isMedical) {
+      return `${contract.meeting_system || contract.system || 'Unknown'} (exact location private)`;
+    }
+    if (contract.meeting_visibility === 'disclosed_on_acceptance') {
+      return 'Disclosed on Acceptance';
+    }
+    if (contract.meeting_system && contract.meeting_major_location) {
+      return `${contract.meeting_system} - ${contract.meeting_major_location}`;
+    }
+    return contract.location || contract.meeting_system || contract.system || 'Location TBD';
+  })();
 
   const userHasBidOnSlot = (slot) => {
     return slot.bids?.some(bid => bid.user_id === currentUser?.id);
@@ -173,7 +242,7 @@ const ContractDetails = () => {
             <div style={styles.meta}>
               <div style={styles.metaItem}>
                 <MapPin size={16} color="#00f0ff" />
-                {contract.location}
+                {meetingDisplay}
               </div>
               <div style={styles.metaItem}>
                 <User size={16} color="#00f0ff" />
@@ -183,10 +252,26 @@ const ContractDetails = () => {
                 <Clock size={16} color="#00f0ff" />
                 {new Date(contract.created_at).toLocaleDateString()}
               </div>
+              {contract.timing_type === 'future' && contract.scheduled_start_at ? (
+                <div style={{ ...styles.metaItem, color: '#aa00ff' }} data-testid="details-timing-future">
+                  <Calendar size={16} color="#aa00ff" />
+                  Scheduled: {new Date(contract.scheduled_start_at).toLocaleString()}{contract.scheduled_timezone ? ` (${contract.scheduled_timezone})` : ''}
+                </div>
+              ) : (
+                <div style={{ ...styles.metaItem, color: '#00f0ff' }} data-testid="details-timing-now">
+                  🚨 Looking Now
+                </div>
+              )}
             </div>
           </div>
           <div style={styles.body}>
-            <p style={styles.description}>{contract.description}</p>
+            {isMedical && (
+              <RescuePublicPanel contract={contract} />
+            )}
+            {isMedical && canSeePrivateRescue && (
+              <RescuePrivatePanel contract={contract} />
+            )}
+            {contract.description && <p style={styles.description}>{contract.description}</p>}
             <div style={styles.statsRow}>
               <div style={styles.stat}>
                 <div style={styles.statValue}>{totalPayout.toLocaleString()}</div>
