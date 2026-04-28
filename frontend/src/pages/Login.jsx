@@ -6,12 +6,13 @@ import AboutModal from '../components/AboutModal';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -26,6 +27,19 @@ export default function Login() {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    setDemoLoading(true);
+    try {
+      await demoLogin();
+      navigate('/contracts');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Demo login is currently unavailable.');
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -91,6 +105,23 @@ export default function Login() {
             {loading ? 'AUTHENTICATING...' : 'LOGIN'}
           </button>
         </form>
+
+        {/* Demo Login */}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--nc-border)', textAlign: 'center' }}>
+          <button
+            type="button"
+            className="nc-btn nc-btn-secondary"
+            onClick={handleDemoLogin}
+            disabled={demoLoading}
+            style={{ width: '100%' }}
+            data-testid="demo-login-btn"
+          >
+            {demoLoading ? 'LOADING DEMO...' : 'TRY DEMO'}
+          </button>
+          <p style={{ color: 'var(--nc-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--nc-font-mono)' }}>
+            No account or RSI verification required.
+          </p>
+        </div>
 
         <div className="auth-footer">
           <span className="text-muted">New pilot?</span>

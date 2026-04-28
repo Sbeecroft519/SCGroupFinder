@@ -133,9 +133,14 @@ function App() {
         const response = await axios.get(`${API}/auth/me`);
         setUser(response.data);
         
+        const isDemo = localStorage.getItem('navcom_is_demo') === 'true';
         // Check if first time user (no onboarding completed)
         const onboardingDone = localStorage.getItem('navcom_onboarding_done');
-        if (!onboardingDone) {
+        if (isDemo) {
+          // Demo users skip onboarding and region prompt
+          setShowOnboarding(false);
+          setShowShardPrompt(false);
+        } else if (!onboardingDone) {
           setShowOnboarding(true);
         } else {
           // Always show shard prompt on login (session-based)
@@ -186,6 +191,21 @@ function App() {
     return userData;
   };
 
+  const demoLogin = async () => {
+    const response = await axios.post(`${API}/auth/demo-login`);
+    const { token: newToken, user: userData } = response.data;
+    localStorage.setItem('navcom_token', newToken);
+    localStorage.setItem('navcom_onboarding_done', 'true'); // skip onboarding for demo
+    localStorage.setItem('navcom_is_demo', 'true');
+    setToken(newToken);
+    setUser(userData);
+    playLoginSound();
+    // No RSI verification, no shard prompt, straight into the app
+    setShowOnboarding(false);
+    setShowShardPrompt(false);
+    return userData;
+  };
+
   const register = async (userData) => {
     const response = await axios.post(`${API}/auth/register`, userData);
     return response.data;
@@ -193,6 +213,7 @@ function App() {
 
   const logout = () => {
     localStorage.removeItem('navcom_token');
+    localStorage.removeItem('navcom_is_demo');
     setToken(null);
     setUser(null);
     setUserShard(''); // Clear session shard
@@ -234,6 +255,7 @@ function App() {
     token,
     loading,
     login,
+    demoLogin,
     register,
     logout,
     updateUser,

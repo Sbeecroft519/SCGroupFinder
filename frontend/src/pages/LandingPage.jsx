@@ -1,11 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Users, FileText, Radio, Star, ChevronRight, Radar, Info, Zap, Target } from 'lucide-react';
+import { Shield, Users, FileText, Radio, Star, ChevronRight, Radar, Info, Zap, Target, PlayCircle } from 'lucide-react';
 import AboutModal from '../components/AboutModal';
+import { useAuth } from '../App';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { demoLogin } = useAuth();
   const [showAbout, setShowAbout] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState('');
+
+  const handleDemo = async () => {
+    setDemoError('');
+    setDemoLoading(true);
+    try {
+      await demoLogin();
+      navigate('/contracts');
+    } catch (err) {
+      setDemoError(err.response?.data?.detail || 'Demo login is currently unavailable.');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   const features = [
     { icon: FileText, title: 'Job & Group Board', desc: 'Post jobs, missions, and group requests. Browse what other players need. No more trawling Global chat for teammates.', color: '#00F0FF' },
@@ -110,13 +127,29 @@ const LandingPage = () => {
           <Info size={16} /> Learn more
         </button>
 
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <button 
             onClick={() => navigate('/register')}
             className="landing-btn-hero"
           >
             <Target size={20} /> GET STARTED <ChevronRight size={20} />
           </button>
+          <button
+            type="button"
+            onClick={handleDemo}
+            disabled={demoLoading}
+            className="landing-btn-secondary"
+            data-testid="demo-login-btn"
+            style={{ padding: '14px 36px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
+            <PlayCircle size={18} /> {demoLoading ? 'LOADING DEMO...' : 'TRY DEMO'}
+          </button>
+          <span style={{ color: 'var(--nc-text-muted)', fontSize: 12, fontFamily: 'var(--nc-font-mono)' }}>
+            No account or RSI verification required.
+          </span>
+          {demoError && (
+            <span style={{ color: '#ff4466', fontSize: 12 }} data-testid="demo-error">{demoError}</span>
+          )}
         </div>
       </section>
 

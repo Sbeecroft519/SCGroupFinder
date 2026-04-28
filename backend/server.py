@@ -577,6 +577,53 @@ async def login(credentials: UserLogin):
         avatar_url=user.get('avatar_url')
     ))
 
+@api_router.post("/auth/demo-login", response_model=TokenResponse)
+async def demo_login():
+    """Instant demo login — bypasses RSI verification. Gated by ENABLE_DEMO_LOGIN env var."""
+    if os.environ.get('ENABLE_DEMO_LOGIN', '').lower() != 'true':
+        raise HTTPException(status_code=403, detail="Demo login is disabled.")
+
+    DEMO_EMAIL = "demo@starcitizengroupfinder.local"
+    DEMO_HANDLE = "Demo_Player"
+
+    user = await db.users.find_one({'email': DEMO_EMAIL}, {'_id': 0})
+    if not user:
+        user = {
+            'id': str(uuid.uuid4()),
+            'email': DEMO_EMAIL,
+            'rsi_handle': DEMO_HANDLE,
+            'password_hash': hash_password(str(uuid.uuid4())),  # random, never usable
+            'is_verified': True,
+            'is_admin': False,
+            'is_supporter': False,
+            'theme_id': 'default',
+            'reputation': 4.8,
+            'contracts_completed': 12,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'avatar_url': None,
+            'avatar_preset': 'pilot',
+            'badges': [],
+            'supporter_tier': 'NONE',
+            'is_demo': True,
+        }
+        await db.users.insert_one(user.copy())
+
+    token = create_token(user['id'])
+
+    return TokenResponse(token=token, user=UserResponse(
+        id=user['id'],
+        rsi_handle=user['rsi_handle'],
+        is_verified=True,
+        is_supporter=False,
+        is_admin=False,
+        theme_id=user.get('theme_id', 'default'),
+        reputation=user.get('reputation', 4.8),
+        contracts_completed=user.get('contracts_completed', 12),
+        created_at=user.get('created_at', ''),
+        avatar_url=user.get('avatar_url'),
+        avatar_preset=user.get('avatar_preset'),
+    ))
+
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user = Depends(get_current_user)):
     if not user:
