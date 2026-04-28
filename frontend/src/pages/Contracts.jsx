@@ -590,8 +590,10 @@ export default function Contracts() {
       // Multi-crew (disabled for LFG and Medical)
       is_multi_crew: (isLfg || isMedical) ? false : isMultiCrew,
       manifest: (!isLfg && !isMedical && isMultiCrew) ? manifest : null,
-      // Listing duration only matters for "now" posts
-      duration_minutes: c.timing_type === 'now' ? duration : 60,
+      // Listing duration: medical uses bleed-out as duration; "now" non-medical uses chosen duration; future uses 60 (placeholder, expiry handled by scheduled_start_at)
+      duration_minutes: isMedical
+        ? (parseInt(c.rescue_bleedout_minutes) || 30)
+        : (c.timing_type === 'now' ? duration : 60),
       // New: timing
       timing_type: c.timing_type,
       scheduled_start_at: scheduledIso,
@@ -1169,8 +1171,8 @@ export default function Contracts() {
                 </div>
               )}
 
-              {/* Listing Duration — only for "Looking Now" posts */}
-              {!isFuture && (
+              {/* Listing Duration — only for "Looking Now" non-medical posts (rescues use bleed-out as duration) */}
+              {!isFuture && !isMedical && (
               <div className="form-group" style={{ marginTop: 16 }}>
                 <label className="nc-label">LISTING DURATION</label>
                 <select
@@ -1369,6 +1371,9 @@ export default function Contracts() {
                     }}>
                       👥 LFG · NO PAYOUT
                     </span>
+                  ) : contract.category === 'MEDICAL' ? (
+                    /* Medical / rescue posts always display the flat-fee payout the poster entered */
+                    <span className="payment-amount">{getContractPayout(contract).toLocaleString()} aUEC</span>
                   ) : isSplitProfits ? (
                     <span style={{ color: 'var(--nc-cyan)', fontSize: 13, fontFamily: 'var(--nc-font-mono)' }}>
                       💰 SPLIT PROFITS

@@ -167,10 +167,11 @@ const LandingPage = () => {
         </h2>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: 20,
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', 
+          gap: 32,
           maxWidth: 1200,
-          margin: '0 auto'
+          margin: '0 auto',
+          justifyItems: 'stretch',
         }}>
           {features.map((f, i) => (
             <div key={i} className="feature-card" style={{ '--feature-color': f.color }}>
