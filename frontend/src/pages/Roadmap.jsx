@@ -14,7 +14,7 @@ const DEFAULT_ROADMAP_ITEMS = [
   {
     id: '2',
     title: 'Intelligence Network',
-    description: 'Real-time player reports for piracy, PvP zones, 30ks, and shard stability.',
+    description: 'Real-time player reports for piracy, PvP zones, 30ks, and server instability.',
     status: 'STABLE'
   },
   {
@@ -44,13 +44,13 @@ const DEFAULT_ROADMAP_ITEMS = [
   {
     id: '7',
     title: 'Org Integration',
-    description: 'Connect NavCom with RSI Org tools for fleet coordination.',
+    description: 'Connect SC Group Finder with RSI Org tools for fleet coordination.',
     status: 'PLANNED'
   },
   {
     id: '8',
     title: 'Mobile Companion App',
-    description: 'Access NavCom on your phone while away from the verse.',
+    description: 'Access SC Group Finder on your phone while away from the verse.',
     status: 'BACKLOG'
   }
 ];
@@ -94,7 +94,7 @@ export default function Roadmap() {
       <div className="page-header">
         <div className="page-label">// SUPPLY_DROP</div>
         <h1 className="page-title">Feature Roadmap</h1>
-        <p className="page-subtitle">NavCom development status and upcoming features</p>
+        <p className="page-subtitle">SC Group Finder development status and upcoming features</p>
       </div>
 
       {/* Support CTA */}
@@ -108,7 +108,7 @@ export default function Roadmap() {
               </h3>
             </div>
             <p className="text-muted" style={{ fontSize: 14, maxWidth: 500 }}>
-              Help keep NavCom running and support future development. Every contribution helps!
+              Help keep SC Group Finder running and support future development. Every contribution helps!
             </p>
           </div>
           <a 

@@ -64,14 +64,15 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
     return 'expired';
   };
 
-  // Filter alerts: only show if on same shard OR if user has no shard set (show global only)
+  // Filter alerts: only show if on same region OR if user has no region set (show global only)
   const filterAlerts = (types) => {
     return alerts.filter(a => {
       const age = Date.now() - new Date(a.created_at).getTime();
       if (age > 3600000) return false; // 1 hour expiry
       if (!types.includes(a.type)) return false;
       
-      // Shard filtering: show if same shard, or if alert has no shard (global)
+      // Region filtering: show if same region, or if alert has no region (global)
+      // NOTE: backend still uses `shard` field internally for backward compatibility
       if (userShard && a.shard && a.shard !== userShard) return false;
       
       return true;
@@ -145,7 +146,7 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
                     {alert.description && <span className="alert-details" style={{ fontStyle: 'italic', color: '#aaa' }}>"{alert.description}"</span>}
                     {alert.shard ? (
                       <span className={`alert-shard ${isOnMyShard ? 'same' : ''}`} style={isOnMyShard ? { borderColor: config.color, color: config.color } : {}}>
-                        {isOnMyShard ? '⚠️ YOUR SHARD' : `Shard ${alert.shard}`}
+                        {isOnMyShard ? `⚠️ YOUR REGION` : alert.shard.toUpperCase()}
                       </span>
                     ) : (
                       <span className="alert-shard global">GLOBAL</span>

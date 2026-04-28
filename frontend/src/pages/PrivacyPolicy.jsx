@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
             1. What We Collect & Why
           </h2>
           <p style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-            We keep it simple. To use NavComConnect, we only ask for:
+            We keep it simple. To use SC Group Finder, we only ask for:
           </p>
           <ul style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.8, paddingLeft: 20 }}>
             <li style={{ marginBottom: 8 }}>

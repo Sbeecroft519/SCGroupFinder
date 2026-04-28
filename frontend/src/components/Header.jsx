@@ -13,14 +13,13 @@ import NotificationBell from './NotificationBell';
 import { useAuth } from '../App';
 
 const MAIN_NAV = [
-  { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
   { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
+  { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
   { id: 'lounge', label: 'LOUNGE (LFG)', icon: Radio, path: '/lounge' },
 ];
 
 const OTHER_TOOLS = [
   { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
-  { id: 'directory', label: 'Directory', icon: Users, path: '/directory' },
   { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
 ];
 
@@ -34,15 +33,15 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
   const isOtherToolActive = OTHER_TOOLS.some(t => isActive(t.path));
 
   const getInitials = (handle) => {
-    if (!handle) return 'NC';
+    if (!handle) return 'SC';
     return handle.slice(0, 2).toUpperCase();
   };
 
   return (
     <header className="navcom-header" data-testid="navcom-header">
       <Link to="/" className="navcom-logo" data-testid="navcom-logo">
-        <span className="logo-text">NAVCOM</span>
-        <span className="logo-subtitle">MISSION ADVISOR</span>
+        <span className="logo-text">SC GROUP FINDER</span>
+        <span className="logo-subtitle">PLAYER CONTRACT BOARD</span>
       </Link>
 
       <nav className="navcom-nav" data-testid="navcom-nav">
@@ -88,8 +87,8 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
 
       <div className="navcom-avatar-area" data-testid="avatar-area">
         {userShard && (
-          <button className="shard-display" onClick={onShardClick} title="Click to change shard">
-            <span className="shard-label">SHARD</span>
+          <button className="shard-display" onClick={onShardClick} title="Click to change server region" data-testid="region-display">
+            <span className="shard-label">REGION</span>
             <span className="shard-value">{userShard}</span>
           </button>
         )}

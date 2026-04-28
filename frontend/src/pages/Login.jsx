@@ -21,7 +21,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/intel');
+      navigate('/contracts');
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
     } finally {
@@ -35,7 +35,7 @@ export default function Login() {
         <div className="auth-header">
           <div className="page-label">// AUTHENTICATION</div>
           <h1 className="auth-title">Pilot Login</h1>
-          <p className="auth-subtitle">Access your NavCom account</p>
+          <p className="auth-subtitle">Access your SC Group Finder account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -106,7 +106,7 @@ export default function Login() {
           />
         </div>
         
-        {/* About NavCom Link */}
+        {/* About Link */}
         <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
           <button 
             onClick={() => setShowAbout(true)}
@@ -125,7 +125,7 @@ export default function Login() {
             data-testid="about-navcom-btn"
           >
             <Info size={14} />
-            About NavCom
+            About SC Group Finder
           </button>
         </div>
       </div>

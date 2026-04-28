@@ -36,7 +36,7 @@ export default function TermsOfService() {
             1. Unofficial Status
           </h2>
           <p style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.7 }}>
-            NavComConnect is a fan-made, unofficial site. We are not affiliated with Cloud Imperium Games (CIG) or Roberts Space Industries (RSI). All Star Citizen assets are property of their respective owners.
+            SC Group Finder is a fan-made, unofficial site. We are not affiliated with Cloud Imperium Games (CIG) or Roberts Space Industries (RSI). All Star Citizen assets are property of their respective owners.
           </p>
         </section>
 
@@ -54,7 +54,7 @@ export default function TermsOfService() {
             3. "As Is" Basis
           </h2>
           <p style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.7 }}>
-            This is a free community tool. While we strive for 100% uptime, we aren't liable for any data loss or errors in the NavCom navigation data.
+            This is a free community tool. While we strive for 100% uptime, we aren't liable for any data loss or errors in the community-sourced data.
           </p>
         </section>
       </div>

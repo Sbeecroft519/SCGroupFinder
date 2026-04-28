@@ -6,7 +6,7 @@ import axios from 'axios';
 import { isSoundEnabled } from '../utils/sounds';
 
 const THEMES = [
-  { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default NavCom theme' },
+  { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default MobiGlass theme' },
   { id: 'scavenger', name: 'Scavenger', primary: '#ff6600', description: 'Industrial orange theme' },
   { id: 'luxury', name: 'Luxury', primary: '#ffffff', description: 'Clean luxury white theme' },
   { id: 'milspec', name: 'MilSpec', primary: '#ff0044', description: 'Military red theme' }
@@ -100,9 +100,9 @@ export default function Settings() {
     setDesktopNotifPermission(permission);
     if (permission === 'granted') {
       // Send a test notification
-      new Notification('NavCom Notifications Enabled', {
+      new Notification('SC Group Finder Notifications Enabled', {
         body: 'You will now receive desktop alerts for new contracts!',
-        tag: 'navcom-test'
+        tag: 'scgf-test'
       });
     }
   };
@@ -221,27 +221,27 @@ export default function Settings() {
             <div className="settings-section">
               <h2 className="section-title">Alert Ticker Settings</h2>
               <p className="section-description">
-                Control which alert tickers appear at the top of your screen. Alerts are filtered to your current shard.
+                Control which alert tickers appear at the top of your screen. Alerts are filtered to your current server region.
               </p>
               
-              {/* Shard Setting */}
+              {/* Region Setting */}
               <div className="shard-setting">
                 <div className="shard-setting-info">
-                  <h3>Current Shard</h3>
+                  <h3>Current Server Region</h3>
                   <p>You are currently viewing alerts for:</p>
                   <div className="current-shard-display">
                     {userShard ? (
                       <>
-                        <span className="shard-number">{userShard}</span>
-                        <button className="nc-btn nc-btn-secondary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }}>
+                        <span className="shard-number" data-testid="current-region-value">{userShard}</span>
+                        <button className="nc-btn nc-btn-secondary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }} data-testid="change-region-btn">
                           Change
                         </button>
                       </>
                     ) : (
                       <>
-                        <span className="shard-global">GLOBAL (All Shards)</span>
-                        <button className="nc-btn nc-btn-primary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }}>
-                          Set Shard
+                        <span className="shard-global">GLOBAL (All Regions)</span>
+                        <button className="nc-btn nc-btn-primary" onClick={() => setShowShardPrompt(true)} style={{ padding: '8px 16px' }} data-testid="set-region-btn">
+                          Set Region
                         </button>
                       </>
                     )}
@@ -373,7 +373,7 @@ export default function Settings() {
             <div className="settings-section">
               <h2 className="section-title">Theme Selection</h2>
               <p className="section-description">
-                Choose your preferred visual theme for the NavCom interface.
+                Choose your preferred visual theme for the SC Group Finder interface.
               </p>
               <div className="theme-grid">
                 {THEMES.map(theme => (
@@ -409,7 +409,7 @@ export default function Settings() {
             <div className="settings-section">
               <h2 className="section-title">Push Notifications</h2>
               <p className="section-description">
-                Control real-time notifications from NavCom via WebSocket.
+                Control real-time notifications from SC Group Finder via WebSocket.
               </p>
               
               {/* Sound Toggle */}
@@ -449,7 +449,7 @@ export default function Settings() {
                       <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>Browser Push Notifications</span>
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--nc-text-muted)' }}>
-                      Receive alerts even when NavCom is in the background
+                      Receive alerts even when SC Group Finder is in the background
                     </span>
                   </div>
                   {desktopNotifPermission === 'granted' ? (
@@ -579,11 +579,11 @@ export default function Settings() {
 
           {activeSection === 'about' && (
             <div className="settings-section">
-              <h2 className="section-title">About NavCom</h2>
+              <h2 className="section-title">About SC Group Finder</h2>
               <div className="about-content">
                 <div className="about-logo">
-                  <span className="logo-text" style={{ fontSize: 32 }}>NAVCOM</span>
-                  <span className="logo-subtitle">MISSION ADVISOR</span>
+                  <span className="logo-text" style={{ fontSize: 32 }}>SC GROUP FINDER</span>
+                  <span className="logo-subtitle">PLAYER CONTRACT BOARD</span>
                 </div>
                 <p className="about-version">Version 2.0.0-beta</p>
                 
@@ -591,30 +591,30 @@ export default function Settings() {
                 <div style={{ background: 'var(--nc-bg-secondary)', padding: 20, border: '1px solid var(--nc-border)', marginBottom: 24, marginTop: 24 }}>
                   <h3 style={{ color: 'var(--nc-cyan)', fontSize: 14, marginBottom: 12, letterSpacing: 1 }}>// MISSION_STATEMENT</h3>
                   <p style={{ color: 'var(--nc-text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
-                    NavCom is a <span style={{ color: 'var(--nc-cyan)' }}>free</span>, community-built tool for Star Citizen players. 
-                    We're here to help you find crews, coordinate missions, and stay informed about the 'verse.
+                    SC Group Finder is a <span style={{ color: 'var(--nc-cyan)' }}>free</span>, community-built tool for Star Citizen players.
+                    Find crews, post jobs, and pick teammates based on reputation — no more Global chat roulette.
                   </p>
                 </div>
 
-                {/* What NavCom Offers */}
+                {/* What SC Group Finder Offers */}
                 <div style={{ background: 'var(--nc-bg-secondary)', padding: 20, border: '1px solid var(--nc-border)', marginBottom: 24 }}>
                   <h3 style={{ color: 'var(--nc-cyan)', fontSize: 14, marginBottom: 16, letterSpacing: 1 }}>// FEATURES</h3>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
                       <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
-                      <strong style={{ color: 'var(--nc-text-primary)' }}>Contract Board</strong> - Post and find player-to-player jobs
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Job & Group Board</strong> - Post, apply, review applicants, crew up
                     </li>
                     <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
                       <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
-                      <strong style={{ color: 'var(--nc-text-primary)' }}>Intel Network</strong> - Mission planning based on your ship and playtime
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Two-Way Reputation</strong> - Build trust with ratings and reviews
                     </li>
                     <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
                       <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
-                      <strong style={{ color: 'var(--nc-text-primary)' }}>Signals</strong> - Real-time community reports on piracy, bugs, and hot zones
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Signals</strong> - Region-based reports on piracy, bugs, and hot zones
                     </li>
                     <li style={{ color: 'var(--nc-text-secondary)', fontSize: 13 }}>
                       <span style={{ color: '#00ff88', marginRight: 8 }}>✓</span>
-                      <strong style={{ color: 'var(--nc-text-primary)' }}>Reputation System</strong> - Build trust in the community with ratings
+                      <strong style={{ color: 'var(--nc-text-primary)' }}>Intel</strong> - Mission planning based on your ship and playtime
                     </li>
                   </ul>
                 </div>
@@ -622,7 +622,7 @@ export default function Settings() {
                 <div className="about-credits">
                   <h3 className="credits-title">CREDITS</h3>
                   <ul className="credits-list">
-                    <li>Development: NavCom Team</li>
+                    <li>Development: Mowri</li>
                     <li>Data: UEX Corp API</li>
                     <li>Status: RSI Official</li>
                   </ul>

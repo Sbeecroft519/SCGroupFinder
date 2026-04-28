@@ -115,7 +115,7 @@ export default function Register() {
           <div className="page-label">// NEW_PILOT</div>
           <h1 className="auth-title">{step === 1 ? 'Create Account' : 'Verify RSI Handle'}</h1>
           <p className="auth-subtitle">
-            {step === 1 ? 'Join the NavCom network' : 'Confirm ownership of your RSI account'}
+            {step === 1 ? 'Join the SC Group Finder community' : 'Confirm ownership of your RSI account'}
           </p>
         </div>
 

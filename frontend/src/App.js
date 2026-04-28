@@ -66,7 +66,7 @@ const ProtectedRoute = ({ children }) => {
 const Home = () => {
   const { user } = useAuth();
   if (!user) return <LandingPage />;
-  return <Navigate to="/intel" replace />;
+  return <Navigate to="/contracts" replace />;
 };
 
 function App() {
@@ -264,55 +264,51 @@ function App() {
               />
             )}
 
-            {/* Shard Prompt Modal - shown on every login after onboarding */}
+            {/* Region Prompt Modal - shown on every login after onboarding */}
             {showShardPrompt && user && !showOnboarding && (
-              <div className="mission-modal-overlay" style={{ zIndex: 1001 }}>
+              <div className="mission-modal-overlay" style={{ zIndex: 1001 }} data-testid="region-prompt-modal">
                 <div className="mission-modal" style={{ maxWidth: 450 }}>
                   <div className="mission-modal-header">
                     <div>
                       <div className="mission-type-badge">// SESSION_SETUP</div>
-                      <h2 className="mission-title">Enter Your Shard</h2>
+                      <h2 className="mission-title">Set Your Server Region</h2>
                     </div>
                   </div>
                   <div className="mission-modal-content">
                     <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
-                      Welcome back, <span style={{ color: 'var(--nc-cyan)' }}>{user?.rsi_handle}</span>! 
-                      Enter your current shard number for accurate alerts.
+                      Welcome back, <span style={{ color: 'var(--nc-cyan)' }}>{user?.rsi_handle}</span>!
+                      Pick the server region you're playing on so alerts and reports match your area.
                     </p>
-                    <div className="shard-instructions">
-                      <h4>How to find your shard:</h4>
-                      <ol>
-                        <li>When logged in to Star Citizen</li>
-                        <li>Press <code>~</code> (tilde) to open console</li>
-                        <li>Type <code>r_displayinfo 1</code></li>
-                        <li>Look for "Shard" in the info overlay</li>
-                        <li>Write down the number beside it</li>
-                        <li>Type <code>r_displayinfo 0</code></li>
-                        <li>Enter the shard number below</li>
-                      </ol>
-                    </div>
-                    <input
-                      type="text"
+                    <label className="nc-label">SERVER REGION</label>
+                    <select
                       className="nc-input"
-                      placeholder="Enter shard number (e.g., 360)"
-                      value={userShard}
-                      onChange={e => setUserShard(e.target.value)}
-                      style={{ marginTop: 16 }}
-                    />
+                      value={userShard || '__placeholder__'}
+                      onChange={e => setUserShard(e.target.value === '__placeholder__' ? '' : e.target.value)}
+                      data-testid="region-select"
+                      style={{ width: '100%', padding: '12px 16px', fontSize: 14 }}
+                    >
+                      <option value="__placeholder__">Select your region...</option>
+                      <option value="USA">USA</option>
+                      <option value="Europe">Europe</option>
+                      <option value="Australia">Australia</option>
+                      <option value="Asia">Asia</option>
+                    </select>
                     <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                      <button 
-                        className="nc-btn nc-btn-secondary" 
+                      <button
+                        className="nc-btn nc-btn-secondary"
                         style={{ flex: 1 }}
                         onClick={() => setShard('')}
+                        data-testid="region-skip-btn"
                       >
-                        Skip (Global Only)
+                        Skip (Global)
                       </button>
-                      <button 
-                        className="nc-btn nc-btn-primary" 
+                      <button
+                        className="nc-btn nc-btn-primary"
                         style={{ flex: 1 }}
                         onClick={() => setShard(userShard)}
+                        data-testid="region-set-btn"
                       >
-                        Set Shard
+                        Set Region
                       </button>
                     </div>
                   </div>

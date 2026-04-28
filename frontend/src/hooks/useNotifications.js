@@ -61,8 +61,8 @@ export const useNotifications = (userShard, settings, onAlert) => {
       
       // Show browser notification if permitted and enabled
       if (Notification.permission === 'granted' && localStorage.getItem('navcom_popups_enabled') !== 'false') {
-        new Notification(`NavCom Alert: ${alert.type.replace('_', ' ').toUpperCase()}`, {
-          body: `${alert.location || alert.system || 'Unknown location'}${alert.shard ? ` - Shard ${alert.shard}` : ''}`,
+        new Notification(`SC Group Finder Alert: ${alert.type.replace('_', ' ').toUpperCase()}`, {
+          body: `${alert.location || alert.system || 'Unknown location'}${alert.shard ? ` - ${alert.shard}` : ''}`,
           icon: '/favicon.ico',
           tag: alert.id,
         });

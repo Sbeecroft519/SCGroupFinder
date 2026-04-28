@@ -29,7 +29,7 @@ const Footer = () => {
         marginTop: 'auto'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <span>© 2025 NavCom Connect</span>
+          <span>© 2025 SC Group Finder</span>
           <button 
             onClick={() => setShowAbout(true)}
             style={{

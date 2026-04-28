@@ -634,7 +634,7 @@ export default function Contracts() {
             <div className="mission-modal-header">
               <div>
                 <div className="mission-type-badge">// REVIEW</div>
-                <h2 className="mission-title">Rate {showReview.isClient ? 'Mercenary' : 'Client'}</h2>
+                <h2 className="mission-title">Rate {showReview.isClient ? 'Player' : 'Poster'}</h2>
               </div>
               <button className="mission-modal-close" onClick={() => setShowReview(null)}>
                 <X size={20} />
@@ -674,17 +674,17 @@ export default function Contracts() {
           <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: '90vh', overflow: 'auto' }}>
             <div className="mission-modal-header">
               <div>
-                <div className="mission-type-badge">// NEW_BEACON</div>
-                <h2 className="mission-title">Create Contract</h2>
+                <div className="mission-type-badge">// POST_JOB</div>
+                <h2 className="mission-title">Post Job / Group</h2>
               </div>
               <button className="mission-modal-close" onClick={() => setShowCreate(false)}>
                 <X size={20} />
               </button>
             </div>
             <div className="mission-modal-content">
-              {/* Contract Category - SINGLE UNIFIED FIELD */}
+              {/* Post Type - SINGLE UNIFIED FIELD */}
               <div className="form-group">
-                <label className="nc-label">CONTRACT CATEGORY</label>
+                <label className="nc-label">POST TYPE</label>
                 <select
                   className="nc-input"
                   value={newContract.category}
@@ -698,9 +698,9 @@ export default function Contracts() {
                 </select>
               </div>
 
-              {/* Contract Title */}
+              {/* Job Title */}
               <div className="form-group">
-                <label className="nc-label">CONTRACT TITLE</label>
+                <label className="nc-label">POST TITLE</label>
                 <input
                   className="nc-input"
                   type="text"
@@ -885,22 +885,26 @@ export default function Contracts() {
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div className="page-label">// NAVCOM_CONNECT</div>
+          <div className="page-label">// GROUP_FINDER</div>
           <h1 className="page-title">Job Board</h1>
-          <p className="page-subtitle">Player-to-player contracts and services</p>
+          <p className="page-subtitle">Post jobs, apply to missions, crew up — choose teammates by reputation.</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="font-mono text-muted" style={{ fontSize: 11 }}>MY SHARD:</span>
-            <input
-              type="text"
+            <span className="font-mono text-muted" style={{ fontSize: 11 }}>MY REGION:</span>
+            <select
               className="nc-input"
-              placeholder="e.g., 360"
               value={myShard}
               onChange={e => setMyShard(e.target.value)}
-              style={{ width: 80, padding: '8px 12px' }}
-              data-testid="shard-input"
-            />
+              style={{ width: 140, padding: '8px 12px' }}
+              data-testid="region-input"
+            >
+              <option value="">All</option>
+              <option value="USA">USA</option>
+              <option value="Europe">Europe</option>
+              <option value="Australia">Australia</option>
+              <option value="Asia">Asia</option>
+            </select>
           </div>
           <button 
             className="nc-btn nc-btn-primary"
@@ -908,7 +912,7 @@ export default function Contracts() {
             data-testid="create-contract-btn"
           >
             <Plus size={16} />
-            POST BEACON
+            POST JOB / GROUP
           </button>
         </div>
       </div>
@@ -972,7 +976,7 @@ export default function Contracts() {
       <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 12, height: 12, background: 'var(--nc-red)', borderRadius: 2 }} />
-          <span className="font-mono text-muted" style={{ fontSize: 11 }}>MY SHARD</span>
+          <span className="font-mono text-muted" style={{ fontSize: 11 }}>MY REGION</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 12, height: 12, background: 'var(--nc-orange)', borderRadius: 2 }} />
@@ -1104,7 +1108,7 @@ export default function Contracts() {
                 </div>
                 <div className="contract-meta-item">
                   <Users size={12} />
-                  Shard {contract.shard || 'Any'}
+                  {contract.shard ? contract.shard : 'Any Region'}
                 </div>
                 <div className="contract-meta-item">
                   <Star size={12} className="text-gold" />
@@ -1138,15 +1142,15 @@ export default function Contracts() {
                 {/* Single-crew: Poster Actions */}
                 {!contract.is_multi_crew && contract.poster_id === user?.id && contract.status === 'open' && (
                   <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
-                    <Users size={14} /> Manage Bids
+                    <Users size={14} /> Manage Applicants
                   </button>
                 )}
                 
-                {/* Single-crew: Merc Actions - Apply */}
+                {/* Single-crew: Applicant Actions - Apply */}
                 {!contract.is_multi_crew && contract.poster_id !== user?.id && contract.status === 'open' && (
                   myBids.some(b => b.contract_id === contract.id) ? (
                     <button className="nc-btn nc-btn-secondary" disabled>
-                      <Check size={14} /> Bid Sent
+                      <Check size={14} /> Application Sent
                     </button>
                   ) : (
                     <button 
@@ -1155,7 +1159,7 @@ export default function Contracts() {
                       disabled={hasActiveContract}
                       title={hasActiveContract ? 'You already have an active contract' : ''}
                     >
-                      <ThumbsUp size={14} /> Apply for Contract
+                      <ThumbsUp size={14} /> Apply to Join
                     </button>
                   )
                 )}
@@ -1225,16 +1229,16 @@ export default function Contracts() {
                 {/* Completed - Show Rating for each party */}
                 {contract.status === 'completed' && (
                   <>
-                    {/* Client can rate merc if they haven't yet */}
+                    {/* Poster can rate player if they haven't yet */}
                     {contract.poster_id === user?.id && !contract.client_review && (
                       <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: true })}>
-                        <Star size={14} /> Rate Mercenary
+                        <Star size={14} /> Rate Player
                       </button>
                     )}
-                    {/* Merc can rate client if they haven't yet */}
+                    {/* Player can rate poster if they haven't yet */}
                     {contract.accepted_by?.id === user?.id && !contract.merc_review && (
                       <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: false })}>
-                        <Star size={14} /> Rate Client
+                        <Star size={14} /> Rate Poster
                       </button>
                     )}
                   </>
@@ -1246,12 +1250,12 @@ export default function Contracts() {
                 <div className="contract-reviews">
                   {contract.client_review && (
                     <div className="review-badge">
-                      <Star size={12} fill="#FFD700" /> Client: {contract.client_review.rating}/5
+                      <Star size={12} fill="#FFD700" /> Poster: {contract.client_review.rating}/5
                     </div>
                   )}
                   {contract.merc_review && (
                     <div className="review-badge">
-                      <Star size={12} fill="#FFD700" /> Merc: {contract.merc_review.rating}/5
+                      <Star size={12} fill="#FFD700" /> Player: {contract.merc_review.rating}/5
                     </div>
                   )}
                 </div>
@@ -1264,10 +1268,10 @@ export default function Contracts() {
           <div className="nc-card" style={{ textAlign: 'center', padding: 48 }}>
             <Users size={48} className="text-muted" style={{ marginBottom: 16, opacity: 0.5 }} />
             <h3 className="font-display text-muted" style={{ fontSize: 16, marginBottom: 8 }}>
-              No Active Beacons
+              No Active Jobs
             </h3>
             <p className="text-muted" style={{ fontSize: 14 }}>
-              Be the first to post a contract!
+              Be the first to post a job!
             </p>
           </div>
         )}
@@ -1304,7 +1308,7 @@ export default function Contracts() {
                   <h3 className="contract-title">{contract.title}</h3>
                   <div className="contract-meta">
                     <span style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}>
-                      {isClient ? `Merc: ${contract.accepted_by?.handle}` : `Client: ${contract.poster?.handle}`}
+                      {isClient ? `Player: ${contract.accepted_by?.handle}` : `Poster: ${contract.poster?.handle}`}
                     </span>
                   </div>
                   <div className="contract-actions">
@@ -1312,7 +1316,7 @@ export default function Contracts() {
                       className="nc-btn nc-btn-gold" 
                       onClick={() => setShowReview({ id: contract.id, isClient })}
                     >
-                      <Star size={14} /> Rate {isClient ? 'Mercenary' : 'Client'}
+                      <Star size={14} /> Rate {isClient ? 'Player' : 'Poster'}
                     </button>
                   </div>
                 </div>
@@ -1372,8 +1376,8 @@ export default function Contracts() {
               <div className="contract-meta">
                 <span style={{ color: 'var(--nc-text-muted)', fontSize: 12 }}>
                   {isClient 
-                    ? (contract.accepted_by ? `Merc: ${contract.accepted_by.handle}` : 'Awaiting merc...') 
-                    : `Client: ${contract.poster?.handle}`
+                    ? (contract.accepted_by ? `Player: ${contract.accepted_by.handle}` : 'Awaiting player...') 
+                    : `Poster: ${contract.poster?.handle}`
                   }
                 </span>
               </div>
@@ -1391,10 +1395,10 @@ export default function Contracts() {
                   </button>
                 )}
                 
-                {/* Poster can manage bids on open contracts */}
+                {/* Poster can manage applicants on open contracts */}
                 {!contract.is_multi_crew && isClient && contract.status === 'open' && (
                   <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
-                    <Users size={14} /> Manage Bids
+                    <Users size={14} /> Manage Applicants
                   </button>
                 )}
                 
@@ -1424,12 +1428,12 @@ export default function Contracts() {
                   <>
                     {isClient && !contract.client_review && (
                       <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: true })}>
-                        <Star size={14} /> Rate Mercenary
+                        <Star size={14} /> Rate Player
                       </button>
                     )}
                     {!isClient && !contract.merc_review && (
                       <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: false })}>
-                        <Star size={14} /> Rate Client
+                        <Star size={14} /> Rate Poster
                       </button>
                     )}
                   </>
@@ -1441,12 +1445,12 @@ export default function Contracts() {
                 <div className="contract-reviews">
                   {contract.client_review && (
                     <div className="review-badge">
-                      <Star size={12} fill="#FFD700" /> Client rated: {contract.client_review.rating}/5
+                      <Star size={12} fill="#FFD700" /> Poster rated: {contract.client_review.rating}/5
                     </div>
                   )}
                   {contract.merc_review && (
                     <div className="review-badge">
-                      <Star size={12} fill="#FFD700" /> Merc rated: {contract.merc_review.rating}/5
+                      <Star size={12} fill="#FFD700" /> Player rated: {contract.merc_review.rating}/5
                     </div>
                   )}
                 </div>
@@ -1459,24 +1463,24 @@ export default function Contracts() {
           <div className="nc-card" style={{ textAlign: 'center', padding: 48 }}>
             <Users size={48} className="text-muted" style={{ marginBottom: 16, opacity: 0.5 }} />
             <h3 className="font-display text-muted" style={{ fontSize: 16, marginBottom: 8 }}>
-              No Contracts Yet
+              No Jobs Yet
             </h3>
             <p className="text-muted" style={{ fontSize: 14 }}>
-              Post a contract or apply for one to get started!
+              Post a job or apply to one to get started!
             </p>
           </div>
         )}
       </div>
       )}
 
-      {/* Manage Bids Modal */}
+      {/* Manage Applicants Modal */}
       {showBidsModal && (
         <div className="mission-modal-overlay" onClick={() => setShowBidsModal(null)}>
           <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 550 }}>
             <div className="mission-modal-header">
               <div>
                 <div className="mission-type-badge">// APPLICANTS</div>
-                <h2 className="mission-title">Manage Bids</h2>
+                <h2 className="mission-title">Manage Applicants</h2>
               </div>
               <button className="mission-modal-close" onClick={() => setShowBidsModal(null)}>
                 <X size={20} />
@@ -1485,7 +1489,7 @@ export default function Contracts() {
             <div className="mission-modal-content">
               {contractBids.length === 0 ? (
                 <p style={{ textAlign: 'center', color: 'var(--nc-text-muted)', padding: 32 }}>
-                  No bids yet. Check back soon!
+                  No applicants yet. Check back soon!
                 </p>
               ) : (
                 <div className="bids-list">
@@ -1557,9 +1561,9 @@ export default function Contracts() {
               <div className="handshake-icon">🤝</div>
               <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 24, fontSize: 15 }}>
                 {showHandshakeModal.type === 'poster' ? (
-                  <>Your selected mercenary is ready. Add them to your party in Star Citizen.</>
+                  <>Your selected player is ready. Add them to your party in Star Citizen.</>
                 ) : (
-                  <>Your bid was accepted! Add the client to your party immediately.</>
+                  <>Your application was accepted! Add the poster to your party immediately.</>
                 )}
               </p>
               <div className="handshake-handle">
@@ -1585,26 +1589,26 @@ export default function Contracts() {
         </div>
       )}
 
-      {/* Merc Accepted Notification Modal */}
+      {/* Applicant Accepted Notification Modal */}
       {acceptedBidNotification && (
         <div className="mission-modal-overlay">
           <div className="mission-modal" style={{ maxWidth: 480, textAlign: 'center' }}>
             <div className="mission-modal-header" style={{ justifyContent: 'center', background: 'rgba(0, 255, 136, 0.1)' }}>
               <div>
-                <div className="mission-type-badge" style={{ color: 'var(--nc-green)' }}>// BID_ACCEPTED</div>
+                <div className="mission-type-badge" style={{ color: 'var(--nc-green)' }}>// APPLICATION_ACCEPTED</div>
                 <h2 className="mission-title" style={{ color: 'var(--nc-green)' }}>You've Been Hired!</h2>
               </div>
             </div>
             <div className="mission-modal-content">
               <div className="accepted-notification-icon">✓</div>
               <p style={{ color: 'var(--nc-text-secondary)', marginBottom: 16, fontSize: 15 }}>
-                Your bid for <strong style={{ color: 'var(--nc-cyan)' }}>{acceptedBidNotification.contract?.title}</strong> has been accepted.
+                Your application for <strong style={{ color: 'var(--nc-cyan)' }}>{acceptedBidNotification.contract?.title}</strong> has been accepted.
               </p>
               <p style={{ color: 'var(--nc-text-muted)', marginBottom: 24, fontSize: 13 }}>
-                Add the client to your party in Star Citizen immediately. For rescue missions, the client may be incapacitated and unable to invite you.
+                Add the poster to your party in Star Citizen immediately. For rescue missions, they may be incapacitated and unable to invite you.
               </p>
               <div className="client-handle-box">
-                <span className="label">CLIENT RSI HANDLE</span>
+                <span className="label">POSTER RSI HANDLE</span>
                 <div className="client-info">
                   {acceptedBidNotification.client_avatar && (
                     <img src={acceptedBidNotification.client_avatar} alt="" className="client-avatar" />
@@ -1621,7 +1625,7 @@ export default function Contracts() {
               </div>
               <div style={{ marginTop: 24, padding: 12, background: 'rgba(255, 153, 0, 0.1)', border: '1px solid rgba(255, 153, 0, 0.3)' }}>
                 <p style={{ color: '#ff9900', fontSize: 12, fontFamily: 'var(--nc-font-mono)', margin: 0 }}>
-                  ⚠️ IMPORTANT: Write down this handle before closing! The client may be unable to look you up if incapacitated.
+                  ⚠️ IMPORTANT: Write down this handle before closing! The poster may be unable to look you up if incapacitated.
                 </p>
               </div>
               <button 
@@ -1636,14 +1640,14 @@ export default function Contracts() {
         </div>
       )}
 
-      {/* Merc Profile Modal */}
+      {/* Applicant Profile Modal */}
       {showMercProfile && (
         <div className="mission-modal-overlay" onClick={() => setShowMercProfile(null)}>
           <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="mission-modal-header">
               <div>
                 <div className="mission-type-badge">// PILOT_DOSSIER</div>
-                <h2 className="mission-title">Mercenary Profile</h2>
+                <h2 className="mission-title">Applicant Profile</h2>
               </div>
               <button className="mission-modal-close" onClick={() => setShowMercProfile(null)}>
                 <X size={20} />

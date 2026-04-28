@@ -8,18 +8,18 @@ const LandingPage = () => {
   const [showAbout, setShowAbout] = useState(false);
 
   const features = [
-    { icon: Star, title: 'Two-Way Reputation System', desc: 'Rate and review contractors and mercenaries. Build trust through verified job history and player ratings.', color: '#FFD700' },
-    { icon: FileText, title: 'Community-Driven Job Board', desc: 'Post contracts, bid on jobs, and connect with skilled pilots across the verse.', color: '#00F0FF' },
-    { icon: Users, title: 'Citizen Directory', desc: 'Find pilots and mercenaries by specialization, rating, rank, or availability.', color: '#00FF88' },
-    { icon: Radio, title: 'Real-Time Intel & Alerts', desc: 'Shard-specific and global alerts powered by player-led reporting. Know before you go.', color: '#FF6600' },
-    { icon: Zap, title: 'Live Threat Reporting', desc: 'Report pirates, PvP activity, server issues, and bugs. Help the community stay informed.', color: '#FF0044' },
-    { icon: Target, title: 'Mission Advisor', desc: 'AI-powered mission recommendations based on your ship, playstyle, and current server conditions.', color: '#AA00FF' },
+    { icon: FileText, title: 'Job & Group Board', desc: 'Post jobs, missions, and group requests. Browse what other players need. No more trawling Global chat for teammates.', color: '#00F0FF' },
+    { icon: Users, title: 'Applicant Review', desc: 'Players apply to join your job. Review their reputation, rating, and profile before you accept or decline.', color: '#00FF88' },
+    { icon: Star, title: 'Two-Way Reputation', desc: 'Rate and review each other after every mission. Trust is built through a verified reputation system.', color: '#FFD700' },
+    { icon: Shield, title: 'Multi-Crew Manifests', desc: 'Running an Idris or Carrack? Post named crew slots — turret gunners, medics, engineers — and fill them with vetted players.', color: '#AA00FF' },
+    { icon: Radio, title: 'Lounge (LFG)', desc: 'Hop on the Lounge board to broadcast a quick "looking for group" and get hailed back fast by nearby pilots.', color: '#FF6600' },
+    { icon: Zap, title: 'Signals & Alerts', desc: 'Optional supporting feature — crowd-sourced reports on piracy, PvP, lag, and server issues by region.', color: '#FF0044' },
   ];
 
   const screenshots = [
-    { src: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=700&h=440&fit=crop', title: 'Mission Advisor', desc: 'AI-powered mission planning' },
-    { src: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=700&h=440&fit=crop', title: 'Job Board', desc: 'Player contracts & services' },
-    { src: 'https://images.unsplash.com/photo-1534996858221-380b92700493?w=700&h=440&fit=crop', title: 'Citizen Directory', desc: 'Find pilots & mercenaries' },
+    { src: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=700&h=440&fit=crop', title: 'Job Board', desc: 'Post and apply for jobs' },
+    { src: 'https://images.unsplash.com/photo-1534996858221-380b92700493?w=700&h=440&fit=crop', title: 'Applicant Review', desc: 'Choose teammates by reputation' },
+    { src: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=700&h=440&fit=crop', title: 'Signals', desc: 'Supporting intel & alerts' },
   ];
 
   return (
@@ -49,7 +49,7 @@ const LandingPage = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Radar size={28} style={{ color: 'var(--nc-cyan)' }} />
-          <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 20, color: 'var(--nc-cyan)' }}>NAVCOM</span>
+          <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 20, color: 'var(--nc-cyan)' }}>SC GROUP FINDER</span>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button 
@@ -75,20 +75,20 @@ const LandingPage = () => {
         zIndex: 10
       }}>
         <div className="hero-badge">
-          <Zap size={14} /> STAR CITIZEN COMPANION APP
+          <Zap size={14} /> STAR CITIZEN PLAYER CONTRACT BOARD
         </div>
         <h1 className="hero-title">
-          NAVCOM <span className="hero-title-accent">CONNECT</span>
+          STAR CITIZEN <span className="hero-title-accent">GROUP FINDER</span>
         </h1>
         <p style={{ 
           fontSize: 18, 
           color: 'var(--nc-text-secondary)', 
-          maxWidth: 550, 
+          maxWidth: 620, 
           margin: '0 auto 24px',
           lineHeight: 1.7
         }}>
-          The ultimate mission advisor for Star Citizen pilots. 
-          Connect with mercenaries, post contracts, and stay informed with real-time intel.
+          Find crews, post jobs, apply to missions, and choose teammates based on reputation
+          instead of Global chat roulette.
         </p>
         
         <button 
@@ -107,7 +107,7 @@ const LandingPage = () => {
             opacity: 0.8
           }}
         >
-          <Info size={16} /> Learn more about NavCom
+          <Info size={16} /> Learn more
         </button>
 
         <div>
@@ -223,7 +223,7 @@ const LandingPage = () => {
         position: 'relative',
         zIndex: 10
       }}>
-        NavCom Connect © 2950 | Not affiliated with CIG or RSI
+        SC Group Finder © 2950 | Not affiliated with CIG or RSI
       </footer>
 
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />

@@ -4,49 +4,49 @@ import { Radar, Activity, FileText, Map, ChevronRight, ChevronLeft, X } from 'lu
 const SLIDES = [
   {
     id: 'welcome',
-    title: 'Welcome to NavCom',
-    subtitle: 'Your Star Citizen Mission Advisor',
-    description: 'NavCom is your tactical companion for navigating the verse. Get mission recommendations, track server health, connect with other players, and support feature development.',
+    title: 'Welcome to SC Group Finder',
+    subtitle: 'Find crews and post jobs',
+    description: 'SC Group Finder is a player-to-player job and group board for Star Citizen. Find reliable teammates based on reputation — no more Global chat roulette.',
     icon: null,
     gradient: 'linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(2, 11, 20, 0.95) 100%)'
   },
   {
+    id: 'contracts',
+    title: 'Job & Group Board',
+    subtitle: 'Post, apply, crew up',
+    description: 'Post jobs, missions, or group requests. Browse what other players need. Review applicants, pick who you trust, and run missions together.',
+    icon: FileText,
+    features: ['Post jobs, missions or LFG broadcasts', 'Review applicants before accepting', 'Two-way ratings after completion']
+  },
+  {
+    id: 'signals',
+    title: 'Signals & Alerts',
+    subtitle: 'Supporting feature',
+    description: 'Stay informed with crowd-sourced reports on piracy, PvP, lag, and 30ks. Optional — filter alerts to your server region.',
+    icon: Activity,
+    features: ['Real-time server status', 'Player-reported threats', 'Region-based filtering']
+  },
+  {
     id: 'intel',
     title: 'Intel Module',
-    subtitle: 'Mission Recommendations',
-    description: 'Tell us your ship, available time, and preferred activity. NavCom will analyze live market data and server conditions to recommend the best missions for maximum profit or enjoyment.',
+    subtitle: 'Optional tool',
+    description: 'Need a quick idea for what to do? Tell us your ship and time budget — Intel suggests a mission profile based on live data. Available under Other Tools.',
     icon: Radar,
     features: ['Live UEX Corp commodity prices', 'Risk-based route planning', 'Ship-specific recommendations']
   },
   {
-    id: 'signals',
-    title: 'Signals Module',
-    subtitle: 'Server Health & Reports',
-    description: 'Monitor RSI server status, view crowd-sourced incident reports, and contribute your own. Track reliability by activity type and see real-time alerts for your shard.',
-    icon: Activity,
-    features: ['Real-time server status', 'Pirate & PvP alerts', 'Location-based reports']
-  },
-  {
-    id: 'contracts',
-    title: 'Contracts Module',
-    subtitle: 'Mercenary Beacon System',
-    description: 'Need backup? Post a contract. Looking for work? Browse available jobs. Our bilateral rating system ensures quality service on both sides.',
-    icon: FileText,
-    features: ['Escort & rescue contracts', '5-star rating system', 'Reputation tracking']
-  },
-  {
     id: 'disclaimer',
-    title: 'About NavCom',
+    title: 'About SC Group Finder',
     subtitle: 'Made by the Community',
-    description: 'This site is created and maintained by one person — Mowri — and is a work in progress. I am not affiliated with Cloud Imperium Games, Roberts Space Industries, or Star Citizen in any way.',
+    description: 'This site is created and maintained by one person — Mowri — and is a work in progress. Not affiliated with Cloud Imperium Games, Roberts Space Industries, or Star Citizen in any way.',
     icon: null,
     showCommunityBadge: true
   },
   {
     id: 'getstarted',
-    title: 'Set Your Shard',
+    title: 'Set Your Server Region',
     subtitle: 'Personalize Your Experience',
-    description: 'Enter your server shard number to receive alerts relevant to your gameplay. You can find this in-game by pressing ~ and typing r_displayinfo 1.',
+    description: 'Pick the server region you play on so alerts and reports match your area. You can change this any time from Settings.',
     icon: Map,
     isLast: true
   }
@@ -106,8 +106,8 @@ export default function OnboardingCarousel({ onComplete, onSetShard }) {
           
           {!slide.icon && !slide.showCommunityBadge && (
             <div className="onboarding-logo">
-              <span className="logo-text">NAVCOM</span>
-              <span className="logo-subtitle">MISSION ADVISOR</span>
+              <span className="logo-text">SC GROUP FINDER</span>
+              <span className="logo-subtitle">PLAYER CONTRACT BOARD</span>
             </div>
           )}
 
@@ -139,14 +139,20 @@ export default function OnboardingCarousel({ onComplete, onSetShard }) {
 
             {slide.isLast && (
               <div className="shard-input-group">
-                <input
-                  type="text"
+                <select
                   className="nc-input"
-                  placeholder="Enter shard number (e.g., 360)"
-                  value={shardInput}
-                  onChange={e => setShardInput(e.target.value)}
-                />
-                <span className="shard-hint">Press ~ in-game, type r_displayinfo 1</span>
+                  value={shardInput || '__placeholder__'}
+                  onChange={e => setShardInput(e.target.value === '__placeholder__' ? '' : e.target.value)}
+                  data-testid="onboarding-region-select"
+                  style={{ width: '100%', padding: '12px 16px', fontSize: 14 }}
+                >
+                  <option value="__placeholder__">Select your region...</option>
+                  <option value="USA">USA</option>
+                  <option value="Europe">Europe</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Asia">Asia</option>
+                </select>
+                <span className="shard-hint">You can change this any time in Settings. Leave unselected for Global.</span>
               </div>
             )}
           </div>

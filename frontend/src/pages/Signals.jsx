@@ -302,20 +302,26 @@ export default function Signals() {
               </button>
             </div>
             <div className="mission-modal-content">
-              {/* Shard Input */}
+              {/* Region Selector */}
               <div className="form-group">
                 <label className="nc-label">
-                  SERVER SHARD (Required for accurate reporting)
+                  SERVER REGION (Required for accurate reporting)
                 </label>
-                <input
-                  type="text"
+                <select
                   className="nc-input"
-                  placeholder="Enter your shard number (e.g., 360)"
                   value={reportShard}
                   onChange={e => setReportShard(e.target.value)}
-                />
+                  style={{ width: '100%', padding: '12px 16px', fontSize: 14 }}
+                  data-testid="report-region-select"
+                >
+                  <option value="">Global (visible to all regions)</option>
+                  <option value="USA">USA</option>
+                  <option value="Europe">Europe</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Asia">Asia</option>
+                </select>
                 <span className="font-mono text-muted" style={{ fontSize: 10, marginTop: 4, display: 'block' }}>
-                  Leave blank for global report (visible to all shards)
+                  Leave as Global to share with all regions.
                 </span>
               </div>
 
