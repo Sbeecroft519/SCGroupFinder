@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Radio, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, ChevronDown, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,6 @@ import { useAuth } from '../App';
 const MAIN_NAV = [
   { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
   { id: 'signals', label: 'SIGNALS', icon: Activity, path: '/signals' },
-  { id: 'lounge', label: 'LOUNGE (LFG)', icon: Radio, path: '/lounge' },
 ];
 
 const OTHER_TOOLS = [

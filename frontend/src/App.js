@@ -24,7 +24,6 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import LandingPage from './pages/LandingPage';
 import CitizenDirectory from './pages/CitizenDirectory';
-import PilotsLounge from './pages/PilotsLounge';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 import { useContractPolling } from './hooks/useContractPolling';
 
@@ -355,7 +354,6 @@ function App() {
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><PlayerSearch /></ProtectedRoute>} />
               <Route path="/directory" element={<ProtectedRoute><CitizenDirectory /></ProtectedRoute>} />
-              <Route path="/lounge" element={<ProtectedRoute><PilotsLounge /></ProtectedRoute>} />
             </Routes>
             
             {/* Footer - shown when logged in */}

@@ -71,9 +71,10 @@ export const BADGE_DEFINITIONS = {
 
 export const CONTRACT_CATEGORIES = [
   { id: 'COMBAT', label: '⚔️ Combat (Bounty, Escort, Security)', icon: '⚔️', shortLabel: 'Combat' },
-  { id: 'MEDICAL', label: '🏥 Medical (Rescue, Evac)', icon: '🏥', shortLabel: 'Medical' },
-  { id: 'LOGISTICS', label: '📦 Logistics (Cargo, Transport)', icon: '📦', shortLabel: 'Logistics' },
-  { id: 'INDUSTRIAL', label: '⛏️ Industrial (Mining, Salvage)', icon: '⛏️', shortLabel: 'Industrial' },
+  { id: 'MEDICAL', label: '🏥 Rescue (Medical, Evac)', icon: '🏥', shortLabel: 'Rescue' },
+  { id: 'LOGISTICS', label: '📦 Cargo (Hauling, Transport)', icon: '📦', shortLabel: 'Cargo' },
+  { id: 'INDUSTRIAL', label: '⛏️ Mining / Salvage', icon: '⛏️', shortLabel: 'Mining' },
+  { id: 'LFG', label: '👥 LFG / Group Up (no payout)', icon: '👥', shortLabel: 'LFG' },
   { id: 'OTHER', label: '📋 Other (Recon, Misc)', icon: '📋', shortLabel: 'Other' }
 ];
 
@@ -82,13 +83,15 @@ export const CATEGORY_ICONS = {
   MEDICAL: '🏥',
   LOGISTICS: '📦',
   INDUSTRIAL: '⛏️',
+  LFG: '👥',
   OTHER: '📋'
 };
 
 export const CATEGORY_LABELS = {
   COMBAT: 'Combat',
-  MEDICAL: 'Medical',
-  LOGISTICS: 'Logistics',
-  INDUSTRIAL: 'Industrial',
+  MEDICAL: 'Rescue',
+  LOGISTICS: 'Cargo',
+  INDUSTRIAL: 'Mining',
+  LFG: 'LFG',
   OTHER: 'Other'
 };

@@ -299,7 +299,8 @@ export default function Contracts() {
     location: ''
   });
 
-  const showPaymentField = !isMultiCrew && newContract.compensation_type === 'Flat Fee' && !newContract.split_profits;
+  const isLfg = newContract.category === 'LFG';
+  const showPaymentField = !isLfg && !isMultiCrew && newContract.compensation_type === 'Flat Fee' && !newContract.split_profits;
 
   // Generate title based on category
   const generateTitle = (contract) => {
@@ -309,6 +310,11 @@ export default function Contracts() {
 
   // Check if contract form is valid
   const isContractValid = () => {
+    // LFG validation: only need title/location, no payout
+    if (isLfg) {
+      return newContract.title && newContract.planet && newContract.location;
+    }
+
     // Multi-crew validation
     if (isMultiCrew) {
       return manifest.length > 0;
@@ -331,10 +337,15 @@ export default function Contracts() {
 
   const fetchContracts = async () => {
     try {
-      const params = filter !== 'all' ? { category: filter } : {};
+      // 'all' = no filter; 'paid' = exclude LFG; specific category filter passes through
+      const params = (filter !== 'all' && filter !== 'paid') ? { category: filter } : {};
       const response = await axios.get(`${API}/contracts`, { params });
-      if (response.data && response.data.length > 0) {
-        setContracts(response.data);
+      let data = response.data || [];
+      if (filter === 'paid') {
+        data = data.filter(c => c.category !== 'LFG');
+      }
+      if (data.length > 0) {
+        setContracts(data);
       } else {
         setContracts([]);
       }
@@ -473,18 +484,18 @@ export default function Contracts() {
       title: isMultiCrew ? `Multi-Crew: ${cat} Operation` : (newContract.title || title),
       description: isMultiCrew ? `Multi-crew ${cat.toLowerCase()} operation requiring ${manifest.length} crew members.` : (newContract.description || null),
       category: newContract.category,
-      compensation_type: newContract.compensation_type,
+      compensation_type: isLfg ? 'LFG' : newContract.compensation_type,
       // Payment
-      payment_amount: paymentAmount,
-      split_profits: newContract.split_profits,
+      payment_amount: isLfg ? 0 : paymentAmount,
+      split_profits: isLfg ? false : newContract.split_profits,
       // Location
       system: newContract.system,
       planet: newContract.planet,
       location: locationStr,
       shard: myShard,
       // Multi-crew
-      is_multi_crew: isMultiCrew,
-      manifest: isMultiCrew ? manifest : null,
+      is_multi_crew: isLfg ? false : isMultiCrew,
+      manifest: (!isLfg && isMultiCrew) ? manifest : null,
       // Duration
       duration_minutes: duration
     };
@@ -682,21 +693,65 @@ export default function Contracts() {
               </button>
             </div>
             <div className="mission-modal-content">
-              {/* Post Type - SINGLE UNIFIED FIELD */}
+              {/* Post Mode: Paid vs LFG */}
               <div className="form-group">
-                <label className="nc-label">POST TYPE</label>
-                <select
-                  className="nc-input"
-                  value={newContract.category}
-                  onChange={e => setNewContract(prev => ({ ...prev, category: e.target.value }))}
-                  data-testid="category-select"
-                  style={{ fontSize: 14 }}
-                >
-                  {CONTRACT_CATEGORIES.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                  ))}
-                </select>
+                <label className="nc-label">POST MODE</label>
+                <div style={{ display: 'flex', gap: 8 }} data-testid="post-mode-toggle">
+                  <button
+                    type="button"
+                    className={`nc-toggle ${!isLfg ? 'active' : ''}`}
+                    onClick={() => setNewContract(prev => ({
+                      ...prev,
+                      category: prev.category === 'LFG' ? 'COMBAT' : prev.category,
+                    }))}
+                    style={{ flex: 1, padding: '10px 12px' }}
+                    data-testid="mode-paid-btn"
+                  >
+                    💰 Paid Job / Contract
+                  </button>
+                  <button
+                    type="button"
+                    className={`nc-toggle ${isLfg ? 'active' : ''}`}
+                    onClick={() => {
+                      setIsMultiCrew(false);
+                      setNewContract(prev => ({
+                        ...prev,
+                        category: 'LFG',
+                        compensation_type: 'LFG',
+                        split_profits: false,
+                        payment_amount: '0',
+                      }));
+                    }}
+                    style={{ flex: 1, padding: '10px 12px' }}
+                    data-testid="mode-lfg-btn"
+                  >
+                    👥 LFG / Group Up
+                  </button>
+                </div>
+                {isLfg && (
+                  <p style={{ color: 'var(--nc-text-muted)', fontSize: 12, marginTop: 6, fontFamily: 'var(--nc-font-mono)' }}>
+                    No payout, coordination only. Find players for a session, crew, party, or casual activity.
+                  </p>
+                )}
               </div>
+
+              {/* Activity Type — only for paid jobs */}
+              {!isLfg && (
+                <div className="form-group">
+                  <label className="nc-label">ACTIVITY TYPE</label>
+                  <select
+                    className="nc-input"
+                    value={newContract.category}
+                    onChange={e => setNewContract(prev => ({ ...prev, category: e.target.value }))}
+                    data-testid="category-select"
+                    style={{ fontSize: 14 }}
+                  >
+                    {CONTRACT_CATEGORIES.filter(c => c.id !== 'LFG').map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Job Title */}
               <div className="form-group">
@@ -704,7 +759,7 @@ export default function Contracts() {
                 <input
                   className="nc-input"
                   type="text"
-                  placeholder="e.g., Escort from Lorville to Orison"
+                  placeholder={isLfg ? 'e.g., Looking for bunker team, Need Reclaimer crew' : 'e.g., Escort from Lorville to Orison'}
                   value={newContract.title}
                   onChange={e => setNewContract(prev => ({ ...prev, title: e.target.value }))}
                   data-testid="contract-title-input"
@@ -724,7 +779,8 @@ export default function Contracts() {
                 />
               </div>
 
-              {/* Multi-Crew Toggle */}
+              {/* Multi-Crew Toggle - hidden for LFG posts */}
+              {!isLfg && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -751,6 +807,7 @@ export default function Contracts() {
                   )}
                 </button>
               </div>
+              )}
 
               {/* Multi-Crew Manifest Builder */}
               {isMultiCrew && (
@@ -802,7 +859,8 @@ export default function Contracts() {
                     </div>
                   </div>
 
-                  {/* Split Profits Checkbox */}
+                  {/* Split Profits Checkbox - hidden for LFG */}
+                  {!isLfg && (
                   <div className="form-group">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <input
@@ -822,6 +880,7 @@ export default function Contracts() {
                       </label>
                     </div>
                   </div>
+                  )}
 
                   {/* Payment Amount - only show if not split profits */}
                   {showPaymentField && (
@@ -875,7 +934,7 @@ export default function Contracts() {
                 disabled={!isContractValid()}
                 data-testid="post-contract-btn"
               >
-                POST {isMultiCrew ? 'MULTI-CREW ' : ''}BEACON
+                POST {isLfg ? 'LFG / GROUP UP' : (isMultiCrew ? 'MULTI-CREW JOB' : 'JOB')}
               </button>
             </div>
           </div>
@@ -955,16 +1014,25 @@ export default function Contracts() {
           <button
             className={`nc-toggle ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
+            data-testid="filter-all"
           >
             All
+          </button>
+          <button
+            className={`nc-toggle ${filter === 'paid' ? 'active' : ''}`}
+            onClick={() => setFilter('paid')}
+            data-testid="filter-paid"
+          >
+            💰 Paid Jobs
           </button>
           {CONTRACT_CATEGORIES.map(cat => (
             <button
               key={cat.id}
               className={`nc-toggle ${filter === cat.id ? 'active' : ''}`}
               onClick={() => setFilter(cat.id)}
+              data-testid={`filter-${cat.id.toLowerCase()}`}
             >
-              {cat.icon} {cat.shortLabel}
+              {cat.icon} {cat.id === 'LFG' ? 'LFG / Group Up' : cat.shortLabel}
             </button>
           ))}
         </div>
@@ -1029,7 +1097,19 @@ export default function Contracts() {
                 
                 {/* Payment Display */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {isSplitProfits ? (
+                  {contract.category === 'LFG' ? (
+                    <span style={{
+                      background: 'rgba(255, 102, 0, 0.15)',
+                      border: '1px solid #ff6600',
+                      color: '#ff6600',
+                      padding: '4px 10px',
+                      fontSize: 11,
+                      letterSpacing: 1,
+                      fontFamily: 'var(--nc-font-mono)'
+                    }}>
+                      👥 LFG · NO PAYOUT
+                    </span>
+                  ) : isSplitProfits ? (
                     <span style={{ color: 'var(--nc-cyan)', fontSize: 13, fontFamily: 'var(--nc-font-mono)' }}>
                       💰 SPLIT PROFITS
                     </span>

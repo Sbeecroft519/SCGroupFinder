@@ -1,10 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, Radio } from 'lucide-react';
+import { Radar, Activity, FileText, Map } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'contracts', label: 'Jobs', icon: FileText, path: '/contracts' },
   { id: 'signals', label: 'Signals', icon: Activity, path: '/signals' },
-  { id: 'lounge', label: 'Lounge', icon: Radio, path: '/lounge' },
   { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
   { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
 ];

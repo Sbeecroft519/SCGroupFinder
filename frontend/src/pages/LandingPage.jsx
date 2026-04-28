@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Users, FileText, Radio, Star, ChevronRight, Radar, Info, Zap, Target, PlayCircle } from 'lucide-react';
+import { Shield, Users, FileText, Star, ChevronRight, Radar, Info, Zap, Target, PlayCircle } from 'lucide-react';
 import AboutModal from '../components/AboutModal';
 import { useAuth } from '../App';
 
@@ -29,7 +29,7 @@ const LandingPage = () => {
     { icon: Users, title: 'Applicant Review', desc: 'Players apply to join your job. Review their reputation, rating, and profile before you accept or decline.', color: '#00FF88' },
     { icon: Star, title: 'Two-Way Reputation', desc: 'Rate and review each other after every mission. Trust is built through a verified reputation system.', color: '#FFD700' },
     { icon: Shield, title: 'Multi-Crew Manifests', desc: 'Running an Idris or Carrack? Post named crew slots — turret gunners, medics, engineers — and fill them with vetted players.', color: '#AA00FF' },
-    { icon: Radio, title: 'Lounge (LFG)', desc: 'Hop on the Lounge board to broadcast a quick "looking for group" and get hailed back fast by nearby pilots.', color: '#FF6600' },
+    { icon: Users, title: 'Looking-for-Group Tab', desc: 'Need a casual crew with no payout? Use the LFG / Group Up tab on the Job Board to broadcast a session and get teammates without bidding.', color: '#FF6600' },
     { icon: Zap, title: 'Signals & Alerts', desc: 'Optional supporting feature — crowd-sourced reports on piracy, PvP, lag, and server issues by region.', color: '#FF0044' },
   ];
 
