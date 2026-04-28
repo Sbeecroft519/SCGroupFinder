@@ -1,31 +1,30 @@
-# NavCom - Mission Advisor PRD
+# Star Citizen Group Finder (formerly NavCom Connect) - PRD
 
-## Original Problem Statement
-Build "NavCom" - a tactical companion web-app for Star Citizen players with:
-- MobiGlass UI theme (dark navy #020b14, cyan #00f0ff)
-- INTEL module (Mission Advisor)
-- SIGNALS module (Server Health & Reports)
-- CONTRACTS module (Mercenary Beacons / Uber for mercs)
-- ROADMAP module (Supply Drop crowdfunding)
-- RSI Handle verification for authentication
+## Product Positioning (Feb 28, 2026)
+**Name:** Star Citizen Group Finder / SC Group Finder
+**Tagline:** Player Contract Board
+**Purpose:** Player-to-player mission, contract, and LFG board for Star Citizen. Post jobs, review applicants, build two-way reputation — no more Global chat roulette.
+
+## Original Problem Statement (historical)
+Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositioned around Job Board as the primary product on Feb 28, 2026 while preserving all existing feature code.
 
 ## Tech Stack
 - **Frontend**: React.js with Tailwind CSS, Recharts
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Real-time**: Socket.IO
+- **Real-time**: Socket.IO + SSE
 - **Payments**: Stripe
 
 ## What's Been Implemented (Jan 29, 2026)
 
 ### Core Features - COMPLETE
-- [x] MobiGlass UI theme
+- [x] MobiGlass UI theme (renamed from NavCom theme)
 - [x] JWT authentication with RSI Handle verification
 - [x] RSI profile avatar scraping (verified with handle "Mowri")
-- [x] 6-slide onboarding carousel (including new disclaimer slide)
-- [x] Session-based shard management
+- [x] 6-slide onboarding carousel (rebranded for SC Group Finder; final slide = Set Your Server Region)
+- [x] Session-based Server Region (backend field `shard` kept for compatibility)
 - [x] Protected routes (all require login)
-- [x] **Mobile Bottom Navigation** - Fixed nav bar at bottom (<768px) with Intel, Signals, Contracts, Roadmap, Profile
+- [x] **Mobile Bottom Navigation** - Fixed nav bar at bottom (<768px) with Jobs, Signals, Lounge, Intel, Roadmap (Directory removed Feb 28, 2026)
 - [x] **Avatar Preset System** - 10 role-based SVG icons selectable in Settings (replaces complex file uploads)
 - [x] **Community Badge** - "Made by the Community" badge on Login, Register, and Settings pages
 
@@ -259,7 +258,43 @@ Build "NavCom" - a tactical companion web-app for Star Citizen players with:
 1. **Admin endpoints registration bug**: `/admin/reset-reports` and `/admin/last-reset` were defined after `app.include_router()` causing 404s. Moved endpoints before router inclusion.
 2. **RSI avatar not displaying**: Updated admin user's avatar_url in database. Verified scraping works with "Mowri" handle.
 
-## Admin Credentials
-- Email: beecroft519@gmail.com
-- Password: Nv$C0m_Adm1n_2025!
-- RSI Handle: Mowri (verified with avatar)
+## Rebrand & Reposition (Feb 28, 2026)
+**Scope:** Smallest-safe changes to reposition from "NavCom Connect / Mission Advisor" to "Star Citizen Group Finder" without changing frameworks, dependencies, or backend schema.
+
+### Product Branding
+- App name → "SC GROUP FINDER" (header), "STAR CITIZEN GROUP FINDER" (landing hero).
+- Subtitle → "PLAYER CONTRACT BOARD".
+- Updated: `public/index.html`, `Header.jsx`, `Footer.jsx`, `AboutModal.jsx`, `OnboardingCarousel.jsx`, `LandingPage.jsx`, `Login.jsx`, `Register.jsx`, `Settings.jsx`, `Roadmap.jsx`, `PrivacyPolicy.jsx`, `TermsOfService.jsx`.
+- Home redirect for logged-in users changed from `/intel` → `/contracts` (Job Board is the primary product).
+
+### Navigation
+- Desktop top nav: **Job Board / Signals / Lounge (LFG) / Other Tools** (Intel + Roadmap).
+- Mobile bottom nav: **Jobs / Signals / Lounge / Intel / Roadmap**.
+- **Directory removed from all nav** (desktop + mobile). `/directory` route left intact so existing component doesn't break.
+
+### Server Region (replaces Shard)
+- UI replaces shard number input with Server Region dropdown: **USA, Europe, Australia, Asia** (or Global via "Skip").
+- **Backend compatibility:** The existing `shard` field name is retained in DB/API/socket-room names. Region values are strings written to that field. Filter/notification logic unchanged.
+- "Set Your Shard" prompt → "Set Your Server Region" (App.js modal).
+- Onboarding final slide: "Set Your Server Region" (no more tilde/r_displayinfo instructions).
+- Header shows "REGION" label + value (e.g. `USA`).
+- Alert ticker shows region name uppercase (`USA`, `EUROPE`) or `YOUR REGION` / `GLOBAL` badge instead of `Shard 360`.
+- No user-facing text says "shard".
+
+### Job Board (Contracts) Text Refinements
+- Page label `// NAVCOM_CONNECT` → `// GROUP_FINDER`.
+- Subtitle → "Post jobs, apply to missions, crew up — choose teammates by reputation."
+- `POST BEACON` → `POST JOB / GROUP`; `// NEW_BEACON` → `// POST_JOB`; `Create Contract` → `Post Job / Group`.
+- `CONTRACT CATEGORY` → `POST TYPE`; `CONTRACT TITLE` → `POST TITLE`.
+- `Manage Bids` → `Manage Applicants`; `Bid Sent` → `Application Sent`; `Apply for Contract` → `Apply to Join`.
+- `Rate Mercenary` / `Rate Client` → `Rate Player` / `Rate Poster`.
+- Role labels `Merc:` / `Client:` → `Player:` / `Poster:`.
+- `Mercenary Profile` modal → `Applicant Profile`.
+- `MY SHARD` filter → `MY REGION` dropdown (USA/Europe/Australia/Asia/All).
+- Empty states: "No Active Beacons" → "No Active Jobs"; "No Contracts Yet" → "No Jobs Yet".
+
+### Preserved (no changes)
+- `/api/contracts/*` endpoints, multi-crew manifest, two-way reviews, reputation, citizen cards, player search, admin, profiles, signals reports, ticker alerts, system status, SSE notifications, Pilot's Lounge (LFG), authentication, themes.
+
+### Test Coverage
+- iteration_12.json: 100% pass on both backend (3/3) and frontend (26/26) rebrand checks.
