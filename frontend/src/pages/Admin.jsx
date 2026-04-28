@@ -71,6 +71,19 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteUser = async (u) => {
+    const ok = window.prompt(
+      `Type the user's RSI handle "${u.rsi_handle}" to permanently delete this account and all of their contracts/bids. This cannot be undone.`
+    );
+    if (ok !== u.rsi_handle) return;
+    try {
+      await axios.delete(`${API}/admin/users/${u.id}`);
+      fetchData();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Delete failed');
+    }
+  };
+
   // Roadmap handlers
   const handleSaveRoadmapItem = async () => {
     try {
@@ -188,6 +201,7 @@ export default function Admin() {
                 <th>Supporter Tier</th>
                 <th>Assign Badge</th>
                 <th>Joined</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -217,6 +231,20 @@ export default function Admin() {
                     </select>
                   </td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                  <td>
+                    {u.is_admin ? (
+                      <span style={{ color: 'var(--nc-text-muted)', fontSize: 11 }}>—</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(u)}
+                        style={{ background: 'transparent', border: '1px solid #ff4466', color: '#ff4466', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer', letterSpacing: 1 }}
+                        data-testid={`delete-user-${u.id}`}
+                      >
+                        🗑 DELETE
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -2249,6 +2249,28 @@ async def admin_assign_badge(user_id: str, request: BadgeAssignRequest, admin = 
     return {'message': 'Badge updated', 'badges': badges, 'supporter_tier': supporter_tier}
 
 
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin = Depends(require_admin)):
+    """Permanently delete a user and their contract history. Refuses to delete other admins or self."""
+    target = await db.users.find_one({'id': user_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get('is_admin'):
+        raise HTTPException(status_code=400, detail="Cannot delete an admin account")
+    if target['id'] == admin['id']:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+
+    # Cascade-clean their contracts and bids so the board stays consistent
+    await db.contracts.delete_many({'poster_id': user_id})
+    await db.contracts.update_many(
+        {'accepted_by.id': user_id},
+        {'$set': {'status': 'cancelled', 'accepted_by': None}}
+    )
+    await db.contract_bids.delete_many({'bidder_id': user_id})
+    await db.users.delete_one({'id': user_id})
+    return {'message': 'User deleted', 'rsi_handle': target.get('rsi_handle')}
+
+
 @api_router.post("/redeem-code")
 async def redeem_code(request: RedeemCodeRequest, user = Depends(get_current_user)):
     """Redeem an access code for supporter tier"""
@@ -2316,22 +2338,28 @@ async def startup_event():
         # Ensure existing admin has is_admin flag
         await db.users.update_one({'email': ADMIN_EMAIL}, {'$set': {'is_admin': True}})
 
-    # Background sweeper for deceased rescue contracts (runs every 6 hours)
+    # Background sweeper for medical/rescue contracts
+    #   - Delete (not just expire) MEDICAL contracts 10 minutes after bleed-out time
+    #   - Delete MEDICAL contracts immediately once they reach completed status
     async def deceased_cleanup_loop():
         while True:
             try:
-                cutoff = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
-                await db.contracts.update_many(
-                    {
-                        'category': 'MEDICAL',
-                        'status': {'$in': ['open', 'mustering']},
-                        'rescue_bleedout_expires_at': {'$ne': None, '$lt': cutoff},
-                    },
-                    {'$set': {'status': 'expired'}}
-                )
+                cutoff_10min = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+                # Delete deceased rescues 10 min past bleedout
+                await db.contracts.delete_many({
+                    'category': 'MEDICAL',
+                    'rescue_bleedout_expires_at': {'$ne': None, '$lt': cutoff_10min},
+                    'status': {'$nin': ['completed']},
+                })
+                # Delete completed medical rescues so the board stays clean
+                await db.contracts.delete_many({
+                    'category': 'MEDICAL',
+                    'status': 'completed',
+                })
             except Exception as e:
-                logger.error(f"Deceased cleanup error: {e}")
-            await asyncio.sleep(6 * 3600)
+                logger.error(f"Medical contract cleanup error: {e}")
+            # Run every 60 seconds for prompt deletion within the 10-minute target
+            await asyncio.sleep(60)
 
     asyncio.create_task(deceased_cleanup_loop())
 
@@ -2380,6 +2408,14 @@ async def submit_bid(contract_id: str, user = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Contract not available")
     if contract['poster_id'] == user['id']:
         raise HTTPException(status_code=400, detail="Cannot bid on your own contract")
+
+    # Block bids on medical/rescue posts where the patient has bled out
+    if (contract.get('category') or '').upper() == 'MEDICAL' and contract.get('rescue_bleedout_expires_at'):
+        try:
+            if datetime.fromisoformat(contract['rescue_bleedout_expires_at'].replace('Z', '+00:00')) <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Patient has bled out — rescue closed.")
+        except (ValueError, TypeError):
+            pass
     
     bid = {
         'id': str(uuid.uuid4()),

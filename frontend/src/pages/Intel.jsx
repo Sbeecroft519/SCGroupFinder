@@ -68,6 +68,42 @@ const SCANNING_STEPS = [
 ];
 
 export default function Intel() {
+  return (
+    <div className="navcom-page" data-testid="intel-under-construction" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{
+        maxWidth: 720,
+        width: '100%',
+        background: 'var(--nc-bg-card)',
+        border: '1px solid var(--nc-border)',
+        borderLeft: '3px solid var(--nc-cyan)',
+        padding: '40px 32px',
+        textAlign: 'left',
+      }}>
+        <div style={{ color: '#ff9900', fontFamily: 'var(--nc-font-mono)', fontSize: 12, letterSpacing: 2, marginBottom: 8 }}>
+          ⚠️ // INTEL_MODULE :: UNDER_CONSTRUCTION
+        </div>
+        <h1 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 36, color: 'var(--nc-text-primary)', margin: '0 0 16px' }}>
+          Intel is being rebuilt.
+        </h1>
+        <p style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.7, fontSize: 15, marginBottom: 12 }}>
+          Intel will be a <strong style={{ color: 'var(--nc-cyan)' }}>session planner</strong> for players who don't know what to do tonight — not another min-max profit calculator.
+        </p>
+        <p style={{ color: 'var(--nc-text-secondary)', lineHeight: 1.7, fontSize: 15, marginBottom: 12 }}>
+          Tell it your ship, your free time, and your mood, and Intel will suggest a <em>fun mission profile</em> that fits — combat, cargo, mining, exploration, or chill — based on what's actually working in the live verse right now.
+        </p>
+        <p style={{ color: 'var(--nc-text-muted)', lineHeight: 1.7, fontSize: 13, marginBottom: 24 }}>
+          The optimal-route apps (UEX, etc.) already do min-max better than anyone needs. SC Group Finder's Intel is for the player who just wants a good session, not a spreadsheet.
+        </p>
+        <div style={{ color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1 }}>
+          Status: paused while Job Board features ship.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// eslint-disable-next-line no-unused-vars
+function _IntelLegacy() {
   const [ship, setShip] = useState(SHIPS[0].name);
   const [system, setSystem] = useState('Stanton');
   const [time, setTime] = useState('1h');
