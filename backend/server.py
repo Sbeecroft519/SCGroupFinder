@@ -2271,6 +2271,58 @@ async def admin_delete_user(user_id: str, admin = Depends(require_admin)):
     return {'message': 'User deleted', 'rsi_handle': target.get('rsi_handle')}
 
 
+def _demo_user_filter():
+    """All accounts created via demo flow (main demo + NPC posters)."""
+    return {'$or': [{'is_demo': True}, {'is_demo_npc': True}]}
+
+
+@api_router.get("/admin/demo/stats")
+async def admin_demo_stats(admin = Depends(require_admin)):
+    demo_users = await db.users.count_documents(_demo_user_filter())
+    demo_user_ids = [u['id'] async for u in db.users.find(_demo_user_filter(), {'_id': 0, 'id': 1})]
+    demo_contracts = await db.contracts.count_documents({
+        '$or': [
+            {'is_demo_seed': True},
+            {'poster_id': {'$in': demo_user_ids}},
+        ]
+    })
+    demo_bids = await db.contract_bids.count_documents({'bidder_id': {'$in': demo_user_ids}})
+    return {
+        'enabled': os.environ.get('ENABLE_DEMO_LOGIN', '').lower() == 'true',
+        'demo_users': demo_users,
+        'demo_contracts': demo_contracts,
+        'demo_bids': demo_bids,
+    }
+
+
+@api_router.post("/admin/demo/wipe")
+async def admin_demo_wipe(admin = Depends(require_admin)):
+    """Wipe all demo accounts, their contracts, and bids. Resets demo_seeded marker so the next
+    demo login will reseed fresh sample content."""
+    demo_user_ids = [u['id'] async for u in db.users.find(_demo_user_filter(), {'_id': 0, 'id': 1})]
+    contracts_deleted = (await db.contracts.delete_many({
+        '$or': [
+            {'is_demo_seed': True},
+            {'poster_id': {'$in': demo_user_ids}},
+        ]
+    })).deleted_count
+    bids_deleted = (await db.contract_bids.delete_many({
+        '$or': [
+            {'bidder_id': {'$in': demo_user_ids}},
+            {'contract_id': {'$exists': False}},  # orphaned safety net
+        ]
+    })).deleted_count
+    users_deleted = (await db.users.delete_many(_demo_user_filter())).deleted_count
+    await db.app_config.delete_one({'key': 'demo_seeded'})
+    return {
+        'message': 'Demo data wiped',
+        'users_deleted': users_deleted,
+        'contracts_deleted': contracts_deleted,
+        'bids_deleted': bids_deleted,
+    }
+
+
+
 @api_router.post("/redeem-code")
 async def redeem_code(request: RedeemCodeRequest, user = Depends(get_current_user)):
     """Redeem an access code for supporter tier"""

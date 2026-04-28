@@ -18,6 +18,8 @@ export default function Admin() {
   const [lastReset, setLastReset] = useState(null);
   const [resetting, setResetting] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
+  const [demoStats, setDemoStats] = useState(null);
+  const [wipingDemo, setWipingDemo] = useState(false);
   
   // Roadmap state
   const [roadmapItems, setRoadmapItems] = useState([]);
@@ -31,14 +33,16 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, resetRes, roadmapRes] = await Promise.all([
+      const [usersRes, resetRes, roadmapRes, demoRes] = await Promise.all([
         axios.get(`${API}/admin/users`),
         axios.get(`${API}/admin/last-reset`).catch(() => ({ data: { last_reset: null } })),
-        axios.get(`${API}/admin/roadmap`).catch(() => ({ data: [] }))
+        axios.get(`${API}/admin/roadmap`).catch(() => ({ data: [] })),
+        axios.get(`${API}/admin/demo/stats`).catch(() => ({ data: null })),
       ]);
       setUsers(usersRes.data || []);
       setLastReset(resetRes.data?.last_reset);
       setRoadmapItems(roadmapRes.data || []);
+      setDemoStats(demoRes.data);
     } catch (error) {
       console.error('Admin fetch error:', error);
     } finally {
@@ -81,6 +85,23 @@ export default function Admin() {
       fetchData();
     } catch (e) {
       alert(e.response?.data?.detail || 'Delete failed');
+    }
+  };
+
+  const handleWipeDemo = async () => {
+    const ok = window.confirm(
+      'Wipe ALL demo accounts, demo contracts, and demo bids?\n\nThis is irreversible. The next demo login will reseed fresh sample content.'
+    );
+    if (!ok) return;
+    setWipingDemo(true);
+    try {
+      const r = await axios.post(`${API}/admin/demo/wipe`);
+      alert(`Wiped: ${r.data.users_deleted} users, ${r.data.contracts_deleted} contracts, ${r.data.bids_deleted} bids.`);
+      fetchData();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Wipe failed');
+    } finally {
+      setWipingDemo(false);
     }
   };
 
@@ -190,7 +211,46 @@ export default function Admin() {
         <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Users size={18} className="text-cyan" /> User Management
         </h3>
-        
+
+        {/* Demo Mode panel */}
+        {demoStats && (
+          <div data-testid="demo-mode-panel" style={{
+            display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+            padding: '12px 16px', marginBottom: 20,
+            background: 'rgba(0, 240, 255, 0.05)',
+            border: '1px solid rgba(0, 240, 255, 0.3)',
+            borderLeft: `3px solid ${demoStats.enabled ? 'var(--nc-cyan)' : '#888'}`,
+          }}>
+            <span style={{
+              fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1,
+              color: demoStats.enabled ? 'var(--nc-cyan)' : '#888',
+              padding: '3px 8px', border: `1px solid ${demoStats.enabled ? 'var(--nc-cyan)' : '#888'}`,
+            }} data-testid="demo-mode-pill">
+              👁 DEMO MODE · {demoStats.enabled ? 'ENABLED' : 'DISABLED'}
+            </span>
+            <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+              <strong style={{ color: 'var(--nc-text-primary)' }} data-testid="demo-users-count">{demoStats.demo_users}</strong> demo accounts ·{' '}
+              <strong style={{ color: 'var(--nc-text-primary)' }}>{demoStats.demo_contracts}</strong> contracts ·{' '}
+              <strong style={{ color: 'var(--nc-text-primary)' }}>{demoStats.demo_bids}</strong> bids
+            </span>
+            <button
+              type="button"
+              onClick={handleWipeDemo}
+              disabled={wipingDemo || demoStats.demo_users === 0}
+              style={{
+                marginLeft: 'auto', background: 'transparent',
+                border: '1px solid #ff4466', color: '#ff4466',
+                padding: '6px 14px', fontSize: 11, letterSpacing: 1,
+                fontFamily: 'var(--nc-font-mono)', cursor: 'pointer',
+                opacity: (wipingDemo || demoStats.demo_users === 0) ? 0.5 : 1,
+              }}
+              data-testid="wipe-demo-btn"
+            >
+              🧹 {wipingDemo ? 'WIPING...' : 'WIPE DEMO DATA'}
+            </button>
+          </div>
+        )}
+
         <div style={{ overflowX: 'auto' }}>
           <table className="admin-table">
             <thead>
