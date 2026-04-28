@@ -608,6 +608,9 @@ async def demo_login():
         }
         await db.users.insert_one(user.copy())
 
+    # Seed demo job board content once (idempotent)
+    await seed_demo_content()
+
     token = create_token(user['id'])
 
     return TokenResponse(token=token, user=UserResponse(
@@ -623,6 +626,147 @@ async def demo_login():
         avatar_url=user.get('avatar_url'),
         avatar_preset=user.get('avatar_preset'),
     ))
+
+
+async def seed_demo_content():
+    """Seed sample job board content the first time a demo user logs in. Idempotent."""
+    marker = await db.app_config.find_one({'key': 'demo_seeded'}, {'_id': 0})
+    if marker and marker.get('value') is True:
+        return
+
+    # Sample NPC-style posters
+    demo_posters = [
+        {'handle': 'Vega_Hauler', 'reputation': 4.9, 'contracts': 47, 'avatar_preset': 'hauler'},
+        {'handle': 'RescueRanger', 'reputation': 5.0, 'contracts': 31, 'avatar_preset': 'medic'},
+        {'handle': 'Cpt_Ironclad', 'reputation': 4.7, 'contracts': 88, 'avatar_preset': 'bounty'},
+        {'handle': 'OrbitalMining', 'reputation': 4.6, 'contracts': 23, 'avatar_preset': 'miner'},
+    ]
+    poster_docs = []
+    for p in demo_posters:
+        existing = await db.users.find_one({'rsi_handle': p['handle']}, {'_id': 0})
+        if existing:
+            poster_docs.append(existing)
+            continue
+        pid = str(uuid.uuid4())
+        doc = {
+            'id': pid,
+            'email': f"{p['handle'].lower()}@starcitizengroupfinder.local",
+            'rsi_handle': p['handle'],
+            'password_hash': hash_password(str(uuid.uuid4())),
+            'is_verified': True,
+            'is_admin': False,
+            'is_supporter': False,
+            'theme_id': 'default',
+            'reputation': p['reputation'],
+            'contracts_completed': p['contracts'],
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'avatar_url': None,
+            'avatar_preset': p['avatar_preset'],
+            'badges': [],
+            'supporter_tier': 'NONE',
+            'is_demo_npc': True,
+        }
+        await db.users.insert_one(doc.copy())
+        poster_docs.append(doc)
+
+    now = datetime.now(timezone.utc)
+
+    def poster_summary(doc):
+        return {
+            'handle': doc['rsi_handle'],
+            'reputation': doc.get('reputation', 5.0),
+            'is_supporter': False,
+            'avatar_url': None,
+            'avatar_preset': doc.get('avatar_preset'),
+        }
+
+    # Four sample contracts
+    samples = [
+        {
+            'category': 'LOGISTICS',
+            'title': 'Cargo run Hurston → microTech, 300 SCU',
+            'description': 'Need a reliable hauler for a Titanium run. Split profits 50/50. No pirate-space detours.',
+            'system': 'Stanton', 'planet': 'Hurston', 'location': 'Lorville',
+            'compensation_type': 'Split Profits', 'split_profits': True, 'payment_amount': 0,
+            'poster': poster_docs[0], 'duration_minutes': 120, 'shard': 'USA',
+        },
+        {
+            'category': 'MEDICAL',
+            'title': 'Medical evac — incap at Daymar outpost',
+            'description': 'Down near Shubin SM0-10. Will tip well. Need a C8R or Cutlass Red ASAP.',
+            'system': 'Stanton', 'planet': 'Daymar', 'location': 'Shubin SM0-10',
+            'compensation_type': 'Flat Fee', 'payment_amount': 25000,
+            'poster': poster_docs[1], 'duration_minutes': 30, 'shard': 'Europe',
+        },
+        {
+            'category': 'COMBAT',
+            'title': 'Bounty escort — VHRT target at CRU-L1',
+            'description': 'Flying solo Vanguard, need 1-2 gunners for a verified VHRT. Loot split included.',
+            'system': 'Stanton', 'planet': 'Crusader', 'location': 'CRU-L1',
+            'compensation_type': 'Split Profits', 'split_profits': True, 'payment_amount': 0,
+            'poster': poster_docs[2], 'duration_minutes': 90, 'shard': 'USA',
+        },
+    ]
+
+    for s in samples:
+        doc = {
+            'id': str(uuid.uuid4()),
+            'title': s['title'],
+            'description': s['description'],
+            'compensation_type': s.get('compensation_type'),
+            'split_profits': s.get('split_profits', False),
+            'system': s['system'], 'planet': s['planet'], 'location': s['location'],
+            'shard': s.get('shard'),
+            'category': s['category'],
+            'poster_id': s['poster']['id'],
+            'poster_handle': s['poster']['rsi_handle'],
+            'poster': poster_summary(s['poster']),
+            'accepted_by': None,
+            'client_review': None,
+            'merc_review': None,
+            'created_at': now.isoformat(),
+            'payment_amount': s.get('payment_amount', 0),
+            'assigned_to': None,
+            'is_multi_crew': False,
+            'status': 'open',
+            'duration_minutes': s['duration_minutes'],
+            'expires_at': (now + timedelta(minutes=s['duration_minutes'])).isoformat(),
+            'is_demo_seed': True,
+        }
+        await db.contracts.insert_one(doc)
+
+    # Multi-crew sample — Carrack expedition
+    mc_poster = poster_docs[3]
+    mc_doc = {
+        'id': str(uuid.uuid4()),
+        'title': 'Carrack deep-space expedition — crew wanted',
+        'description': 'Heading into Pyro for a 3-hour mining run. Need a co-pilot, engineer, and a turret gunner. Cut of yield per slot.',
+        'compensation_type': 'Split Profits', 'split_profits': True,
+        'system': 'Pyro', 'planet': 'Pyro III', 'location': 'Ruin Station',
+        'shard': 'USA', 'category': 'INDUSTRIAL',
+        'poster_id': mc_poster['id'], 'poster_handle': mc_poster['rsi_handle'],
+        'poster': poster_summary(mc_poster),
+        'accepted_by': None, 'client_review': None, 'merc_review': None,
+        'created_at': now.isoformat(),
+        'manifest': [
+            {'role': 'Co-Pilot', 'payout': 30000, 'status': 'OPEN', 'applicant_id': None, 'filled_by': None, 'bids': []},
+            {'role': 'Engineer', 'payout': 25000, 'status': 'OPEN', 'applicant_id': None, 'filled_by': None, 'bids': []},
+            {'role': 'Turret Gunner', 'payout': 20000, 'status': 'OPEN', 'applicant_id': None, 'filled_by': None, 'bids': []},
+        ],
+        'is_multi_crew': True,
+        'status': 'mustering',
+        'payment_amount': 75000,
+        'duration_minutes': 180,
+        'expires_at': (now + timedelta(minutes=180)).isoformat(),
+        'is_demo_seed': True,
+    }
+    await db.contracts.insert_one(mc_doc)
+
+    await db.app_config.update_one(
+        {'key': 'demo_seeded'},
+        {'$set': {'key': 'demo_seeded', 'value': True, 'seeded_at': now.isoformat()}},
+        upsert=True,
+    )
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user = Depends(get_current_user)):
