@@ -533,6 +533,36 @@ export default function Settings() {
                 </label>
               </div>
 
+              {/* Email Preferences Section */}
+              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
+                Email Preferences
+              </h3>
+              <div className="notification-options">
+                <label className="notification-option">
+                  <div className="option-info">
+                    <span className="option-name">📧 Contact me about app updates</span>
+                    <span className="option-desc">
+                      Opt in to occasional emails about major SC Group Finder changes, new features, and announcements. You can opt out any time.
+                    </span>
+                  </div>
+                  <div
+                    className={`toggle-switch ${user?.contact_opt_in ? 'active' : ''}`}
+                    onClick={async () => {
+                      try {
+                        const next = !user?.contact_opt_in;
+                        await axios.put(`${API}/user/contact-opt-in`, { contact_opt_in: next });
+                        updateUser({ contact_opt_in: next });
+                      } catch (e) {
+                        alert('Failed to update email preference');
+                      }
+                    }}
+                    data-testid="contact-opt-in-toggle"
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+              </div>
+
               {/* Contract Notifications Section */}
               <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
                 Contract Notifications

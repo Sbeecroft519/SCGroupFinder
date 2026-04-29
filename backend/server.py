@@ -247,6 +247,7 @@ class UserResponse(BaseModel):
     avatar_preset: Optional[str] = None
     badges: List[str] = []
     supporter_tier: str = "NONE"
+    contact_opt_in: bool = False
 
 class TokenResponse(BaseModel):
     token: str
@@ -2114,6 +2115,19 @@ async def update_notification_settings(settings: NotificationSettings, user = De
         upsert=True
     )
     return {'message': 'Settings updated'}
+
+
+class ContactOptInUpdate(BaseModel):
+    contact_opt_in: bool
+
+@api_router.put("/user/contact-opt-in")
+async def update_contact_opt_in(data: ContactOptInUpdate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    await db.users.update_one({'id': user['id']}, {'$set': {'contact_opt_in': bool(data.contact_opt_in)}})
+    return {'contact_opt_in': bool(data.contact_opt_in)}
+
+
 
 
 # Avatar preset endpoint
