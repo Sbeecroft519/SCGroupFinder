@@ -105,6 +105,27 @@ export default function Admin() {
     }
   };
 
+  const handleExportUsers = () => {
+    const rows = [['RSI Handle', 'Email', 'Verified', 'Supporter Tier', 'Joined']];
+    users.forEach(u => {
+      rows.push([
+        u.rsi_handle || '',
+        u.email || '',
+        u.is_verified ? 'Yes' : 'No',
+        u.supporter_tier || 'NONE',
+        u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '',
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scgf-users-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Roadmap handlers
   const handleSaveRoadmapItem = async () => {
     try {
@@ -208,9 +229,28 @@ export default function Admin() {
       {/* Users Tab */}
       {activeTab === 'users' && (
       <div className="nc-card">
-        <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Users size={18} className="text-cyan" /> User Management
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
+          <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
+            <Users size={18} className="text-cyan" /> User Management
+          </h3>
+          <button
+            type="button"
+            onClick={handleExportUsers}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--nc-cyan)',
+              color: 'var(--nc-cyan)',
+              padding: '6px 14px',
+              fontSize: 11,
+              letterSpacing: 1,
+              fontFamily: 'var(--nc-font-mono)',
+              cursor: 'pointer',
+            }}
+            data-testid="export-users-btn"
+          >
+            📊 EXPORT CSV ({users.length})
+          </button>
+        </div>
 
         {/* Demo Mode panel */}
         {demoStats && (
