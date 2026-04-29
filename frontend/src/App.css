@@ -624,6 +624,21 @@
   animation: ticker 40s linear infinite;
 }
 
+/* Responsive ticker speed: shorter screens = shorter duration (still readable),
+   wider screens = longer duration (so text doesn't fly past) */
+@media (max-width: 480px) {
+  .alert-ticker-content { animation-duration: 22s; }
+}
+@media (min-width: 481px) and (max-width: 768px) {
+  .alert-ticker-content { animation-duration: 28s; }
+}
+@media (min-width: 1600px) {
+  .alert-ticker-content { animation-duration: 55s; }
+}
+@media (min-width: 2200px) {
+  .alert-ticker-content { animation-duration: 70s; }
+}
+
 .alert-ticker-item {
   display: flex;
   align-items: center;
