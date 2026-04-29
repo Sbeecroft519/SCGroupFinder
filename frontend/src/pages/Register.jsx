@@ -12,7 +12,8 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    rsi_handle: ''
+    rsi_handle: '',
+    contact_opt_in: false,
   });
   const [verificationCode, setVerificationCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -201,6 +202,19 @@ export default function Register() {
                 data-testid="register-confirm"
               />
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.contact_opt_in}
+                onChange={e => setFormData(prev => ({ ...prev, contact_opt_in: e.target.checked }))}
+                style={{ width: 16, height: 16, marginTop: 2, accentColor: 'var(--nc-cyan)' }}
+                data-testid="register-opt-in"
+              />
+              <span style={{ color: 'var(--nc-text-secondary)', fontSize: 12, lineHeight: 1.5 }}>
+                Contact me about SC Group Finder updates. You can opt out any time.
+              </span>
+            </label>
 
             <button 
               type="submit" 

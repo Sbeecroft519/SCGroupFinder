@@ -223,6 +223,7 @@ class UserCreate(BaseModel):
     rsi_handle: str
     verification_code: Optional[str] = None
     is_verified: Optional[bool] = False
+    contact_opt_in: Optional[bool] = False
 
 class RSIVerifyRequest(BaseModel):
     rsi_handle: str
@@ -582,6 +583,7 @@ async def register(user_data: UserCreate):
         'theme_id': 'default',
         'reputation': 5.0,
         'contracts_completed': 0,
+        'contact_opt_in': bool(user_data.contact_opt_in),
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     

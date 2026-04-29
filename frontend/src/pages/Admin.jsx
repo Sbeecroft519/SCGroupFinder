@@ -105,13 +105,15 @@ export default function Admin() {
     }
   };
 
-  const handleExportUsers = () => {
-    const rows = [['RSI Handle', 'Email', 'Verified', 'Supporter Tier', 'Joined']];
-    users.forEach(u => {
+  const handleExportUsers = (optInOnly = false) => {
+    const list = optInOnly ? users.filter(u => u.contact_opt_in) : users;
+    const rows = [['RSI Handle', 'Email', 'Verified', 'Contact Opt-In', 'Supporter Tier', 'Joined']];
+    list.forEach(u => {
       rows.push([
         u.rsi_handle || '',
         u.email || '',
         u.is_verified ? 'Yes' : 'No',
+        u.contact_opt_in ? 'Yes' : 'No',
         u.supporter_tier || 'NONE',
         u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '',
       ]);
@@ -121,7 +123,7 @@ export default function Admin() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scgf-users-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `scgf-users${optInOnly ? '-optin' : ''}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -233,23 +235,25 @@ export default function Admin() {
           <h3 style={{ fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
             <Users size={18} className="text-cyan" /> User Management
           </h3>
-          <button
-            type="button"
-            onClick={handleExportUsers}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--nc-cyan)',
-              color: 'var(--nc-cyan)',
-              padding: '6px 14px',
-              fontSize: 11,
-              letterSpacing: 1,
-              fontFamily: 'var(--nc-font-mono)',
-              cursor: 'pointer',
-            }}
-            data-testid="export-users-btn"
-          >
-            📊 EXPORT CSV ({users.length})
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => handleExportUsers(false)}
+              style={{ background: 'transparent', border: '1px solid var(--nc-cyan)', color: 'var(--nc-cyan)', padding: '6px 14px', fontSize: 11, letterSpacing: 1, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}
+              data-testid="export-users-btn"
+            >
+              📊 EXPORT ALL ({users.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportUsers(true)}
+              disabled={users.filter(u => u.contact_opt_in).length === 0}
+              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88', padding: '6px 14px', fontSize: 11, letterSpacing: 1, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer', opacity: users.filter(u => u.contact_opt_in).length === 0 ? 0.4 : 1 }}
+              data-testid="export-optin-btn"
+            >
+              ✉️ OPT-IN ONLY ({users.filter(u => u.contact_opt_in).length})
+            </button>
+          </div>
         </div>
 
         {/* Demo Mode panel */}
@@ -298,6 +302,7 @@ export default function Admin() {
                 <th>Handle</th>
                 <th>Email</th>
                 <th>Verified</th>
+                <th>Opt-In</th>
                 <th>Supporter Tier</th>
                 <th>Assign Badge</th>
                 <th>Joined</th>
@@ -310,6 +315,7 @@ export default function Admin() {
                   <td style={{ color: 'var(--nc-cyan)' }}>{u.rsi_handle}</td>
                   <td>{u.email}</td>
                   <td>{u.is_verified ? <Check size={14} className="text-green" /> : <X size={14} className="text-red" />}</td>
+                  <td>{u.contact_opt_in ? <Check size={14} className="text-green" /> : <span style={{ color: 'var(--nc-text-muted)' }}>—</span>}</td>
                   <td>
                     {u.supporter_tier === 'GOLD' && <span style={{ color: '#ffd700' }}>🏆 Gold</span>}
                     {u.supporter_tier === 'SILVER' && <span style={{ color: '#c0c0c0' }}>🛡️ Silver</span>}
