@@ -2479,10 +2479,10 @@ class WebhookPayload(BaseModel):
 
 @api_router.get("/orgs")
 async def list_orgs(user = Depends(get_current_user)):
-    """Public org list. Returns [] until org tools are enabled."""
+    """Public org list. Returns [] until org tools are enabled. Only approved orgs are public."""
     if not org_tools_enabled():
         return {'coming_soon': True, 'orgs': []}
-    orgs = await db.organizations.find({}, {'_id': 0}).sort('created_at', -1).to_list(200)
+    orgs = await db.organizations.find({'approval_status': 'approved'}, {'_id': 0}).sort('created_at', -1).to_list(200)
     return {'coming_soon': False, 'orgs': [_public_org(o) for o in orgs]}
 
 
@@ -2538,6 +2538,10 @@ async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
         'alert_timing_types': [],
         'alert_rescue_only': False,
         'alert_min_payout': None,
+        # Admin approval workflow — admins auto-approve, everyone else is pending
+        'approval_status': 'approved' if user.get('is_admin') else 'pending',
+        'approved_at': now_iso if user.get('is_admin') else None,
+        'approved_by': user['id'] if user.get('is_admin') else None,
         'created_at': now_iso,
         'updated_at': now_iso,
     }
@@ -2638,6 +2642,50 @@ async def test_discord(org_id: str, user = Depends(get_current_user)):
         return {'success': False, 'error': 'Webhook request failed'}
 
 
+# ===== Admin Org Approval =====
+
+@api_router.get("/admin/orgs")
+async def admin_list_orgs(status: Optional[str] = None, admin = Depends(require_admin)):
+    """Admin sees ALL orgs (incl. pending/rejected). Optional ?status=pending|approved|rejected filter."""
+    q = {}
+    if status:
+        q['approval_status'] = status
+    orgs = await db.organizations.find(q, {'_id': 0}).sort('created_at', -1).to_list(500)
+    # Admin gets discord_connected (still no full URL)
+    return [_public_org(o) | {'approval_status': o.get('approval_status', 'pending'),
+                              'approved_at': o.get('approved_at'),
+                              'approved_by': o.get('approved_by')}
+            for o in orgs]
+
+
+@api_router.post("/admin/orgs/{org_id}/approve")
+async def admin_approve_org(org_id: str, admin = Depends(require_admin)):
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    await db.organizations.update_one({'id': org_id}, {'$set': {
+        'approval_status': 'approved',
+        'approved_at': datetime.now(timezone.utc).isoformat(),
+        'approved_by': admin['id'],
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }})
+    return {'message': 'Approved', 'org_id': org_id}
+
+
+@api_router.post("/admin/orgs/{org_id}/reject")
+async def admin_reject_org(org_id: str, admin = Depends(require_admin)):
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    await db.organizations.update_one({'id': org_id}, {'$set': {
+        'approval_status': 'rejected',
+        'approved_at': None,
+        'approved_by': admin['id'],
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }})
+    return {'message': 'Rejected', 'org_id': org_id}
+
+
 # ===== Discord Dispatch =====
 
 def _build_discord_message(contract: dict) -> dict:
@@ -2710,6 +2758,9 @@ def _build_discord_message(contract: dict) -> dict:
 
 def _org_matches_contract(org: dict, contract: dict) -> bool:
     """Filter rules per spec — empty list means "no restriction"."""
+    # Approval gate — unapproved/rejected orgs never receive dispatch
+    if (org.get('approval_status') or 'pending') != 'approved':
+        return False
     if not org.get('discord_alerts_enabled') or not _is_valid_discord_webhook(org.get('discord_webhook_url')):
         return False
     cat = (contract.get('category') or '').upper()
@@ -2740,7 +2791,7 @@ async def dispatch_org_discord_alerts(contract: dict):
         return
     try:
         orgs = await db.organizations.find(
-            {'discord_alerts_enabled': True, 'discord_webhook_url': {'$ne': None}},
+            {'approval_status': 'approved', 'discord_alerts_enabled': True, 'discord_webhook_url': {'$ne': None}},
             {'_id': 0}
         ).to_list(500)
     except Exception as e:

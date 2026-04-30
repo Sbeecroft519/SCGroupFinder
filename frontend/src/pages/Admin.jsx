@@ -20,6 +20,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('users');
   const [demoStats, setDemoStats] = useState(null);
   const [wipingDemo, setWipingDemo] = useState(false);
+  const [orgs, setOrgs] = useState([]);
   
   // Roadmap state
   const [roadmapItems, setRoadmapItems] = useState([]);
@@ -33,16 +34,18 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, resetRes, roadmapRes, demoRes] = await Promise.all([
+      const [usersRes, resetRes, roadmapRes, demoRes, orgsRes] = await Promise.all([
         axios.get(`${API}/admin/users`),
         axios.get(`${API}/admin/last-reset`).catch(() => ({ data: { last_reset: null } })),
         axios.get(`${API}/admin/roadmap`).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/demo/stats`).catch(() => ({ data: null })),
+        axios.get(`${API}/admin/orgs`).catch(() => ({ data: [] })),
       ]);
       setUsers(usersRes.data || []);
       setLastReset(resetRes.data?.last_reset);
       setRoadmapItems(roadmapRes.data || []);
       setDemoStats(demoRes.data);
+      setOrgs(orgsRes.data || []);
     } catch (error) {
       console.error('Admin fetch error:', error);
     } finally {
@@ -102,6 +105,15 @@ export default function Admin() {
       alert(e.response?.data?.detail || 'Wipe failed');
     } finally {
       setWipingDemo(false);
+    }
+  };
+
+  const handleApproveOrg = async (id, approve) => {
+    try {
+      await axios.post(`${API}/admin/orgs/${id}/${approve ? 'approve' : 'reject'}`);
+      fetchData();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Action failed');
     }
   };
 
@@ -255,6 +267,73 @@ export default function Admin() {
             </button>
           </div>
         </div>
+
+        {/* Org Approvals panel */}
+        {orgs.length > 0 && (
+          <div data-testid="org-approvals-panel" style={{
+            padding: '12px 16px', marginBottom: 20,
+            background: 'rgba(170, 0, 255, 0.05)',
+            border: '1px solid rgba(170, 0, 255, 0.3)',
+            borderLeft: '3px solid #c977ff',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1, color: '#c977ff', padding: '3px 8px', border: '1px solid #c977ff' }}>
+                🏢 ORG APPROVALS
+              </span>
+              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+                <strong style={{ color: '#ffd700' }}>{orgs.filter(o => o.approval_status === 'pending').length}</strong> pending ·{' '}
+                <strong style={{ color: '#00ff88' }}>{orgs.filter(o => o.approval_status === 'approved').length}</strong> approved ·{' '}
+                <strong style={{ color: '#888' }}>{orgs.filter(o => o.approval_status === 'rejected').length}</strong> rejected
+              </span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="admin-table" style={{ minWidth: 700, fontSize: 12 }}>
+                <thead><tr>
+                  <th>Tag</th><th>Name</th><th>Specialties</th><th>Discord</th><th>Status</th><th>Actions</th>
+                </tr></thead>
+                <tbody>
+                  {orgs.map(o => (
+                    <tr key={o.id} data-testid={`org-row-${o.id}`}>
+                      <td style={{ color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-mono)' }}>{o.tag}</td>
+                      <td>{o.name}</td>
+                      <td style={{ color: 'var(--nc-text-muted)', fontSize: 11 }}>{(o.specialties || []).join(', ') || '—'}</td>
+                      <td>{o.discord_connected ? <Check size={14} className="text-green" /> : <span style={{ color: 'var(--nc-text-muted)' }}>—</span>}</td>
+                      <td>
+                        {o.approval_status === 'approved' && <span style={{ color: '#00ff88' }}>✅ Approved</span>}
+                        {o.approval_status === 'pending' && <span style={{ color: '#ffd700' }}>⏳ Pending</span>}
+                        {o.approval_status === 'rejected' && <span style={{ color: '#888' }}>❌ Rejected</span>}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {o.approval_status !== 'approved' && (
+                            <button
+                              type="button"
+                              onClick={() => handleApproveOrg(o.id, true)}
+                              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}
+                              data-testid={`approve-org-${o.id}`}
+                            >
+                              ✅ APPROVE
+                            </button>
+                          )}
+                          {o.approval_status !== 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => handleApproveOrg(o.id, false)}
+                              style={{ background: 'transparent', border: '1px solid #ff4466', color: '#ff4466', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}
+                              data-testid={`reject-org-${o.id}`}
+                            >
+                              ❌ REJECT
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Demo Mode panel */}
         {demoStats && (
