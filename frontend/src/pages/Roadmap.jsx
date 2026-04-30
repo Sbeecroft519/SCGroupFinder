@@ -7,52 +7,82 @@ import { useAuth, API } from '../App';
 const DEFAULT_ROADMAP_ITEMS = [
   {
     id: '1',
-    title: 'Mercenary Board',
-    description: 'Full contract system with reputation, ratings, and payment tracking.',
-    status: 'STABLE'
+    title: 'SC Group Finder Refocus',
+    description: 'NavCom has been refocused into SC Group Finder: a Star Citizen player-to-player Job Board and Group Finder built around contracts, applicants, reputation, and trusted coordination.',
+    status: 'STABLE',
   },
   {
     id: '2',
-    title: 'Intelligence Network',
-    description: 'Real-time player reports for piracy, PvP zones, 30ks, and server instability.',
-    status: 'STABLE'
+    title: 'Job & Group Board',
+    description: 'Primary board for paid jobs, group posts, applications, accept/decline flow, and reputation-based player selection.',
+    status: 'STABLE',
   },
   {
     id: '3',
-    title: 'Mission Advisor',
-    description: 'Session planning based on time, ship, and risk tolerance.',
-    status: 'STABLE'
+    title: 'LFG / Group Up Posts',
+    description: 'LFG now lives inside the Job Board as a no-payout post type for casual crews, group sessions, and non-contract gameplay.',
+    status: 'STABLE',
   },
   {
     id: '4',
-    title: 'Multi-Crew Contracts',
-    description: 'Post jobs for multiple roles with individual payout tracking.',
-    status: 'STABLE'
+    title: 'Demo Mode',
+    description: 'Visitors can try the app instantly without creating an account or completing RSI verification.',
+    status: 'STABLE',
   },
   {
     id: '5',
-    title: 'WebSocket Notifications',
-    description: 'Real-time push notifications for contract updates.',
-    status: 'IN_PROGRESS'
+    title: 'Looking Now / Future Time Scheduling',
+    description: 'Posts can be created for immediate sessions with listing duration or scheduled for a future day, time, and timezone.',
+    status: 'STABLE',
   },
   {
     id: '6',
-    title: 'Fleet Manager',
-    description: 'Track your ships, loadouts, and crew assignments in one place.',
-    status: 'PLANNED'
+    title: 'Simplified Meeting Locations',
+    description: 'Job posts now use a cleaner Meeting Location flow with Disclosed on Acceptance, Stanton, Pyro, and Nyx, plus major hubs only.',
+    status: 'STABLE',
   },
   {
     id: '7',
-    title: 'Org Integration',
-    description: 'Connect SC Group Finder with RSI Org tools for fleet coordination.',
-    status: 'PLANNED'
+    title: 'Medical / Rescue Privacy Tools',
+    description: 'Rescue posts now support public system-only visibility, bleed-out countdowns, injury and risk flags, and private rescue details revealed only to accepted rescuers.',
+    status: 'STABLE',
   },
   {
     id: '8',
-    title: 'Mobile Companion App',
-    description: 'Access SC Group Finder on your phone while away from the verse.',
-    status: 'BACKLOG'
-  }
+    title: 'Region-Based Signals',
+    description: 'Signals and alerts now use player-facing Server Region language while keeping backend compatibility.',
+    status: 'STABLE',
+  },
+  {
+    id: '9',
+    title: 'Multi-Crew Manifests',
+    description: 'Post multi-crew jobs with defined roles, crew slots, applicants, and payout tracking.',
+    status: 'STABLE',
+  },
+  {
+    id: '10',
+    title: 'Two-Way Reputation',
+    description: 'Players can build trust through ratings, reviews, completed jobs, and profile reputation.',
+    status: 'STABLE',
+  },
+  {
+    id: '11',
+    title: 'Optional Intel Tool',
+    description: 'A session-planner Intel module (paused while Job Board polish ships). Suggests a fun mission profile based on your ship and free time — not a min-max calculator.',
+    status: 'IN_PROGRESS',
+  },
+  {
+    id: '12',
+    title: 'Organization Dispatch Tools',
+    description: 'Coming soon: organization profiles, specialties, Discord contract alerts, and rescue-safe dispatch tools for medical, security, cargo, and industrial orgs.',
+    status: 'COMING_SOON',
+  },
+  {
+    id: '13',
+    title: 'Advanced Org Dispatch',
+    description: 'Future tools may include multiple Discord channels, advanced alert filters, on-call status, org reputation, and respond-as-organization workflows.',
+    status: 'BACKLOG',
+  },
 ];
 
 // Status color helper
@@ -63,6 +93,8 @@ const getStatusColor = (status) => {
       return { bg: 'rgba(0, 255, 136, 0.2)', text: '#00ff88' };
     case 'IN_PROGRESS':
       return { bg: 'rgba(0, 240, 255, 0.2)', text: '#00f0ff' };
+    case 'COMING_SOON':
+      return { bg: 'rgba(170, 0, 255, 0.2)', text: '#c977ff' };
     case 'PLANNED':
       return { bg: 'rgba(255, 215, 0, 0.2)', text: '#ffd700' };
     case 'BACKLOG':

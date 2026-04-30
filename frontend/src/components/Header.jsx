@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Building2, ChevronDown, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ const MAIN_NAV = [
 
 const OTHER_TOOLS = [
   { id: 'intel', label: 'Intel', icon: Radar, path: '/intel' },
+  { id: 'orgs', label: 'Orgs', icon: Building2, path: '/orgs' },
   { id: 'roadmap', label: 'Roadmap', icon: Map, path: '/roadmap' },
 ];
 
