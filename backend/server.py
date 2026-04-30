@@ -1514,6 +1514,11 @@ async def get_contracts(category: Optional[str] = None, user = Depends(get_curre
     # Filter out expired/completed/cancelled contracts using expires_at or fallback to 1hr for legacy
     now = datetime.now(timezone.utc).isoformat()
     one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+
+    # Hide demo activity from verified non-demo users so the live board stays clean.
+    # Demo users still see all demo content; admins always see everything.
+    is_demo_viewer = bool(user and (user.get('is_demo') or user.get('is_demo_npc')))
+    is_admin_viewer = bool(user and user.get('is_admin'))
     
     query = {
         'status': {'$nin': ['completed', 'expired', 'cancelled']},  # Hide completed/expired/cancelled
@@ -1527,7 +1532,12 @@ async def get_contracts(category: Optional[str] = None, user = Depends(get_curre
     }
     if category:
         query['category'] = category
-    
+
+    # Hide demo posts from verified non-demo viewers (admins still see everything)
+    if not (is_demo_viewer or is_admin_viewer):
+        query['is_demo_post'] = {'$ne': True}
+        query['is_demo_seed'] = {'$ne': True}
+
     contracts = await db.contracts.find(
         query,
         {'_id': 0}
@@ -1636,9 +1646,16 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     contract_doc['rescue_body_location'] = contract.rescue_body_location
     contract_doc['rescue_private_notes'] = contract.rescue_private_notes
 
+    # Tag posts by demo accounts so they can be hidden from verified users on the public board
+    if user.get('is_demo') or user.get('is_demo_npc'):
+        contract_doc['is_demo_post'] = True
+
     await db.contracts.insert_one(contract_doc)
     contract_doc.pop('_id', None)
     contract_doc = redact_private_fields(contract_doc, user)
+
+    # Org Discord dispatch (fire-and-forget — never blocks contract creation)
+    asyncio.create_task(dispatch_org_discord_alerts(contract_doc))
     
     # Broadcast new contract via WebSocket
     await broadcast_contract(contract_doc)
@@ -2380,6 +2397,370 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ===== Organizations (early-access, gated by ENABLE_ORG_TOOLS) =====
+
+ALLOWED_SPECIALTIES = {
+    'Medical / Rescue', 'Security', 'Escort', 'Combat', 'Cargo', 'Mining',
+    'Salvage', 'Training', 'New Player Help', 'Exploration', 'Events',
+    'Roleplay', 'Other'
+}
+ALLOWED_REGIONS = {'USA', 'Europe', 'Australia', 'Asia', 'Global'}
+ALLOWED_SYSTEMS = {'Stanton', 'Pyro', 'Nyx'}
+ALLOWED_TIMING = {'now', 'future'}
+
+
+def org_tools_enabled() -> bool:
+    return os.environ.get('ENABLE_ORG_TOOLS', '').lower() == 'true'
+
+
+def _require_org_tools_or_admin(user):
+    """Write actions need either ENABLE_ORG_TOOLS=true OR an admin user."""
+    if user and user.get('is_admin'):
+        return
+    if not org_tools_enabled():
+        raise HTTPException(status_code=403, detail="Org tools are not yet available.")
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+
+def _is_valid_discord_webhook(url: Optional[str]) -> bool:
+    if not url or not isinstance(url, str):
+        return False
+    return url.startswith('https://discord.com/api/webhooks/') or url.startswith('https://discordapp.com/api/webhooks/')
+
+
+def _public_org(org: dict) -> dict:
+    """Strip private fields from an org doc before returning publicly."""
+    if not org:
+        return org
+    org = {k: v for k, v in org.items() if k != '_id'}
+    org['discord_connected'] = bool(org.get('discord_webhook_url'))
+    org.pop('discord_webhook_url', None)
+    return org
+
+
+class OrgCreate(BaseModel):
+    name: str
+    tag: str
+    description: Optional[str] = ''
+    rsi_org_url: Optional[str] = None
+    discord_invite_url: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    specialties: Optional[List[str]] = []
+    home_regions: Optional[List[str]] = []
+    service_systems: Optional[List[str]] = []
+
+
+class OrgUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    rsi_org_url: Optional[str] = None
+    discord_invite_url: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    specialties: Optional[List[str]] = None
+    home_regions: Optional[List[str]] = None
+    service_systems: Optional[List[str]] = None
+    discord_alerts_enabled: Optional[bool] = None
+    alert_categories: Optional[List[str]] = None
+    alert_regions: Optional[List[str]] = None
+    alert_systems: Optional[List[str]] = None
+    alert_timing_types: Optional[List[str]] = None
+    alert_rescue_only: Optional[bool] = None
+    alert_min_payout: Optional[int] = None
+
+
+class WebhookPayload(BaseModel):
+    discord_webhook_url: str
+
+
+@api_router.get("/orgs")
+async def list_orgs(user = Depends(get_current_user)):
+    """Public org list. Returns [] until org tools are enabled."""
+    if not org_tools_enabled():
+        return {'coming_soon': True, 'orgs': []}
+    orgs = await db.organizations.find({}, {'_id': 0}).sort('created_at', -1).to_list(200)
+    return {'coming_soon': False, 'orgs': [_public_org(o) for o in orgs]}
+
+
+@api_router.get("/orgs/{org_id}")
+async def get_org(org_id: str, user = Depends(get_current_user)):
+    if not org_tools_enabled():
+        raise HTTPException(status_code=404, detail="Org not found")
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    return _public_org(org)
+
+
+@api_router.post("/orgs")
+async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    name = (payload.name or '').strip()
+    tag = (payload.tag or '').strip().upper()
+    if not name or len(name) < 3 or len(name) > 64:
+        raise HTTPException(status_code=400, detail="Name must be 3–64 characters")
+    if not tag or len(tag) < 2 or len(tag) > 8:
+        raise HTTPException(status_code=400, detail="Tag must be 2–8 characters")
+    if await db.organizations.find_one({'tag': tag}):
+        raise HTTPException(status_code=400, detail="Tag already taken")
+    if await db.organizations.find_one({'owner_id': user['id']}):
+        raise HTTPException(status_code=400, detail="You already own an organization")
+
+    bad = [s for s in (payload.specialties or []) if s not in ALLOWED_SPECIALTIES]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Unknown specialties: {bad}")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    org = {
+        'id': str(uuid.uuid4()),
+        'name': name,
+        'tag': tag,
+        'description': (payload.description or '')[:1000],
+        'rsi_org_url': payload.rsi_org_url,
+        'discord_invite_url': payload.discord_invite_url,
+        'logo_url': payload.logo_url,
+        'banner_url': payload.banner_url,
+        'owner_id': user['id'],
+        'officers': [],
+        'members': [user['id']],
+        'specialties': payload.specialties or [],
+        'home_regions': [r for r in (payload.home_regions or []) if r in ALLOWED_REGIONS],
+        'service_systems': [s for s in (payload.service_systems or []) if s in ALLOWED_SYSTEMS],
+        'discord_webhook_url': None,
+        'discord_alerts_enabled': False,
+        'alert_categories': [],
+        'alert_regions': [],
+        'alert_systems': [],
+        'alert_timing_types': [],
+        'alert_rescue_only': False,
+        'alert_min_payout': None,
+        'created_at': now_iso,
+        'updated_at': now_iso,
+    }
+    await db.organizations.insert_one(org)
+    return _public_org(org)
+
+
+@api_router.put("/orgs/{org_id}")
+async def update_org(org_id: str, payload: OrgUpdate, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if not (user.get('is_admin') or org['owner_id'] == user['id'] or user['id'] in (org.get('officers') or [])):
+        raise HTTPException(status_code=403, detail="Only owner or officer can edit")
+
+    updates = {k: v for k, v in payload.dict(exclude_unset=True).items() if v is not None}
+    # Validate enum-like sets
+    if 'specialties' in updates:
+        bad = [s for s in updates['specialties'] if s not in ALLOWED_SPECIALTIES]
+        if bad:
+            raise HTTPException(status_code=400, detail=f"Unknown specialties: {bad}")
+    for f, allowed in [('home_regions', ALLOWED_REGIONS), ('alert_regions', ALLOWED_REGIONS),
+                        ('service_systems', ALLOWED_SYSTEMS), ('alert_systems', ALLOWED_SYSTEMS),
+                        ('alert_timing_types', ALLOWED_TIMING)]:
+        if f in updates:
+            updates[f] = [v for v in updates[f] if v in allowed]
+    updates['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.organizations.update_one({'id': org_id}, {'$set': updates})
+    org = await db.organizations.find_one({'id': org_id})
+    return _public_org(org)
+
+
+@api_router.post("/orgs/{org_id}/join")
+async def join_org(org_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if user['id'] in (org.get('members') or []):
+        return {'message': 'Already a member'}
+    await db.organizations.update_one({'id': org_id}, {'$addToSet': {'members': user['id']}})
+    return {'message': 'Joined'}
+
+
+@api_router.post("/orgs/{org_id}/leave")
+async def leave_org(org_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if org['owner_id'] == user['id']:
+        raise HTTPException(status_code=400, detail="Owner cannot leave — transfer or delete the org")
+    await db.organizations.update_one({'id': org_id}, {
+        '$pull': {'members': user['id'], 'officers': user['id']},
+    })
+    return {'message': 'Left'}
+
+
+@api_router.post("/orgs/{org_id}/discord-webhook")
+async def set_discord_webhook(org_id: str, payload: WebhookPayload, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if not (user.get('is_admin') or org['owner_id'] == user['id'] or user['id'] in (org.get('officers') or [])):
+        raise HTTPException(status_code=403, detail="Only owner or officer can connect a webhook")
+    if not _is_valid_discord_webhook(payload.discord_webhook_url):
+        raise HTTPException(status_code=400, detail="Webhook URL must be a Discord webhook URL")
+    await db.organizations.update_one({'id': org_id}, {'$set': {
+        'discord_webhook_url': payload.discord_webhook_url,
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }})
+    return {'connected': True}
+
+
+@api_router.post("/orgs/{org_id}/test-discord")
+async def test_discord(org_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if not (user.get('is_admin') or org['owner_id'] == user['id'] or user['id'] in (org.get('officers') or [])):
+        raise HTTPException(status_code=403, detail="Only owner or officer can test webhook")
+    url = org.get('discord_webhook_url')
+    if not _is_valid_discord_webhook(url):
+        raise HTTPException(status_code=400, detail="No Discord webhook connected")
+    payload = {
+        'username': 'SC Group Finder',
+        'content': f"✅ Test alert from **{org['name']}** ({org['tag']}). Your Discord dispatch channel is connected.",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(url, json=payload)
+        return {'success': 200 <= r.status_code < 300, 'status': r.status_code}
+    except Exception as e:
+        logger.error(f"Discord test failed: {e}")
+        return {'success': False, 'error': 'Webhook request failed'}
+
+
+# ===== Discord Dispatch =====
+
+def _build_discord_message(contract: dict) -> dict:
+    """Construct a Discord webhook payload from a contract.
+    Strict privacy: never include rescue_exact_location / rescue_body_location / rescue_private_notes."""
+    cat = (contract.get('category') or 'OTHER').upper()
+    is_lfg = cat == 'LFG'
+    is_medical = cat == 'MEDICAL'
+    title_prefix = {
+        'MEDICAL': 'New Rescue Contract',
+        'COMBAT': 'New Combat Contract',
+        'LOGISTICS': 'New Cargo Contract',
+        'INDUSTRIAL': 'New Industrial Contract',
+        'LFG': 'New LFG / Group Up Post',
+    }.get(cat, 'New Contract')
+
+    timing = 'Looking Now' if contract.get('timing_type') != 'future' else (
+        f"Future: {contract.get('scheduled_start_at')} {contract.get('scheduled_timezone') or ''}".strip()
+    )
+    region = contract.get('shard') or 'Global'
+    system = contract.get('meeting_system') or contract.get('system') or 'Unknown'
+
+    # Public meeting location (rescues hide exact location)
+    if is_medical:
+        meeting = f"System: {system} (exact location private)"
+    elif contract.get('meeting_visibility') == 'disclosed_on_acceptance':
+        meeting = 'Disclosed on Acceptance'
+    elif contract.get('meeting_major_location'):
+        meeting = f"{system} - {contract['meeting_major_location']}"
+    else:
+        meeting = system
+
+    payout = contract.get('payment_amount') or 0
+    payout_line = '👥 LFG · No payout' if is_lfg else (f"💰 {payout:,} aUEC" if payout else 'No flat payout')
+
+    fields = [
+        {'name': 'Category', 'value': cat, 'inline': True},
+        {'name': 'Timing', 'value': timing, 'inline': True},
+        {'name': 'Region', 'value': region, 'inline': True},
+        {'name': 'Meeting', 'value': meeting, 'inline': False},
+        {'name': 'Payout', 'value': payout_line, 'inline': True},
+    ]
+    if is_medical:
+        fields.extend([
+            {'name': 'Bleed-out expires at', 'value': contract.get('rescue_bleedout_expires_at') or 'Unknown', 'inline': True},
+            {'name': 'Injury Tier', 'value': contract.get('rescue_injury_tier') or 'Unknown', 'inline': True},
+            {'name': 'PvP Area', 'value': contract.get('rescue_pvp_area') or 'Unknown', 'inline': True},
+            {'name': 'Hostile NPCs', 'value': contract.get('rescue_hostile_npcs') or 'Unknown', 'inline': True},
+            {'name': 'AA Turrets', 'value': contract.get('rescue_aa_turrets') or 'Unknown', 'inline': True},
+            {'name': 'Hydration / Food', 'value': contract.get('rescue_needs_food_hydration') or 'Unknown', 'inline': True},
+        ])
+
+    frontend_url = os.environ.get('FRONTEND_URL', '').rstrip('/')
+    link = f"{frontend_url}/contracts/{contract['id']}" if frontend_url and contract.get('id') else None
+    description = contract.get('description') or ''
+    if is_medical:
+        description = (description + "\n\n🔒 Exact rescue location is hidden until the poster accepts a rescuer.").strip()
+
+    embed = {
+        'title': title_prefix,
+        'description': f"**{contract.get('title','(untitled)')}**\n{description}"[:2000],
+        'color': 0xff4466 if is_medical else (0xff6600 if is_lfg else 0x00f0ff),
+        'fields': fields,
+        'footer': {'text': 'SC Group Finder'},
+    }
+    if link:
+        embed['url'] = link
+    return {'username': 'SC Group Finder', 'embeds': [embed]}
+
+
+def _org_matches_contract(org: dict, contract: dict) -> bool:
+    """Filter rules per spec — empty list means "no restriction"."""
+    if not org.get('discord_alerts_enabled') or not _is_valid_discord_webhook(org.get('discord_webhook_url')):
+        return False
+    cat = (contract.get('category') or '').upper()
+    if org.get('alert_rescue_only') and cat != 'MEDICAL':
+        return False
+    cats = org.get('alert_categories') or []
+    if cats and cat not in [c.upper() for c in cats]:
+        return False
+    regions = org.get('alert_regions') or []
+    if regions and 'Global' not in regions:
+        if (contract.get('shard') or 'Global') not in regions:
+            return False
+    systems = org.get('alert_systems') or []
+    if systems and (contract.get('meeting_system') or contract.get('system')) not in systems:
+        return False
+    timings = org.get('alert_timing_types') or []
+    if timings and (contract.get('timing_type') or 'now') not in timings:
+        return False
+    min_payout = org.get('alert_min_payout')
+    if min_payout and (contract.get('payment_amount') or 0) < min_payout:
+        return False
+    return True
+
+
+async def dispatch_org_discord_alerts(contract: dict):
+    """Fire-and-forget. Never blocks contract creation. Logs on failure."""
+    if not org_tools_enabled():
+        return
+    try:
+        orgs = await db.organizations.find(
+            {'discord_alerts_enabled': True, 'discord_webhook_url': {'$ne': None}},
+            {'_id': 0}
+        ).to_list(500)
+    except Exception as e:
+        logger.error(f"org dispatch fetch failed: {e}")
+        return
+    if not orgs:
+        return
+    payload = _build_discord_message(contract)
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for org in orgs:
+            if not _org_matches_contract(org, contract):
+                continue
+            try:
+                r = await client.post(org['discord_webhook_url'], json=payload)
+                if r.status_code >= 400:
+                    logger.warning(f"org webhook {org.get('id')} returned {r.status_code}")
+            except Exception as e:
+                logger.warning(f"org webhook {org.get('id')} dispatch failed: {e}")
+
+
 
 @app.on_event("startup")
 async def startup_event():
