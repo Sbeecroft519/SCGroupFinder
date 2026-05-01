@@ -1613,13 +1613,38 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         contract_doc['is_multi_crew'] = False
         contract_doc['status'] = 'open'
     
-    # Calculate expires_at based on duration
+    # Calculate expires_at based on timing_type / duration
     duration_mins = contract.duration_minutes or 60
     contract_doc['duration_minutes'] = duration_mins
-    contract_doc['expires_at'] = (datetime.now(timezone.utc) + timedelta(minutes=duration_mins)).isoformat()
+
+    timing_type = contract.timing_type or 'now'
+    scheduled_start_dt = None
+    if timing_type == 'future':
+        if not contract.scheduled_start_at:
+            raise HTTPException(
+                status_code=400,
+                detail="Future time posts require scheduled_start_at"
+            )
+        try:
+            scheduled_start_dt = datetime.fromisoformat(
+                contract.scheduled_start_at.replace('Z', '+00:00')
+            )
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=400,
+                detail="scheduled_start_at must be a valid ISO 8601 datetime"
+            )
+        # Future posts stay active until FUTURE_POST_ACTIVE_WINDOW_HOURS after the scheduled start.
+        contract_doc['expires_at'] = (
+            scheduled_start_dt + timedelta(hours=FUTURE_POST_ACTIVE_WINDOW_HOURS)
+        ).isoformat()
+    else:
+        contract_doc['expires_at'] = (
+            datetime.now(timezone.utc) + timedelta(minutes=duration_mins)
+        ).isoformat()
 
     # Timing fields
-    contract_doc['timing_type'] = contract.timing_type or 'now'
+    contract_doc['timing_type'] = timing_type
     contract_doc['scheduled_start_at'] = contract.scheduled_start_at
     contract_doc['scheduled_timezone'] = contract.scheduled_timezone
 
@@ -2409,6 +2434,9 @@ ALLOWED_SPECIALTIES = {
 ALLOWED_REGIONS = {'USA', 'Europe', 'Australia', 'Asia', 'Global'}
 ALLOWED_SYSTEMS = {'Stanton', 'Pyro', 'Nyx'}
 ALLOWED_TIMING = {'now', 'future'}
+
+# How long a "Future Time" post stays active on the board after its scheduled_start_at.
+FUTURE_POST_ACTIVE_WINDOW_HOURS = 4
 
 
 def org_tools_enabled() -> bool:

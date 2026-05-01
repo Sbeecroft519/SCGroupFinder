@@ -187,14 +187,24 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - [ ] Real Stripe payment flow (needs production keys)
 
 ### P2 - Medium Priority
-- [ ] Refactor Contracts.jsx into smaller components
+- [ ] Refactor Contracts.jsx into smaller components (~2300 lines)
 - [ ] Extract clipboard utility to shared function
-- [ ] Org/group support
-- [ ] Fleet manager
+- [ ] Org/group support — Discord webhook dispatch (gated behind ENABLE_ORG_TOOLS)
 
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements
 - [ ] Service worker push notifications
+- [ ] Advanced Org dispatch (filters, role mentions)
+
+### Cancelled
+- ~~Fleet Manager~~ (cancelled by user request)
+
+## Bug Fix (Feb 28, 2026)
+**Future Time post expiration anchored to scheduled_start_at**
+- Issue: Future Time posts were expiring 1 hour after creation because the frontend sent `duration_minutes: 60` as a placeholder and the backend used it for `expires_at`.
+- Fix: In `POST /api/contracts`, when `timing_type == 'future'`, compute `expires_at = scheduled_start_at + FUTURE_POST_ACTIVE_WINDOW_HOURS` (4h). Reject future posts missing or with invalid `scheduled_start_at` (HTTP 400).
+- "Looking Now" non-medical posts continue to use `duration_minutes`. Medical bleed-out logic untouched.
+- Verified via curl: future post `expires_at - scheduled_start_at = 4:00:00`, now post unchanged at 60 min, validation errors return 400.
 
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
