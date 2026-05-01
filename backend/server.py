@@ -2329,6 +2329,83 @@ async def admin_delete_user(user_id: str, admin = Depends(require_admin)):
     return {'message': 'User deleted', 'rsi_handle': target.get('rsi_handle')}
 
 
+@api_router.post("/admin/contracts/repair-future-expiry")
+async def admin_repair_future_expiry(admin = Depends(require_admin)):
+    """One-shot repair tool for Future Time posts whose expires_at was incorrectly anchored to
+    created_at + duration_minutes (legacy bug) instead of scheduled_start_at + 4h.
+
+    Repairs only contracts where:
+      - timing_type == 'future'
+      - scheduled_start_at exists
+      - expires_at < scheduled_start_at  (the canonical signature of the bug)
+      - status is 'open' OR 'expired' (system-expired only; user-cancelled / completed are skipped)
+      - cancelled_at is not set (defensive: never restore a user-cancelled post)
+
+    Sets expires_at = scheduled_start_at + FUTURE_POST_ACTIVE_WINDOW_HOURS, and if the contract
+    had been auto-flagged 'expired' by the system, restores status to 'open'.
+    """
+    candidates_query = {
+        'timing_type': 'future',
+        'scheduled_start_at': {'$ne': None, '$exists': True},
+        'expires_at': {'$ne': None, '$exists': True},
+        'status': {'$in': ['open', 'expired']},
+        '$or': [
+            {'cancelled_at': {'$exists': False}},
+            {'cancelled_at': None},
+        ],
+    }
+
+    candidates = await db.contracts.find(
+        candidates_query,
+        {'_id': 0, 'id': 1, 'status': 1, 'scheduled_start_at': 1, 'expires_at': 1}
+    ).to_list(length=None)
+
+    repaired = 0
+    restored_to_open = 0
+    skipped = 0
+    repaired_ids: List[str] = []
+
+    for c in candidates:
+        sched_raw = c.get('scheduled_start_at')
+        expires_raw = c.get('expires_at')
+        if not sched_raw or not expires_raw:
+            skipped += 1
+            continue
+        try:
+            sched_dt = datetime.fromisoformat(sched_raw.replace('Z', '+00:00'))
+            expires_dt = datetime.fromisoformat(expires_raw.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            skipped += 1
+            continue
+
+        # Bug signature: expires_at strictly before scheduled_start_at means the post
+        # was set to die before it was supposed to begin.
+        if expires_dt >= sched_dt:
+            skipped += 1
+            continue
+
+        new_expires = (sched_dt + timedelta(hours=FUTURE_POST_ACTIVE_WINDOW_HOURS)).isoformat()
+        update = {'expires_at': new_expires}
+        if c.get('status') == 'expired':
+            update['status'] = 'open'
+            restored_to_open += 1
+
+        result = await db.contracts.update_one({'id': c['id']}, {'$set': update})
+        if result.modified_count:
+            repaired += 1
+            repaired_ids.append(c['id'])
+
+    return {
+        'message': 'Future Time expiry repair complete',
+        'repaired': repaired,
+        'restored_to_open': restored_to_open,
+        'candidates_scanned': len(candidates),
+        'skipped': skipped,
+        'repaired_ids': repaired_ids,
+        'window_hours': FUTURE_POST_ACTIVE_WINDOW_HOURS,
+    }
+
+
 def _demo_user_filter():
     """All accounts created via demo flow (main demo + NPC posters)."""
     return {'$or': [{'is_demo': True}, {'is_demo_npc': True}]}

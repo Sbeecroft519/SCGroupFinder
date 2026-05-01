@@ -206,6 +206,15 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - "Looking Now" non-medical posts continue to use `duration_minutes`. Medical bleed-out logic untouched.
 - Verified via curl: future post `expires_at - scheduled_start_at = 4:00:00`, now post unchanged at 60 min, validation errors return 400.
 
+## Admin Recovery Tool (Feb 28, 2026)
+**`POST /api/admin/contracts/repair-future-expiry`** — one-shot recovery for posts bitten by the legacy expiry bug above.
+- Admin-only (401 anon, 403 non-admin).
+- Repairs only contracts where `timing_type == 'future'`, `scheduled_start_at` exists, `expires_at < scheduled_start_at`, status ∈ {open, expired}, and `cancelled_at` is not set.
+- Sets `expires_at = scheduled_start_at + 4h`. Promotes `expired` → `open` (system-expired only).
+- Never touches `cancelled` or `completed` contracts (filtered at query level).
+- Returns `{repaired, restored_to_open, candidates_scanned, skipped, repaired_ids, window_hours}`.
+- Verified across 5 fixture scenarios + 2 real bug-affected posts.
+
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
 2. **Renamed Tab**: "LOUNGE" → "LOUNGE (LFG)" for clarity
