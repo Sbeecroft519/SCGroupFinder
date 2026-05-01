@@ -20,6 +20,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('users');
   const [demoStats, setDemoStats] = useState(null);
   const [wipingDemo, setWipingDemo] = useState(false);
+  const [repairingFuture, setRepairingFuture] = useState(false);
   const [orgs, setOrgs] = useState([]);
   
   // Roadmap state
@@ -105,6 +106,29 @@ export default function Admin() {
       alert(e.response?.data?.detail || 'Wipe failed');
     } finally {
       setWipingDemo(false);
+    }
+  };
+
+  const handleRepairFuture = async () => {
+    const ok = window.confirm(
+      'Repair Future Time posts whose expiry was incorrectly anchored to creation time?\n\nOnly contracts where timing_type = "future" and expires_at < scheduled_start_at will be touched. Cancelled and completed contracts are left alone.'
+    );
+    if (!ok) return;
+    setRepairingFuture(true);
+    try {
+      const r = await axios.post(`${API}/admin/contracts/repair-future-expiry`);
+      alert(
+        `Repair complete.\n\n` +
+        `Scanned: ${r.data.candidates_scanned}\n` +
+        `Repaired: ${r.data.repaired}\n` +
+        `Restored to OPEN: ${r.data.restored_to_open}\n` +
+        `Skipped: ${r.data.skipped}\n` +
+        `Window: ${r.data.window_hours}h after scheduled_start_at`
+      );
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Repair failed');
+    } finally {
+      setRepairingFuture(false);
     }
   };
 
@@ -373,6 +397,41 @@ export default function Admin() {
             </button>
           </div>
         )}
+
+        {/* Maintenance panel — admin recovery tools */}
+        <div data-testid="maintenance-panel" style={{
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+          padding: '12px 16px', marginBottom: 20,
+          background: 'rgba(255, 200, 0, 0.05)',
+          border: '1px solid rgba(255, 200, 0, 0.3)',
+          borderLeft: '3px solid #ffc800',
+        }}>
+          <span style={{
+            fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1,
+            color: '#ffc800',
+            padding: '3px 8px', border: '1px solid #ffc800',
+          }} data-testid="maintenance-pill">
+            🛠 MAINTENANCE
+          </span>
+          <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+            One-shot recovery for Future Time posts whose expiry was anchored to creation time instead of scheduled start.
+          </span>
+          <button
+            type="button"
+            onClick={handleRepairFuture}
+            disabled={repairingFuture}
+            style={{
+              marginLeft: 'auto', background: 'transparent',
+              border: '1px solid #ffc800', color: '#ffc800',
+              padding: '6px 14px', fontSize: 11, letterSpacing: 1,
+              fontFamily: 'var(--nc-font-mono)', cursor: 'pointer',
+              opacity: repairingFuture ? 0.5 : 1,
+            }}
+            data-testid="repair-future-btn"
+          >
+            🛠 {repairingFuture ? 'REPAIRING...' : 'REPAIR FUTURE POSTS'}
+          </button>
+        </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table className="admin-table">
