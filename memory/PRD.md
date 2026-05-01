@@ -214,6 +214,15 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - Never touches `cancelled` or `completed` contracts (filtered at query level).
 - Returns `{repaired, restored_to_open, candidates_scanned, skipped, repaired_ids, window_hours}`.
 - Verified across 5 fixture scenarios + 2 real bug-affected posts.
+- UI: "🛠 REPAIR FUTURE POSTS" button in Admin → MAINTENANCE panel (testid `repair-future-btn`).
+
+## Bug Fix (Feb 28, 2026) — Posters were blocked from applying to other jobs
+- Issue: `GET /api/user/active-contract` and the concurrency check in `POST /api/contracts/{id}/bid` both treated *posting* an open/in-progress contract as having an "active" contract. Result: any user who posted a job (including Future Time and LFG) could not apply, bid, or join anyone else's job.
+- Fix: Both endpoints now consider a user "actively assigned" only when:
+  - `accepted_by.id == user.id` AND status ∈ `{in_progress, pending_completion, active}` (single-contractor jobs); or
+  - the user is filled into a multi-crew slot (`manifest.$elemMatch: {applicant_id, status: 'FILLED'}`) on a non-finalised contract.
+- The poster branch is removed entirely. Self-apply, duplicate-apply, and own-contract checks remain in place.
+- Verified end-to-end with 15 scenarios covering: poster→other's contract (was the bug), self-apply, duplicate-apply, Future Time post + apply elsewhere, accept→active blocking, multi-crew slot bid + accept → active flag works.
 
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown

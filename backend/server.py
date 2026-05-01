@@ -2993,11 +2993,20 @@ async def submit_bid(contract_id: str, user = Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
-    # Check concurrency - user can only have 1 active contract
+    # Concurrency: a user can only be ASSIGNED (accepted/filled) into one job at a time.
+    # Posting/hosting a contract does NOT count — posters may still apply to other jobs.
     active = await db.contracts.find_one({
         '$or': [
-            {'poster_id': user['id'], 'status': {'$in': ['open', 'in_progress', 'pending_completion']}},
-            {'accepted_by.id': user['id'], 'status': {'$in': ['in_progress', 'pending_completion']}}
+            {
+                'accepted_by.id': user['id'],
+                'status': {'$in': ['in_progress', 'pending_completion', 'active']},
+            },
+            {
+                'manifest': {
+                    '$elemMatch': {'applicant_id': user['id'], 'status': 'FILLED'},
+                },
+                'status': {'$nin': ['completed', 'cancelled', 'expired']},
+            },
         ]
     })
     if active:
@@ -3221,17 +3230,32 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
 
 @api_router.get("/user/active-contract")
 async def get_user_active_contract(user = Depends(get_current_user)):
-    """Check if user has an active contract"""
+    """Whether the current user is currently *assigned* (accepted as sole contractor or
+    filled into a crew slot) on any active contract.
+
+    Posting/hosting a contract does NOT count — a poster can still apply to other users'
+    jobs. Only true contractor/crewmate assignments block further applications.
+    """
     if not user:
         return {'has_active': False}
-    
+
     active = await db.contracts.find_one({
         '$or': [
-            {'poster_id': user['id'], 'status': {'$in': ['open', 'in_progress', 'pending_completion']}},
-            {'accepted_by.id': user['id'], 'status': {'$in': ['in_progress', 'pending_completion']}}
+            # Accepted as the sole contractor on a single-crew job.
+            {
+                'accepted_by.id': user['id'],
+                'status': {'$in': ['in_progress', 'pending_completion', 'active']},
+            },
+            # Filled into a slot on someone else's multi-crew job.
+            {
+                'manifest': {
+                    '$elemMatch': {'applicant_id': user['id'], 'status': 'FILLED'},
+                },
+                'status': {'$nin': ['completed', 'cancelled', 'expired']},
+            },
         ]
     }, {'_id': 0})
-    
+
     return {'has_active': active is not None, 'contract': active}
 
 @api_router.get("/user/my-bids")
