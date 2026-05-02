@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield, Calendar, Lock } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield, Calendar, Lock, Copy } from 'lucide-react';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
 
@@ -53,6 +53,101 @@ const RescuePrivatePanel = ({ contract }) => (
     )}
   </div>
 );
+
+const MultiJoinRoster = ({ contract, currentUserId }) => {
+  const [copied, setCopied] = useState(false);
+  const participants = contract.accepted_participants || [];
+  const max = contract.max_participants || 8;
+  const remaining = Math.max(0, max - participants.length);
+  const full = participants.length >= max;
+
+  const copyAll = async () => {
+    if (!participants.length) return;
+    const text = participants.map(p => p.handle).filter(Boolean).join(', ');
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      // fall back: select-and-prompt is overkill — silent fail is fine
+    }
+  };
+
+  return (
+    <div data-testid="multi-join-roster" style={{
+      background: 'rgba(2, 11, 20, 0.95)',
+      border: '1px solid #00f0ff',
+      clipPath: 'polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px))',
+      boxShadow: '0 0 20px rgba(0, 240, 255, 0.15)',
+      marginTop: 20,
+    }}>
+      <div style={{
+        padding: '20px 25px',
+        borderBottom: '1px solid rgba(0, 240, 255, 0.3)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{ color: '#00f0ff', fontSize: 16, fontWeight: 'bold', letterSpacing: 2, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Users size={20} />
+          ROSTER
+        </span>
+        <span data-testid="roster-count" style={{
+          padding: '6px 14px', fontSize: 12, fontWeight: 'bold', borderRadius: 2,
+          background: full ? 'rgba(255,68,102,0.18)' : 'rgba(0,240,255,0.12)',
+          color: full ? '#ff4466' : '#00f0ff',
+          border: `1px solid ${full ? '#ff4466' : '#00f0ff'}`,
+        }}>
+          {participants.length}/{max} {full ? '· FULL' : `· ${remaining} spot${remaining === 1 ? '' : 's'} left`}
+        </span>
+      </div>
+
+      <div style={{ padding: 18 }}>
+        {participants.length === 0 ? (
+          <div style={{ color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--nc-font-mono)', fontSize: 13 }}>
+            No one has joined yet — be the first to hop in.
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+              {participants.map((p, idx) => (
+                <div key={p.id || idx} data-testid={`roster-${idx}`} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: 'rgba(0, 240, 255, 0.04)',
+                  border: '1px solid rgba(0, 240, 255, 0.18)',
+                  padding: '10px 14px',
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <User size={16} color="#00f0ff" />
+                    <strong style={{ color: '#fff' }}>{p.handle || 'Unknown pilot'}</strong>
+                    {p.id && p.id === currentUserId && (
+                      <span style={{
+                        fontSize: 10, padding: '2px 6px', letterSpacing: 1,
+                        background: '#00ff88', color: '#000', borderRadius: 2, fontWeight: 'bold',
+                      }}>YOU</span>
+                    )}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ffd700', fontFamily: 'var(--nc-font-mono)', fontSize: 13 }}>
+                    <Star size={12} fill="#ffd700" /> {Number(p.reputation ?? 5.0).toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={copyAll}
+              data-testid="roster-copy-all"
+              style={{
+                background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff',
+                padding: '8px 14px', fontSize: 12, letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              <Copy size={14} /> {copied ? 'COPIED' : 'COPY ALL HANDLES'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ContractDetails = () => {
   const { id } = useParams();
@@ -298,6 +393,10 @@ const ContractDetails = () => {
             </div>
           </div>
         </div>
+
+        {contract.join_mode === 'multi' && (
+          <MultiJoinRoster contract={contract} currentUserId={currentUser?.id} />
+        )}
 
         {contract.is_multi_crew && contract.manifest ? (
           <div style={styles.rosterCard}>

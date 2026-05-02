@@ -732,28 +732,55 @@ export default function Contracts() {
   };
 
   const getTimeRemaining = (contract) => {
-    // Don't show timer for active/in_progress/completed/cancelled contracts
+    // Don't show timer for active/in_progress/completed/cancelled contracts.
     if (['active', 'in_progress', 'pending_completion', 'completed', 'cancelled'].includes(contract.status)) {
       return null;
     }
-    
     if (!contract.expires_at) return null;
     const now = new Date();
     const expires = new Date(contract.expires_at);
     const diffMs = expires - now;
     if (diffMs <= 0) return { text: 'Expired', color: '#ff4d4d', isDistress: false };
-    
-    const mins = Math.floor(diffMs / 60000);
-    const hours = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-    
+
+    const fmt = (ms, prefix = '') => {
+      const totalMins = Math.floor(ms / 60000);
+      const days = Math.floor(totalMins / 1440);
+      const hours = Math.floor((totalMins % 1440) / 60);
+      const mins = totalMins % 60;
+      let body;
+      if (days > 0) body = `${days}d ${hours}h`;
+      else if (hours > 0) body = `${hours}h ${mins}m`;
+      else body = `${mins}m`;
+      return `${prefix}${body}`;
+    };
+
+    // Future Time posts: anchor the timer to the scheduled start, not the listing-window expiry.
+    if (contract.timing_type === 'future' && contract.scheduled_start_at) {
+      const start = new Date(contract.scheduled_start_at);
+      const untilStart = start - now;
+      if (untilStart > 0) {
+        const startsSoon = untilStart <= 60 * 60 * 1000; // ≤ 1h
+        return {
+          text: fmt(untilStart, 'Starts in '),
+          color: startsSoon ? '#ff9900' : 'rgba(255,255,255,0.55)',
+          isDistress: false,
+        };
+      }
+      // Event has started — show time left in the active window.
+      return {
+        text: fmt(diffMs, 'Live · ') + ' left',
+        color: 'var(--nc-cyan)',
+        isDistress: false,
+      };
+    }
+
+    // Looking-Now posts: existing behaviour, with day rollover so we never print 5000+ hours.
+    const totalMins = Math.floor(diffMs / 60000);
     const isDistress = contract.duration_minutes === 30;
-    let color = 'rgba(255,255,255,0.5)'; // default muted
-    if (isDistress) color = '#ff4d4d'; // red for distress
-    else if (mins < 10) color = '#ff9900'; // amber for < 10 min
-    
-    const text = hours > 0 ? `${hours}h ${remainingMins}m` : `${mins}m`;
-    return { text, color, isDistress };
+    let color = 'rgba(255,255,255,0.5)';
+    if (isDistress) color = '#ff4d4d';
+    else if (totalMins < 10) color = '#ff9900';
+    return { text: fmt(diffMs), color, isDistress };
   };
 
   const navigateToContract = (contractId) => {
