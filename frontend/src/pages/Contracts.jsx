@@ -356,12 +356,20 @@ export default function Contracts() {
     rescue_exact_location: '',
     rescue_body_location: '',
     rescue_private_notes: '',
+    // Group join mode (multi-join events)
+    join_mode: '',  // '' = use server default, otherwise 'single' | 'multi'
+    max_participants: 8,
   });
 
   const isLfg = newContract.category === 'LFG';
   const isMedical = newContract.category === 'MEDICAL';
   const isFuture = newContract.timing_type === 'future';
   const showPaymentField = !isLfg && !isMultiCrew && newContract.compensation_type === 'Flat Fee' && !newContract.split_profits;
+
+  // Effective join_mode for this draft post — resolved client-side just for the form;
+  // server resolves the canonical value too.
+  const effectiveJoinMode = newContract.join_mode || (isLfg || isFuture ? 'multi' : 'single');
+  const isMultiJoin = effectiveJoinMode === 'multi';
 
   // Major locations per system (curated — major hubs only)
   const MAJOR_LOCATIONS = {
@@ -602,6 +610,11 @@ export default function Contracts() {
       meeting_visibility: c.meeting_visibility,
       meeting_system: c.meeting_system || null,
       meeting_major_location: c.meeting_major_location || null,
+      // Group join mode (multi-join events)
+      join_mode: c.join_mode || null,  // null lets server pick the smart default
+      max_participants: c.join_mode === 'multi'
+        ? Math.max(2, Math.min(50, parseInt(c.max_participants) || 8))
+        : null,
     };
 
     if (isMedical) {
@@ -637,6 +650,7 @@ export default function Contracts() {
       rescue_bleedout_minutes: 30, rescue_injury_tier: 'Unknown', rescue_pvp_area: 'Unknown',
       rescue_hostile_npcs: 'Unknown', rescue_aa_turrets: 'Unknown', rescue_needs_food_hydration: 'Unknown',
       rescue_exact_location: '', rescue_body_location: '', rescue_private_notes: '',
+      join_mode: '', max_participants: 8,
     });
     setManifest([]);
     setIsMultiCrew(false);
@@ -1189,6 +1203,68 @@ export default function Contracts() {
               </div>
               )}
 
+              {/* Crew / Group Size — multi-join events vs single-slot jobs */}
+              {!isMultiCrew && !isMedical && (
+              <div className="form-group" style={{ marginTop: 16 }} data-testid="join-mode-section">
+                <label className="nc-label">CREW / GROUP SIZE</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setNewContract(prev => ({ ...prev, join_mode: 'single' }))}
+                    className="nc-btn"
+                    style={{
+                      background: !isMultiJoin ? 'var(--nc-cyan)' : 'transparent',
+                      color: !isMultiJoin ? 'var(--nc-bg-primary)' : 'var(--nc-text-primary)',
+                      border: `1px solid ${!isMultiJoin ? 'var(--nc-cyan)' : 'var(--nc-border)'}`,
+                      padding: '10px 14px',
+                    }}
+                    data-testid="join-mode-single"
+                  >
+                    👤 Single Person
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewContract(prev => ({ ...prev, join_mode: 'multi' }))}
+                    className="nc-btn"
+                    style={{
+                      background: isMultiJoin ? 'var(--nc-cyan)' : 'transparent',
+                      color: isMultiJoin ? 'var(--nc-bg-primary)' : 'var(--nc-text-primary)',
+                      border: `1px solid ${isMultiJoin ? 'var(--nc-cyan)' : 'var(--nc-border)'}`,
+                      padding: '10px 14px',
+                    }}
+                    data-testid="join-mode-multi"
+                  >
+                    👥 Multiple People
+                  </button>
+                </div>
+                {isMultiJoin && (
+                  <div style={{ marginTop: 12 }}>
+                    <label className="nc-label" style={{ fontSize: 11 }}>MAX PARTICIPANTS</label>
+                    <input
+                      type="number"
+                      min={2}
+                      max={50}
+                      className="nc-input"
+                      value={newContract.max_participants}
+                      onChange={e => setNewContract(prev => ({
+                        ...prev,
+                        max_participants: Math.max(2, Math.min(50, parseInt(e.target.value) || 2)),
+                      }))}
+                      data-testid="max-participants-input"
+                    />
+                    <div style={{ fontSize: 11, color: 'var(--nc-text-muted)', marginTop: 6, fontFamily: 'var(--nc-font-mono)' }}>
+                      People can keep joining until the group is full or the listing expires.
+                    </div>
+                  </div>
+                )}
+                {(isLfg || isFuture) && !newContract.join_mode && (
+                  <div style={{ fontSize: 11, color: 'var(--nc-cyan)', marginTop: 6, fontFamily: 'var(--nc-font-mono)' }}>
+                    Defaulted to Multiple People for {isLfg ? 'LFG' : 'Future Time'} posts.
+                  </div>
+                )}
+              </div>
+              )}
+
               <button 
                 className="nc-btn nc-btn-primary" 
                 style={{ width: '100%', marginTop: 16 }}
@@ -1484,49 +1560,90 @@ export default function Contracts() {
               )}
 
               <div className="contract-actions">
-                {/* Status Badge */}
-                {contract.status && contract.status !== 'open' && (
-                  <span className={`status-badge status-${contract.status}`}>
-                    {contract.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                )}
-                
-                {/* Multi-crew: View Details button */}
-                {contract.is_multi_crew && (
-                  <button 
-                    className="nc-btn nc-btn-primary"
-                    onClick={(e) => { e.stopPropagation(); navigateToContract(contract.id); }}
-                    data-testid={`view-crew-${contract.id}`}
-                  >
-                    <Users size={14} /> View Crew Slots
-                    <ChevronRight size={14} />
-                  </button>
-                )}
-                
-                {/* Single-crew: Poster Actions */}
-                {!contract.is_multi_crew && contract.poster_id === user?.id && contract.status === 'open' && (
-                  <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
-                    <Users size={14} /> Manage Applicants
-                  </button>
-                )}
-                
-                {/* Single-crew: Applicant Actions - Apply */}
-                {!contract.is_multi_crew && contract.poster_id !== user?.id && contract.status === 'open' && (
-                  myBids.some(b => b.contract_id === contract.id) ? (
-                    <button className="nc-btn nc-btn-secondary" disabled>
-                      <Check size={14} /> Application Sent
-                    </button>
-                  ) : (
-                    <button 
-                      className="nc-btn nc-btn-primary" 
-                      onClick={() => handleBid(contract.id)}
-                      disabled={hasActiveContract}
-                      title={hasActiveContract ? 'You already have an active contract' : ''}
-                    >
-                      <ThumbsUp size={14} /> Apply to Join
-                    </button>
-                  )
-                )}
+                {(() => {
+                  const isMulti = (contract.join_mode || 'single') === 'multi';
+                  const accepted = contract.accepted_participants || [];
+                  const acceptedIds = accepted.map(p => p.id);
+                  const maxP = contract.max_participants || 8;
+                  const isFull = isMulti && accepted.length >= maxP;
+                  const isAccepted = isMulti && user && acceptedIds.includes(user.id);
+                  const alreadyApplied = myBids.some(b => b.contract_id === contract.id);
+                  const isPoster = contract.poster_id === user?.id;
+                  const isOpen = contract.status === 'open';
+
+                  return (
+                    <>
+                      {/* Capacity badge for multi-join events */}
+                      {isMulti && (
+                        <span
+                          className="status-badge"
+                          data-testid={`capacity-${contract.id}`}
+                          style={{
+                            background: isFull ? 'rgba(255,68,102,0.12)' : 'rgba(0,240,255,0.10)',
+                            color: isFull ? '#ff4466' : 'var(--nc-cyan)',
+                            border: `1px solid ${isFull ? '#ff4466' : 'var(--nc-cyan)'}`,
+                          }}
+                        >
+                          👥 {accepted.length}/{maxP}{isFull ? ' · FULL' : ''}
+                        </span>
+                      )}
+
+                      {/* Status badge — hide "in progress / active" noise on multi events.
+                          For multi events the post is always considered open to joiners. */}
+                      {contract.status && contract.status !== 'open' && !isMulti && (
+                        <span className={`status-badge status-${contract.status}`}>
+                          {contract.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      )}
+
+                      {/* Multi-crew: View Details button */}
+                      {contract.is_multi_crew && (
+                        <button
+                          className="nc-btn nc-btn-primary"
+                          onClick={(e) => { e.stopPropagation(); navigateToContract(contract.id); }}
+                          data-testid={`view-crew-${contract.id}`}
+                        >
+                          <Users size={14} /> View Crew Slots
+                          <ChevronRight size={14} />
+                        </button>
+                      )}
+
+                      {/* Poster actions */}
+                      {!contract.is_multi_crew && isPoster && isOpen && (
+                        <button className="nc-btn nc-btn-secondary" onClick={() => fetchBids(contract.id)}>
+                          <Users size={14} /> Manage Applicants
+                        </button>
+                      )}
+
+                      {/* Applicant actions */}
+                      {!contract.is_multi_crew && !isPoster && isOpen && (
+                        isAccepted ? (
+                          <button className="nc-btn nc-btn-secondary" disabled data-testid={`joined-${contract.id}`}>
+                            <Check size={14} /> Joined
+                          </button>
+                        ) : alreadyApplied ? (
+                          <button className="nc-btn nc-btn-secondary" disabled>
+                            <Check size={14} /> Application Sent
+                          </button>
+                        ) : isFull ? (
+                          <button className="nc-btn nc-btn-secondary" disabled data-testid={`full-${contract.id}`}>
+                            Group Full
+                          </button>
+                        ) : (
+                          <button
+                            className="nc-btn nc-btn-primary"
+                            onClick={() => handleBid(contract.id)}
+                            disabled={!isMulti && hasActiveContract}
+                            title={!isMulti && hasActiveContract ? 'You already have an active contract' : ''}
+                            data-testid={`apply-${contract.id}`}
+                          >
+                            <ThumbsUp size={14} /> {isMulti ? 'Join Group' : 'Apply to Join'}
+                          </button>
+                        )
+                      )}
+                    </>
+                  );
+                })()}
                 
                 {/* In Progress - Show Handle & Mark Complete */}
                 {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active') && (

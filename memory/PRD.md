@@ -224,6 +224,23 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - The poster branch is removed entirely. Self-apply, duplicate-apply, and own-contract checks remain in place.
 - Verified end-to-end with 15 scenarios covering: poster→other's contract (was the bug), self-apply, duplicate-apply, Future Time post + apply elsewhere, accept→active blocking, multi-crew slot bid + accept → active flag works.
 
+## Feature (Feb 28, 2026) — Multi-join Future Time / LFG events
+- Issue: Future Time and LFG posts were single-slot — when the host accepted one applicant, status flipped to `in_progress` and others were locked out. Hosts wanted multiple people to be able to join a single event.
+- Schema (additive, backward compatible):
+  - `join_mode: 'single' | 'multi'` (defaults: LFG / Future Time → `multi`; everything else → `single`)
+  - `max_participants: int` (2..50, default 8 for `multi`)
+  - `accepted_participants: list[participant_summary]`
+- Backend behaviour:
+  - For `multi`: accepting a user appends to `accepted_participants`, **keeps `status='open'`**, does not auto-decline other bids; group becomes full only when count reaches `max_participants`.
+  - For `single`: existing behaviour unchanged (status flips to `active` / `in_progress`, other bids declined).
+  - `/contracts/{id}/bid` enforces concurrency only for `single` jobs — multi-join events are friction-free RSVPs.
+  - All blocks preserved: self-apply, duplicate apply, capacity full.
+- Frontend:
+  - Create modal has new **CREW / GROUP SIZE** section (Single Person / Multiple People + Max Participants 2..50). Defaults to Multiple for LFG and Future Time posts, with helper text & default-explanation.
+  - Job Board cards show a `👥 N/M` capacity badge for multi-join events; never display "in progress / active" status badges for them. Apply button label switches to `Join Group`; Disabled states: `Joined`, `Application Sent`, `Group Full`.
+- Admin recovery: `POST /api/admin/contracts/repair-multi-join-events` reopens existing future/LFG posts that were locked into single-slot mode (status in_progress|active, missing/single join_mode, not completed/cancelled, not past expiry). Surfaced in Admin → MAINTENANCE panel as `👥 REPAIR MULTI-JOIN EVENTS` (testid `repair-multi-btn`). Verified across 9 fixture scenarios including the "leave alone" cases (completed, cancelled, paid Now, already multi, past window).
+- Test coverage: 30 backend scenarios for the create/apply/accept/full/regression flow + 9 for the repair endpoint.
+
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
 2. **Renamed Tab**: "LOUNGE" → "LOUNGE (LFG)" for clarity

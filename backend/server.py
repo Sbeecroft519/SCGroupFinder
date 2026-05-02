@@ -329,6 +329,9 @@ class ContractCreate(BaseModel):
     rescue_exact_location: Optional[str] = None
     rescue_body_location: Optional[str] = None
     rescue_private_notes: Optional[str] = None
+    # Group join mode — single-slot job vs multi-join event
+    join_mode: Optional[str] = None  # 'single' | 'multi' (auto-defaulted on create if None)
+    max_participants: Optional[int] = None  # only meaningful when join_mode == 'multi'
 
 class ReviewCreate(BaseModel):
     contract_id: str
@@ -1671,6 +1674,12 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
     contract_doc['rescue_body_location'] = contract.rescue_body_location
     contract_doc['rescue_private_notes'] = contract.rescue_private_notes
 
+    # Group join mode — single-slot vs multi-join event
+    join_mode, max_participants = resolve_join_mode(contract)
+    contract_doc['join_mode'] = join_mode
+    contract_doc['max_participants'] = max_participants
+    contract_doc['accepted_participants'] = []
+
     # Tag posts by demo accounts so they can be hidden from verified users on the public board
     if user.get('is_demo') or user.get('is_demo_npc'):
         contract_doc['is_demo_post'] = True
@@ -1711,7 +1720,34 @@ async def accept_contract(contract_id: str, user = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Contract not available")
     if contract['poster_id'] == user['id']:
         raise HTTPException(status_code=400, detail="Cannot accept your own contract")
-    
+
+    join_mode = contract.get('join_mode') or 'single'
+
+    if join_mode == 'multi':
+        # Multi-join event: append to accepted_participants, keep status 'open',
+        # do not overwrite accepted_by, do not lock other applicants out.
+        accepted = contract.get('accepted_participants') or []
+        if any(p.get('id') == user['id'] for p in accepted):
+            raise HTTPException(status_code=400, detail="You are already accepted in this group")
+        max_p = contract.get('max_participants') or DEFAULT_MULTI_MAX_PARTICIPANTS
+        if len(accepted) >= max_p:
+            raise HTTPException(status_code=400, detail="This group is full")
+
+        update = {'$push': {'accepted_participants': participant_summary(user)}}
+        # First joiner also populates accepted_by (back-compat for legacy single-slot UI).
+        if not contract.get('accepted_by'):
+            update['$set'] = {
+                'accepted_by': {
+                    'id': user['id'],
+                    'handle': user.get('rsi_handle'),
+                    'reputation': user.get('reputation', 5.0),
+                    'avatar_url': user.get('avatar_url'),
+                }
+            }
+        await db.contracts.update_one({'id': contract_id}, update)
+        return {'message': 'Joined group', 'join_mode': 'multi', 'participants': len(accepted) + 1, 'max_participants': max_p}
+
+    # Single-slot: existing behaviour.
     await db.contracts.update_one(
         {'id': contract_id},
         {'$set': {
@@ -2406,6 +2442,82 @@ async def admin_repair_future_expiry(admin = Depends(require_admin)):
     }
 
 
+@api_router.post("/admin/contracts/repair-multi-join-events")
+async def admin_repair_multi_join_events(admin = Depends(require_admin)):
+    """Recover Future Time / LFG contracts that were accidentally locked into single-slot
+    behaviour when the very first applicant was accepted (legacy bug).
+
+    Repairs only contracts where:
+      - timing_type == 'future' OR category == 'LFG'
+      - status in {'in_progress', 'active'} (i.e. closed by the legacy single-slot flow)
+      - join_mode is missing or 'single'
+      - cancelled_at is not set, completed_at is not set
+      - either scheduled_start_at OR expires_at is in the future
+
+    For each: sets join_mode='multi', max_participants=8 (if missing), seeds
+    accepted_participants from accepted_by (if any), and reopens status='open'.
+    Never touches completed or cancelled contracts.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    candidates_query = {
+        '$or': [
+            {'timing_type': 'future'},
+            {'category': 'LFG'},
+        ],
+        'status': {'$in': ['in_progress', 'active']},
+        '$and': [
+            {'$or': [{'join_mode': {'$exists': False}}, {'join_mode': None}, {'join_mode': 'single'}]},
+            {'$or': [{'cancelled_at': {'$exists': False}}, {'cancelled_at': None}]},
+            {'$or': [{'completed_at': {'$exists': False}}, {'completed_at': None}]},
+            {'$or': [
+                {'scheduled_start_at': {'$gt': now_iso}},
+                {'expires_at': {'$gt': now_iso}},
+            ]},
+        ],
+    }
+
+    candidates = await db.contracts.find(
+        candidates_query,
+        {'_id': 0, 'id': 1, 'accepted_by': 1, 'accepted_participants': 1, 'max_participants': 1}
+    ).to_list(length=None)
+
+    repaired = 0
+    repaired_ids: List[str] = []
+
+    for c in candidates:
+        existing_participants = c.get('accepted_participants') or []
+        accepted_by = c.get('accepted_by')
+        if accepted_by and not any((p.get('id') == accepted_by.get('id')) for p in existing_participants):
+            existing_participants = [{
+                'id': accepted_by.get('id'),
+                'handle': accepted_by.get('handle'),
+                'reputation': accepted_by.get('reputation', 5.0),
+                'avatar_url': accepted_by.get('avatar_url'),
+                'accepted_at': now_iso,
+            }] + existing_participants
+
+        update = {
+            'join_mode': 'multi',
+            'max_participants': c.get('max_participants') or DEFAULT_MULTI_MAX_PARTICIPANTS,
+            'accepted_participants': existing_participants,
+            'status': 'open',
+        }
+
+        result = await db.contracts.update_one({'id': c['id']}, {'$set': update})
+        if result.modified_count:
+            repaired += 1
+            repaired_ids.append(c['id'])
+
+    return {
+        'message': 'Multi-join event repair complete',
+        'repaired': repaired,
+        'candidates_scanned': len(candidates),
+        'repaired_ids': repaired_ids,
+        'default_max_participants': DEFAULT_MULTI_MAX_PARTICIPANTS,
+    }
+
+
 def _demo_user_filter():
     """All accounts created via demo flow (main demo + NPC posters)."""
     return {'$or': [{'is_demo': True}, {'is_demo_npc': True}]}
@@ -2514,6 +2626,64 @@ ALLOWED_TIMING = {'now', 'future'}
 
 # How long a "Future Time" post stays active on the board after its scheduled_start_at.
 FUTURE_POST_ACTIVE_WINDOW_HOURS = 4
+
+# Multi-join (events / LFG / Future Time) defaults & bounds.
+JOIN_MODES = {'single', 'multi'}
+DEFAULT_MULTI_MAX_PARTICIPANTS = 8
+MIN_PARTICIPANTS = 2
+MAX_PARTICIPANTS = 50
+
+
+def resolve_join_mode(contract: 'ContractCreate') -> tuple[str, Optional[int]]:
+    """Decide effective join_mode and max_participants for a new contract.
+
+    Defaults:
+      - LFG, or Future Time, or Events category → multi (8)
+      - Everything else (paid jobs, medical/rescue, single now-posts) → single
+    User-supplied join_mode is respected with bounds-checked max_participants.
+    """
+    user_mode = (contract.join_mode or '').lower() if contract.join_mode else None
+    if user_mode and user_mode not in JOIN_MODES:
+        raise HTTPException(status_code=400, detail="join_mode must be 'single' or 'multi'")
+
+    cat = (contract.category or '').upper()
+    timing = (contract.timing_type or 'now').lower()
+
+    if user_mode:
+        mode = user_mode
+    elif cat == 'LFG':
+        mode = 'multi'
+    elif timing == 'future':
+        mode = 'multi'
+    else:
+        mode = 'single'
+
+    if mode != 'multi':
+        return 'single', None
+
+    raw_max = contract.max_participants if contract.max_participants is not None else DEFAULT_MULTI_MAX_PARTICIPANTS
+    try:
+        max_p = int(raw_max)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="max_participants must be an integer")
+    if max_p < MIN_PARTICIPANTS or max_p > MAX_PARTICIPANTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"max_participants must be between {MIN_PARTICIPANTS} and {MAX_PARTICIPANTS}",
+        )
+    return 'multi', max_p
+
+
+def participant_summary(user: dict) -> dict:
+    """Compact summary of a user as stored in accepted_participants."""
+    return {
+        'id': user['id'],
+        'handle': user.get('rsi_handle'),
+        'reputation': user.get('reputation', 5.0),
+        'avatar_url': user.get('avatar_url'),
+        'avatar_id': user.get('avatar_id'),
+        'accepted_at': datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def org_tools_enabled() -> bool:
@@ -2992,36 +3162,47 @@ async def submit_bid(contract_id: str, user = Depends(get_current_user)):
     """Submit a bid for a contract"""
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
-    
-    # Concurrency: a user can only be ASSIGNED (accepted/filled) into one job at a time.
-    # Posting/hosting a contract does NOT count — posters may still apply to other jobs.
-    active = await db.contracts.find_one({
-        '$or': [
-            {
-                'accepted_by.id': user['id'],
-                'status': {'$in': ['in_progress', 'pending_completion', 'active']},
-            },
-            {
-                'manifest': {
-                    '$elemMatch': {'applicant_id': user['id'], 'status': 'FILLED'},
-                },
-                'status': {'$nin': ['completed', 'cancelled', 'expired']},
-            },
-        ]
-    })
-    if active:
-        raise HTTPException(status_code=400, detail="You already have an active contract")
-    
-    # Check if already bid
-    existing_bid = await db.contract_bids.find_one({'contract_id': contract_id, 'bidder_id': user['id']})
-    if existing_bid:
-        raise HTTPException(status_code=400, detail="Already bid on this contract")
-    
+
     contract = await db.contracts.find_one({'id': contract_id})
     if not contract or contract['status'] != 'open':
         raise HTTPException(status_code=400, detail="Contract not available")
     if contract['poster_id'] == user['id']:
         raise HTTPException(status_code=400, detail="Cannot bid on your own contract")
+
+    # Check if already bid on this contract
+    existing_bid = await db.contract_bids.find_one({'contract_id': contract_id, 'bidder_id': user['id']})
+    if existing_bid:
+        raise HTTPException(status_code=400, detail="Already bid on this contract")
+
+    join_mode = contract.get('join_mode') or 'single'
+
+    if join_mode == 'multi':
+        # Multi-join events: friction-free RSVP. Only block already-accepted or full.
+        accepted = contract.get('accepted_participants') or []
+        if any(p.get('id') == user['id'] for p in accepted):
+            raise HTTPException(status_code=400, detail="You are already accepted in this group")
+        max_p = contract.get('max_participants') or DEFAULT_MULTI_MAX_PARTICIPANTS
+        if len(accepted) >= max_p:
+            raise HTTPException(status_code=400, detail="This group is full")
+    else:
+        # Single-slot jobs: enforce assignment exclusivity (one paid contract at a time).
+        # Posting/hosting a contract does NOT count — posters may still apply to other jobs.
+        active = await db.contracts.find_one({
+            '$or': [
+                {
+                    'accepted_by.id': user['id'],
+                    'status': {'$in': ['in_progress', 'pending_completion', 'active']},
+                },
+                {
+                    'manifest': {
+                        '$elemMatch': {'applicant_id': user['id'], 'status': 'FILLED'},
+                    },
+                    'status': {'$nin': ['completed', 'cancelled', 'expired']},
+                },
+            ]
+        })
+        if active:
+            raise HTTPException(status_code=400, detail="You already have an active contract")
 
     # Block bids on medical/rescue posts where the patient has bled out
     if (contract.get('category') or '').upper() == 'MEDICAL' and contract.get('rescue_bleedout_expires_at'):
@@ -3072,21 +3253,58 @@ async def accept_bid(contract_id: str, bid_id: str, user = Depends(get_current_u
     bid = await db.contract_bids.find_one({'id': bid_id, 'contract_id': contract_id})
     if not bid:
         raise HTTPException(status_code=404, detail="Bid not found")
-    
-    # Get bidder info
-    bidder = await db.users.find_one({'id': bid['bidder_id']}, {'_id': 0, 'password_hash': 0})
-    
-    # Update contract to in_progress
+
+    join_mode = contract.get('join_mode') or 'single'
+    bidder_id = bid['bidder_id']
+    bidder_summary = {
+        'id': bidder_id,
+        'handle': bid['bidder']['handle'],
+        'reputation': bid['bidder']['reputation'],
+        'avatar_url': bid['bidder'].get('avatar_url'),
+    }
+
+    if join_mode == 'multi':
+        # Multi-join event: append to accepted_participants, keep status 'open',
+        # do NOT auto-decline other pending bids (host accepts each individually).
+        accepted = contract.get('accepted_participants') or []
+        if any(p.get('id') == bidder_id for p in accepted):
+            raise HTTPException(status_code=400, detail="Bidder is already accepted")
+        max_p = contract.get('max_participants') or DEFAULT_MULTI_MAX_PARTICIPANTS
+        if len(accepted) >= max_p:
+            raise HTTPException(status_code=400, detail="Group is full — cannot accept more bids")
+
+        bidder_user = await db.users.find_one({'id': bidder_id}, {'_id': 0})
+        participant = participant_summary(bidder_user) if bidder_user else {**bidder_summary, 'accepted_at': datetime.now(timezone.utc).isoformat()}
+
+        update = {'$push': {'accepted_participants': participant}}
+        if not contract.get('accepted_by'):
+            update['$set'] = {'accepted_by': bidder_summary}
+        await db.contracts.update_one({'id': contract_id}, update)
+        await db.contract_bids.update_one({'id': bid_id}, {'$set': {'status': 'accepted'}})
+
+        # Notify the bidder
+        await broadcast_notification({
+            "type": "bid_accepted",
+            "sound": "alert",
+            "title": "You're in!",
+            "message": f"You were accepted into '{contract['title']}'",
+            "contract_id": contract_id,
+            "target_user_id": bidder_id
+        })
+        return {
+            'message': 'Bid accepted',
+            'merc_handle': bid['bidder']['handle'],
+            'join_mode': 'multi',
+            'participants': len(accepted) + 1,
+            'max_participants': max_p,
+        }
+
+    # Single-slot legacy behaviour.
     await db.contracts.update_one(
         {'id': contract_id},
         {'$set': {
             'status': 'in_progress',
-            'accepted_by': {
-                'id': bid['bidder_id'],
-                'handle': bid['bidder']['handle'],
-                'reputation': bid['bidder']['reputation'],
-                'avatar_url': bid['bidder'].get('avatar_url')
-            }
+            'accepted_by': bidder_summary
         }}
     )
     
@@ -3106,7 +3324,7 @@ async def accept_bid(contract_id: str, bid_id: str, user = Depends(get_current_u
         "title": "Bid Accepted!",
         "message": f"Your bid on '{contract['title']}' was accepted!",
         "contract_id": contract_id,
-        "target_user_id": bid['bidder_id']
+        "target_user_id": bidder_id
     })
     
     return {'message': 'Bid accepted', 'merc_handle': bid['bidder']['handle']}

@@ -21,6 +21,7 @@ export default function Admin() {
   const [demoStats, setDemoStats] = useState(null);
   const [wipingDemo, setWipingDemo] = useState(false);
   const [repairingFuture, setRepairingFuture] = useState(false);
+  const [repairingMulti, setRepairingMulti] = useState(false);
   const [orgs, setOrgs] = useState([]);
   
   // Roadmap state
@@ -129,6 +130,27 @@ export default function Admin() {
       alert(e.response?.data?.detail || 'Repair failed');
     } finally {
       setRepairingFuture(false);
+    }
+  };
+
+  const handleRepairMultiJoin = async () => {
+    const ok = window.confirm(
+      'Repair Future Time / LFG posts that were locked into single-slot mode after one accepted user?\n\nOnly future or LFG posts with status in_progress/active and a single accepted_by will be reopened to multi-join. Completed and cancelled posts are left alone.'
+    );
+    if (!ok) return;
+    setRepairingMulti(true);
+    try {
+      const r = await axios.post(`${API}/admin/contracts/repair-multi-join-events`);
+      alert(
+        `Multi-join repair complete.\n\n` +
+        `Scanned: ${r.data.candidates_scanned}\n` +
+        `Repaired: ${r.data.repaired}\n` +
+        `Default max participants: ${r.data.default_max_participants}`
+      );
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Repair failed');
+    } finally {
+      setRepairingMulti(false);
     }
   };
 
@@ -430,6 +452,21 @@ export default function Admin() {
             data-testid="repair-future-btn"
           >
             🛠 {repairingFuture ? 'REPAIRING...' : 'REPAIR FUTURE POSTS'}
+          </button>
+          <button
+            type="button"
+            onClick={handleRepairMultiJoin}
+            disabled={repairingMulti}
+            style={{
+              background: 'transparent',
+              border: '1px solid #ffc800', color: '#ffc800',
+              padding: '6px 14px', fontSize: 11, letterSpacing: 1,
+              fontFamily: 'var(--nc-font-mono)', cursor: 'pointer',
+              opacity: repairingMulti ? 0.5 : 1,
+            }}
+            data-testid="repair-multi-btn"
+          >
+            👥 {repairingMulti ? 'REPAIRING...' : 'REPAIR MULTI-JOIN EVENTS'}
           </button>
         </div>
 
