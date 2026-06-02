@@ -234,12 +234,27 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
   - For `multi`: accepting a user appends to `accepted_participants`, **keeps `status='open'`**, does not auto-decline other bids; group becomes full only when count reaches `max_participants`.
   - For `single`: existing behaviour unchanged (status flips to `active` / `in_progress`, other bids declined).
   - `/contracts/{id}/bid` enforces concurrency only for `single` jobs — multi-join events are friction-free RSVPs.
-  - All blocks preserved: self-apply, duplicate apply, capacity full.
 - Frontend:
-  - Create modal has new **CREW / GROUP SIZE** section (Single Person / Multiple People + Max Participants 2..50). Defaults to Multiple for LFG and Future Time posts, with helper text & default-explanation.
-  - Job Board cards show a `👥 N/M` capacity badge for multi-join events; never display "in progress / active" status badges for them. Apply button label switches to `Join Group`; Disabled states: `Joined`, `Application Sent`, `Group Full`.
-- Admin recovery: `POST /api/admin/contracts/repair-multi-join-events` reopens existing future/LFG posts that were locked into single-slot mode (status in_progress|active, missing/single join_mode, not completed/cancelled, not past expiry). Surfaced in Admin → MAINTENANCE panel as `👥 REPAIR MULTI-JOIN EVENTS` (testid `repair-multi-btn`). Verified across 9 fixture scenarios including the "leave alone" cases (completed, cancelled, paid Now, already multi, past window).
-- Test coverage: 30 backend scenarios for the create/apply/accept/full/regression flow + 9 for the repair endpoint.
+  - Create modal has new **CREW / GROUP SIZE** section (Single Person / Multiple People + Max Participants 2..50). Defaults to Multiple for LFG and Future Time posts.
+  - Job Board cards show a `👥 N/M` capacity badge for multi-join events; status badge suppressed for multi.
+  - Contract details: new **MultiJoinRoster** card (count chip `2/8 · 6 spots left`, per-pilot row with reputation, `YOU` badge for self, `📋 COPY ALL HANDLES` button).
+- Admin: `POST /api/admin/contracts/repair-multi-join-events` + Admin UI button `👥 REPAIR MULTI-JOIN EVENTS`.
+- Mission timer fix: `getTimeRemaining` in `Contracts.jsx` now anchors Future Time posts to `scheduled_start_at` (showing `Starts in 2d 3h` / `Live · 3h 24m left`), with day rollover so we never print >24h again.
+- Test coverage: 30 backend scenarios + 9 repair scenarios + 15 poster-bug regression scenarios all passing.
+
+## Feature (June 2, 2026) — Organizations Discord Dispatch (LIVE)
+- `ENABLE_ORG_TOOLS` flipped to `true` in `/app/backend/.env`. Existing dispatch infrastructure (`dispatch_org_discord_alerts`, `_build_discord_message`, `_org_matches_contract`, webhook validation) is now live.
+- **Admin-invitation only**: `POST /orgs` is now `require_admin` and takes an `owner_email` / `owner_handle` / `owner_id` to assign the target user as the org's `owner_id`. Admin-created orgs go through the existing approval queue (status starts as `pending`).
+- New `GET /user/my-org` endpoint returns the org owned/officered by the current user, including private fields (webhook URL connection status, alert filters) for management.
+- Frontend `/orgs` page rewritten:
+  - Owner sees a full **MyOrgPanel** with profile editor (description, RSI URL, Discord invite URL, specialties, home regions, service systems), Discord webhook connector (paste URL → Save → Send Test), and alert filters (categories, regions, systems, timing, min payout, rescue-only toggle, enable/disable).
+  - Public list of approved orgs as cards with specialty pills, region/system summary, member count.
+  - Rescue-safe + Early access notice panels preserved verbatim from the original Coming Soon copy.
+  - Empty state if no orgs approved yet: "Talk to an admin to get your org invited."
+- Admin panel: new **INVITE USER AS ORG OWNER** form inside the Org Approvals panel (name + tag + owner handle/email → creates a pending org for them). Panel is always visible to admins now.
+- Backend verification: 13/13 scenarios pass (non-admin → 403, admin creates with assigned owner, my-org returns correct org with private fields, owner edits, non-owner cannot edit, approval, duplicate tag rejection, single org per owner, public list excludes pending + never exposes webhook URL).
+- Privacy: `_public_org()` strips `discord_webhook_url` and `alert_*` from public endpoints. Only the owner / officers / admin see them via `/user/my-org`.
+- Live webhook E2E test skipped per user — UI is wired and ready; admin can paste the production webhook URL after deploy and click `Send Test`.
 
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
