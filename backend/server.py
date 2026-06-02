@@ -2711,8 +2711,13 @@ def _public_org(org: dict) -> dict:
     if not org:
         return org
     org = {k: v for k, v in org.items() if k != '_id'}
-    org['discord_connected'] = bool(org.get('discord_webhook_url'))
+    routes = org.get('alert_routes') or []
+    org['discord_connected'] = bool(org.get('discord_webhook_url')) or any(
+        r.get('enabled', True) and _is_valid_discord_webhook(r.get('webhook_url')) for r in routes
+    )
+    org['alert_routes_count'] = sum(1 for r in routes if r.get('enabled', True))
     org.pop('discord_webhook_url', None)
+    org.pop('alert_routes', None)
     return org
 
 
@@ -2754,6 +2759,56 @@ class OrgUpdate(BaseModel):
 
 class WebhookPayload(BaseModel):
     discord_webhook_url: str
+
+
+class OrgAlertRoute(BaseModel):
+    webhook_url: str
+    label: Optional[str] = None              # human-readable name, e.g. "Medical channel"
+    categories: Optional[List[str]] = []     # empty = catch-all
+    rescue_only: Optional[bool] = False
+    enabled: Optional[bool] = True
+
+
+def _normalize_categories(cats: Optional[List[str]]) -> List[str]:
+    return [c.strip().upper() for c in (cats or []) if c and c.strip()]
+
+
+def _select_alert_routes(org: dict, contract: dict) -> List[dict]:
+    """Return the route dicts that should fire for this contract.
+
+    Routing rules:
+      - Iterate `alert_routes` (only enabled, valid-webhook entries).
+      - `rescue_only` routes require contract category == MEDICAL.
+      - A route is a *specific match* when its categories list contains the contract category.
+      - A route with no categories is a catch-all.
+      - If any specific match exists → fire ONLY the first specific match (priority by array order).
+      - Otherwise fire all catch-all routes.
+      - If `alert_routes` is empty AND a legacy `discord_webhook_url` is set, that webhook fires
+        as a single back-compat route so existing orgs don't go silent.
+    """
+    contract_cat = (contract.get('category') or '').upper()
+    routes = [r for r in (org.get('alert_routes') or []) if r and r.get('enabled', True)
+              and _is_valid_discord_webhook(r.get('webhook_url'))]
+    if not routes:
+        url = org.get('discord_webhook_url')
+        if _is_valid_discord_webhook(url):
+            return [{'webhook_url': url, 'label': 'default', 'categories': [], 'rescue_only': False, 'enabled': True}]
+        return []
+
+    specific: List[dict] = []
+    catch_all: List[dict] = []
+    for r in routes:
+        if r.get('rescue_only') and contract_cat != 'MEDICAL':
+            continue
+        cats = _normalize_categories(r.get('categories'))
+        if not cats:
+            catch_all.append(r)
+        elif contract_cat and contract_cat in cats:
+            specific.append(r)
+
+    if specific:
+        return [specific[0]]
+    return catch_all
 
 
 @api_router.get("/orgs")
@@ -2847,6 +2902,7 @@ async def create_org(payload: OrgCreate, admin = Depends(require_admin)):
         'service_systems': [s for s in (payload.service_systems or []) if s in ALLOWED_SYSTEMS],
         'discord_webhook_url': None,
         'discord_alerts_enabled': False,
+        'alert_routes': [],
         'alert_categories': [],
         'alert_regions': [],
         'alert_systems': [],
@@ -2955,6 +3011,127 @@ async def test_discord(org_id: str, user = Depends(get_current_user)):
         return {'success': 200 <= r.status_code < 300, 'status': r.status_code}
     except Exception as e:
         logger.error(f"Discord test failed: {e}")
+        return {'success': False, 'error': 'Webhook request failed'}
+
+
+# ===== Per-category alert routes =====
+
+def _require_org_admin(user: dict, org: dict):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not (user.get('is_admin') or org['owner_id'] == user['id'] or user['id'] in (org.get('officers') or [])):
+        raise HTTPException(status_code=403, detail="Only owner or officer can manage routes")
+
+
+def _validate_route_payload(payload: OrgAlertRoute) -> dict:
+    if not _is_valid_discord_webhook(payload.webhook_url):
+        raise HTTPException(status_code=400, detail="Invalid Discord webhook URL")
+    cats = _normalize_categories(payload.categories)
+    # Keep the allowlist in sync with the alert filters in Organizations.jsx (ALERT_CATEGORIES).
+    allowed = {'MEDICAL', 'COMBAT', 'CARGO', 'MINING', 'SALVAGE', 'ESCORT', 'LFG', 'OTHER'}
+    bad = [c for c in cats if c not in allowed]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Unknown categories: {bad}")
+    return {
+        'id': str(uuid.uuid4()),
+        'webhook_url': payload.webhook_url,
+        'label': (payload.label or '').strip()[:64] or None,
+        'categories': cats,
+        'rescue_only': bool(payload.rescue_only),
+        'enabled': bool(payload.enabled) if payload.enabled is not None else True,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@api_router.get("/orgs/{org_id}/routes")
+async def list_org_routes(org_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    _require_org_admin(user, org)
+    return {'routes': org.get('alert_routes') or []}
+
+
+@api_router.post("/orgs/{org_id}/routes")
+async def add_org_route(org_id: str, payload: OrgAlertRoute, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    _require_org_admin(user, org)
+    route = _validate_route_payload(payload)
+    await db.organizations.update_one(
+        {'id': org_id},
+        {'$push': {'alert_routes': route}, '$set': {'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return route
+
+
+@api_router.put("/orgs/{org_id}/routes/{route_id}")
+async def update_org_route(org_id: str, route_id: str, payload: OrgAlertRoute, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    _require_org_admin(user, org)
+    existing = next((r for r in (org.get('alert_routes') or []) if r.get('id') == route_id), None)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Route not found")
+    updated = _validate_route_payload(payload)
+    updated['id'] = route_id
+    updated['created_at'] = existing.get('created_at') or updated['created_at']
+    await db.organizations.update_one(
+        {'id': org_id, 'alert_routes.id': route_id},
+        {'$set': {'alert_routes.$': updated, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return updated
+
+
+@api_router.delete("/orgs/{org_id}/routes/{route_id}")
+async def delete_org_route(org_id: str, route_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    _require_org_admin(user, org)
+    res = await db.organizations.update_one(
+        {'id': org_id},
+        {'$pull': {'alert_routes': {'id': route_id}}, '$set': {'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Route not found")
+    return {'message': 'Route removed'}
+
+
+@api_router.post("/orgs/{org_id}/routes/{route_id}/test")
+async def test_org_route(org_id: str, route_id: str, user = Depends(get_current_user)):
+    _require_org_tools_or_admin(user)
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    _require_org_admin(user, org)
+    route = next((r for r in (org.get('alert_routes') or []) if r.get('id') == route_id), None)
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    if not _is_valid_discord_webhook(route.get('webhook_url')):
+        raise HTTPException(status_code=400, detail="Route has no valid webhook URL")
+    cat_summary = ', '.join(route.get('categories') or []) or 'CATCH-ALL'
+    rescue_tag = ' · rescue-only' if route.get('rescue_only') else ''
+    payload = {
+        'username': 'SC Group Finder',
+        'content': (
+            f"✅ Test alert from **{org['name']}** ({org['tag']}).\n"
+            f"Route: **{route.get('label') or 'unnamed'}** · {cat_summary}{rescue_tag}.\n"
+            f"If you're seeing this, dispatch will fire here when a matching contract is posted."
+        ),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(route['webhook_url'], json=payload)
+        return {'success': 200 <= r.status_code < 300, 'status': r.status_code}
+    except Exception as e:
+        logger.error(f"Discord route test failed: {e}")
         return {'success': False, 'error': 'Webhook request failed'}
 
 
@@ -3077,7 +3254,16 @@ def _org_matches_contract(org: dict, contract: dict) -> bool:
     # Approval gate — unapproved/rejected orgs never receive dispatch
     if (org.get('approval_status') or 'pending') != 'approved':
         return False
-    if not org.get('discord_alerts_enabled') or not _is_valid_discord_webhook(org.get('discord_webhook_url')):
+    if not org.get('discord_alerts_enabled'):
+        return False
+    # Org must have at least one dispatch target: either the legacy single webhook
+    # OR at least one enabled, valid alert_route.
+    has_legacy = _is_valid_discord_webhook(org.get('discord_webhook_url'))
+    has_route = any(
+        r.get('enabled', True) and _is_valid_discord_webhook(r.get('webhook_url'))
+        for r in (org.get('alert_routes') or [])
+    )
+    if not (has_legacy or has_route):
         return False
     cat = (contract.get('category') or '').upper()
     if org.get('alert_rescue_only') and cat != 'MEDICAL':
@@ -3106,8 +3292,18 @@ async def dispatch_org_discord_alerts(contract: dict):
     if not org_tools_enabled():
         return
     try:
+        # Pull orgs that have dispatch enabled. We accept orgs with either a legacy
+        # discord_webhook_url OR a populated alert_routes array; route selection picks
+        # the right channel at fire time.
         orgs = await db.organizations.find(
-            {'approval_status': 'approved', 'discord_alerts_enabled': True, 'discord_webhook_url': {'$ne': None}},
+            {
+                'approval_status': 'approved',
+                'discord_alerts_enabled': True,
+                '$or': [
+                    {'discord_webhook_url': {'$ne': None}},
+                    {'alert_routes.0': {'$exists': True}},
+                ],
+            },
             {'_id': 0}
         ).to_list(500)
     except Exception as e:
@@ -3120,12 +3316,17 @@ async def dispatch_org_discord_alerts(contract: dict):
         for org in orgs:
             if not _org_matches_contract(org, contract):
                 continue
-            try:
-                r = await client.post(org['discord_webhook_url'], json=payload)
-                if r.status_code >= 400:
-                    logger.warning(f"org webhook {org.get('id')} returned {r.status_code}")
-            except Exception as e:
-                logger.warning(f"org webhook {org.get('id')} dispatch failed: {e}")
+            for route in _select_alert_routes(org, contract):
+                try:
+                    r = await client.post(route['webhook_url'], json=payload)
+                    if r.status_code >= 400:
+                        logger.warning(
+                            f"org {org.get('id')} route {route.get('label')} returned {r.status_code}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"org {org.get('id')} route {route.get('label')} dispatch failed: {e}"
+                    )
 
 
 

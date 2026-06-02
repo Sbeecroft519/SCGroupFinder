@@ -102,6 +102,254 @@ function OrgCard({ org }) {
   );
 }
 
+function AlertRouteRow({ orgId, route, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    webhook_url: route.webhook_url || '',
+    label: route.label || '',
+    categories: route.categories || [],
+    rescue_only: !!route.rescue_only,
+    enabled: route.enabled !== false,
+  });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const flash = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await axios.put(`${API}/orgs/${orgId}/routes/${route.id}`, form);
+      setEditing(false);
+      onChanged?.();
+    } catch (e) {
+      flash('err', e.response?.data?.detail || 'Save failed');
+    } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!window.confirm('Remove this route?')) return;
+    setBusy(true);
+    try {
+      await axios.delete(`${API}/orgs/${orgId}/routes/${route.id}`);
+      onChanged?.();
+    } catch (e) {
+      flash('err', e.response?.data?.detail || 'Delete failed');
+    } finally { setBusy(false); }
+  };
+  const test = async () => {
+    setBusy(true);
+    try {
+      const r = await axios.post(`${API}/orgs/${orgId}/routes/${route.id}/test`);
+      if (r.data?.success) flash('ok', 'Test ping delivered.');
+      else flash('err', `Webhook returned ${r.data?.status || 'error'}`);
+    } catch (e) {
+      flash('err', e.response?.data?.detail || 'Test failed');
+    } finally { setBusy(false); }
+  };
+
+  const cats = route.categories || [];
+  const catSummary = cats.length === 0 ? 'CATCH-ALL' : cats.join(', ');
+  const maskedUrl = (route.webhook_url || '').replace(/^(https:\/\/[^/]+\/api\/webhooks\/\d+\/).*$/, '$1•••');
+
+  return (
+    <div data-testid={`route-row-${route.id}`} style={{
+      border: '1px solid rgba(0,240,255,0.25)',
+      background: route.enabled === false ? 'rgba(255,255,255,0.02)' : 'rgba(0,240,255,0.03)',
+      padding: 12, marginBottom: 8,
+      opacity: route.enabled === false ? 0.55 : 1,
+    }}>
+      {!editing ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-cyan)' }}>
+                › {(route.label || 'unnamed').toUpperCase()}
+              </span>
+              <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1,
+                background: cats.length === 0 ? 'rgba(255,153,0,0.10)' : 'rgba(0,240,255,0.10)',
+                color: cats.length === 0 ? '#ff9900' : 'var(--nc-cyan)',
+                border: `1px solid ${cats.length === 0 ? '#ff9900' : 'var(--nc-cyan)'}`,
+                fontFamily: 'var(--nc-font-mono)' }}>{catSummary}</span>
+              {route.rescue_only && (
+                <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
+                  background: 'rgba(255,68,102,0.10)', color: '#ff4466', border: '1px solid #ff4466' }}>RESCUE-ONLY</span>
+              )}
+              {route.enabled === false && (
+                <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
+                  background: 'rgba(255,255,255,0.05)', color: 'var(--nc-text-muted)', border: '1px solid var(--nc-text-muted)' }}>DISABLED</span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', marginTop: 4 }}>
+              {maskedUrl}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={test} disabled={busy}
+              data-testid={`route-test-${route.id}`}
+              style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff',
+                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              {busy ? '…' : 'TEST'}
+            </button>
+            <button type="button" onClick={() => setEditing(true)} disabled={busy}
+              data-testid={`route-edit-${route.id}`}
+              style={{ background: 'transparent', border: '1px solid var(--nc-text-secondary)', color: 'var(--nc-text-secondary)',
+                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              EDIT
+            </button>
+            <button type="button" onClick={remove} disabled={busy}
+              data-testid={`route-delete-${route.id}`}
+              style={{ background: 'transparent', border: '1px solid #ff4466', color: '#ff4466',
+                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              ✕
+            </button>
+          </div>
+          {msg && (
+            <div style={{ flex: '0 0 100%', fontSize: 11, fontFamily: 'var(--nc-font-mono)',
+              color: msg.type === 'ok' ? '#00ff88' : '#ff4466' }}>{msg.text}</div>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <input className="nc-input" placeholder="Label (e.g. medical-alerts)" value={form.label}
+            onChange={e => setForm(p => ({ ...p, label: e.target.value }))} />
+          <input className="nc-input" placeholder="https://discord.com/api/webhooks/..."
+            value={form.webhook_url} onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))} />
+          <div>
+            <label className="nc-label" style={{ fontSize: 10 }}>CATEGORIES (empty = catch-all)</label>
+            <MultiToggle options={ALERT_CATEGORIES} selected={form.categories}
+              onChange={v => setForm(p => ({ ...p, categories: v }))}
+              testidPrefix={`route-cat-${route.id}`} />
+          </div>
+          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+            <input type="checkbox" checked={form.rescue_only} onChange={e => setForm(p => ({ ...p, rescue_only: e.target.checked }))} />
+            Rescue-only (only fire for MEDICAL contracts)
+          </label>
+          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+            <input type="checkbox" checked={form.enabled} onChange={e => setForm(p => ({ ...p, enabled: e.target.checked }))} />
+            Enabled
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={save} disabled={busy || !form.webhook_url.trim()}
+              data-testid={`route-save-${route.id}`}
+              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88',
+                padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              {busy ? 'SAVING...' : 'SAVE'}
+            </button>
+            <button type="button" onClick={() => setEditing(false)}
+              style={{ background: 'transparent', border: '1px solid var(--nc-text-muted)', color: 'var(--nc-text-muted)',
+                padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              CANCEL
+            </button>
+            {msg && (
+              <span style={{ fontSize: 11, fontFamily: 'var(--nc-font-mono)',
+                color: msg.type === 'ok' ? '#00ff88' : '#ff4466', marginLeft: 8, alignSelf: 'center' }}>{msg.text}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertRoutesPanel({ orgId }) {
+  const [routes, setRoutes] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newRoute, setNewRoute] = useState({ webhook_url: '', label: '', categories: [], rescue_only: false });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const fetchRoutes = async () => {
+    try {
+      const r = await axios.get(`${API}/orgs/${orgId}/routes`);
+      setRoutes(r.data?.routes || []);
+    } catch (e) {
+      setRoutes([]);
+    }
+  };
+  useEffect(() => { fetchRoutes(); /* eslint-disable-next-line */ }, [orgId]);
+
+  const add = async () => {
+    setBusy(true);
+    try {
+      await axios.post(`${API}/orgs/${orgId}/routes`, newRoute);
+      setNewRoute({ webhook_url: '', label: '', categories: [], rescue_only: false });
+      setShowAdd(false);
+      fetchRoutes();
+    } catch (e) {
+      setMsg({ type: 'err', text: e.response?.data?.detail || 'Failed to add route' });
+      setTimeout(() => setMsg(null), 4000);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div data-testid="alert-routes-panel" style={{ background: 'rgba(0,240,255,0.03)',
+      border: '1px solid rgba(0,240,255,0.2)', padding: 16, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)' }}>
+          DISPATCH ROUTES
+        </span>
+        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, color: 'var(--nc-text-muted)' }}>
+          Route alerts to different Discord channels by contract category.
+        </span>
+        <button type="button" onClick={() => setShowAdd(s => !s)}
+          data-testid="route-add-toggle"
+          style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--nc-cyan)',
+            color: 'var(--nc-cyan)', padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+          {showAdd ? '✕ CANCEL' : '+ ADD ROUTE'}
+        </button>
+      </div>
+
+      {showAdd && (
+        <div data-testid="route-add-form" style={{ display: 'grid', gap: 8, padding: 12,
+          marginBottom: 14, background: 'rgba(0,0,0,0.2)', border: '1px dashed rgba(0,240,255,0.4)' }}>
+          <input className="nc-input" placeholder="Label (e.g. medical-alerts)" value={newRoute.label}
+            onChange={e => setNewRoute(p => ({ ...p, label: e.target.value }))}
+            data-testid="new-route-label" />
+          <input className="nc-input" placeholder="https://discord.com/api/webhooks/..."
+            value={newRoute.webhook_url} onChange={e => setNewRoute(p => ({ ...p, webhook_url: e.target.value }))}
+            data-testid="new-route-webhook" />
+          <div>
+            <label className="nc-label" style={{ fontSize: 10 }}>CATEGORIES (empty = catch-all)</label>
+            <MultiToggle options={ALERT_CATEGORIES} selected={newRoute.categories}
+              onChange={v => setNewRoute(p => ({ ...p, categories: v }))} testidPrefix="new-route-cat" />
+          </div>
+          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+            <input type="checkbox" checked={newRoute.rescue_only}
+              onChange={e => setNewRoute(p => ({ ...p, rescue_only: e.target.checked }))}
+              data-testid="new-route-rescue-only" />
+            Rescue-only (only fire for MEDICAL contracts)
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={add} disabled={busy || !newRoute.webhook_url.trim()}
+              data-testid="new-route-submit"
+              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88',
+                padding: '6px 14px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
+              {busy ? 'ADDING...' : '+ ADD ROUTE'}
+            </button>
+            {msg && (
+              <span style={{ fontSize: 11, alignSelf: 'center', fontFamily: 'var(--nc-font-mono)',
+                color: msg.type === 'ok' ? '#00ff88' : '#ff4466' }}>{msg.text}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {routes.length === 0 ? (
+        <div style={{ padding: 10, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', fontSize: 12 }}>
+          No routes yet — dispatch uses the single Discord Webhook (above). Add per-category routes to send
+          medical alerts to <code>#med</code>, LFG to <code>#lfg</code>, etc.
+        </div>
+      ) : (
+        <div>{routes.map(r => <AlertRouteRow key={r.id} orgId={orgId} route={r} onChanged={fetchRoutes} />)}</div>
+      )}
+
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)' }}>
+        Selection: the first specific category match wins. If nothing matches, all catch-all routes fire.
+      </div>
+    </div>
+  );
+}
+
 function MyOrgPanel({ org, currentUser, onChanged }) {
   const [form, setForm] = useState(() => ({
     description: org.description || '',
@@ -289,6 +537,9 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
             <Send size={14} /> {testing ? 'Sending...' : 'Send Test'}
           </button>
         </div>
+
+        {/* Per-category alert routes */}
+        <AlertRoutesPanel orgId={org.id} />
 
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--nc-text-secondary)', cursor: 'pointer', marginBottom: 12 }}>
           <input

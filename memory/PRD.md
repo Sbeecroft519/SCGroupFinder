@@ -246,15 +246,26 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - `ENABLE_ORG_TOOLS` flipped to `true` in `/app/backend/.env`. Existing dispatch infrastructure (`dispatch_org_discord_alerts`, `_build_discord_message`, `_org_matches_contract`, webhook validation) is now live.
 - **Admin-invitation only**: `POST /orgs` is now `require_admin` and takes an `owner_email` / `owner_handle` / `owner_id` to assign the target user as the org's `owner_id`. Admin-created orgs go through the existing approval queue (status starts as `pending`).
 - New `GET /user/my-org` endpoint returns the org owned/officered by the current user, including private fields (webhook URL connection status, alert filters) for management.
-- Frontend `/orgs` page rewritten:
-  - Owner sees a full **MyOrgPanel** with profile editor (description, RSI URL, Discord invite URL, specialties, home regions, service systems), Discord webhook connector (paste URL → Save → Send Test), and alert filters (categories, regions, systems, timing, min payout, rescue-only toggle, enable/disable).
-  - Public list of approved orgs as cards with specialty pills, region/system summary, member count.
-  - Rescue-safe + Early access notice panels preserved verbatim from the original Coming Soon copy.
-  - Empty state if no orgs approved yet: "Talk to an admin to get your org invited."
-- Admin panel: new **INVITE USER AS ORG OWNER** form inside the Org Approvals panel (name + tag + owner handle/email → creates a pending org for them). Panel is always visible to admins now.
-- Backend verification: 13/13 scenarios pass (non-admin → 403, admin creates with assigned owner, my-org returns correct org with private fields, owner edits, non-owner cannot edit, approval, duplicate tag rejection, single org per owner, public list excludes pending + never exposes webhook URL).
-- Privacy: `_public_org()` strips `discord_webhook_url` and `alert_*` from public endpoints. Only the owner / officers / admin see them via `/user/my-org`.
-- Live webhook E2E test skipped per user — UI is wired and ready; admin can paste the production webhook URL after deploy and click `Send Test`.
+- Frontend `/orgs` page rewritten with full org management UI (profile, webhook, alert filters).
+- Admin → Org Approvals: new **INVITE USER AS ORG OWNER** form (testid `invite-org-owner-form`).
+
+## Feature (June 2, 2026) — Per-category Alert Routes
+- Issue: every org had a single Discord webhook so all alerts landed in one channel.
+- Schema (additive): each org now has `alert_routes: List[{id, webhook_url, label, categories, rescue_only, enabled, created_at}]`.
+- Backend selection (`_select_alert_routes` in `server.py`):
+  - First specific category match wins (priority by array order).
+  - If only catch-all routes (no `categories`) match, all of them fire.
+  - `rescue_only` routes require `category == MEDICAL`.
+  - Legacy single `discord_webhook_url` still works as a back-compat fallback when `alert_routes` is empty.
+- Endpoints: `GET/POST /orgs/{id}/routes`, `PUT/DELETE /orgs/{id}/routes/{route_id}`, `POST /orgs/{id}/routes/{route_id}/test`. All gated to owner / officer / admin.
+- Validation: Discord webhook URL format, allowlisted categories (`MEDICAL, COMBAT, CARGO, MINING, SALVAGE, ESCORT, LFG, OTHER`).
+- Privacy: public org payload now exposes `alert_routes_count` and `discord_connected` only — never `webhook_url` or the routes array.
+- Frontend (`Organizations.jsx`):
+  - New **DISPATCH ROUTES** panel inside `MyOrgPanel` with inline add/edit/test/delete per route.
+  - Webhook URLs masked with `•••` in the listing.
+  - Pills surface CATEGORIES / RESCUE-ONLY / DISABLED state at a glance.
+  - Helper footer documents selection rules.
+- Verified with 23/23 backend scenarios (RBAC, validation, selection priority, rescue_only gate, catch-all behaviour, public payload privacy, legacy back-compat) and a live screenshot confirming the panel renders 3 seeded routes correctly.
 
 ## UI/Navigation Updates (April 7, 2026)
 1. **Header Reorganization**: Moved Intel, Directory, Roadmap under "OTHER TOOLS" dropdown
