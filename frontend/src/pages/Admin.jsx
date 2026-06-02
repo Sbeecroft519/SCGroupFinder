@@ -23,6 +23,9 @@ export default function Admin() {
   const [repairingFuture, setRepairingFuture] = useState(false);
   const [repairingMulti, setRepairingMulti] = useState(false);
   const [orgs, setOrgs] = useState([]);
+  const [orgInvite, setOrgInvite] = useState({ name: '', tag: '', owner_handle: '', owner_email: '' });
+  const [orgInviteBusy, setOrgInviteBusy] = useState(false);
+  const [orgInviteMsg, setOrgInviteMsg] = useState(null);
   
   // Roadmap state
   const [roadmapItems, setRoadmapItems] = useState([]);
@@ -153,6 +156,29 @@ export default function Admin() {
       setRepairingMulti(false);
     }
   };
+
+  const handleInviteOrgOwner = async () => {
+    setOrgInviteBusy(true);
+    setOrgInviteMsg(null);
+    try {
+      const payload = {
+        name: orgInvite.name.trim(),
+        tag: orgInvite.tag.trim().toUpperCase(),
+      };
+      if (orgInvite.owner_email.trim()) payload.owner_email = orgInvite.owner_email.trim().toLowerCase();
+      else if (orgInvite.owner_handle.trim()) payload.owner_handle = orgInvite.owner_handle.trim();
+      const r = await axios.post(`${API}/orgs`, payload);
+      setOrgInviteMsg({ type: 'ok', text: `Created [${r.data.tag}] ${r.data.name} (pending approval).` });
+      setOrgInvite({ name: '', tag: '', owner_handle: '', owner_email: '' });
+      fetchData();
+    } catch (e) {
+      setOrgInviteMsg({ type: 'err', text: e.response?.data?.detail || 'Failed to invite owner' });
+    } finally {
+      setOrgInviteBusy(false);
+      setTimeout(() => setOrgInviteMsg(null), 5000);
+    }
+  };
+
 
   const handleApproveOrg = async (id, approve) => {
     try {
@@ -314,25 +340,92 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Org Approvals panel */}
-        {orgs.length > 0 && (
-          <div data-testid="org-approvals-panel" style={{
-            padding: '12px 16px', marginBottom: 20,
-            background: 'rgba(170, 0, 255, 0.05)',
-            border: '1px solid rgba(170, 0, 255, 0.3)',
-            borderLeft: '3px solid #c977ff',
+        {/* Org Approvals panel — always visible so admins can invite new orgs */}
+        <div data-testid="org-approvals-panel" style={{
+          padding: '12px 16px', marginBottom: 20,
+          background: 'rgba(170, 0, 255, 0.05)',
+          border: '1px solid rgba(170, 0, 255, 0.3)',
+          borderLeft: '3px solid #c977ff',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1, color: '#c977ff', padding: '3px 8px', border: '1px solid #c977ff' }}>
+              🏢 ORG APPROVALS
+            </span>
+            <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-text-secondary)' }}>
+              <strong style={{ color: '#ffd700' }}>{orgs.filter(o => o.approval_status === 'pending').length}</strong> pending ·{' '}
+              <strong style={{ color: '#00ff88' }}>{orgs.filter(o => o.approval_status === 'approved').length}</strong> approved ·{' '}
+              <strong style={{ color: '#888' }}>{orgs.filter(o => o.approval_status === 'rejected').length}</strong> rejected
+            </span>
+          </div>
+
+          {/* Admin: invite a user as org owner */}
+          <div data-testid="invite-org-owner-form" style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14,
+            padding: 12, background: 'rgba(0,0,0,0.2)', border: '1px dashed rgba(170, 0, 255, 0.4)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1, color: '#c977ff', padding: '3px 8px', border: '1px solid #c977ff' }}>
-                🏢 ORG APPROVALS
-              </span>
-              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-text-secondary)' }}>
-                <strong style={{ color: '#ffd700' }}>{orgs.filter(o => o.approval_status === 'pending').length}</strong> pending ·{' '}
-                <strong style={{ color: '#00ff88' }}>{orgs.filter(o => o.approval_status === 'approved').length}</strong> approved ·{' '}
-                <strong style={{ color: '#888' }}>{orgs.filter(o => o.approval_status === 'rejected').length}</strong> rejected
-              </span>
+            <div style={{ gridColumn: '1 / -1', fontSize: 11, color: '#c977ff', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)' }}>
+              INVITE USER AS ORG OWNER
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            <input
+              placeholder="Org name (e.g. Stanton Rescue Coalition)"
+              value={orgInvite.name}
+              onChange={e => setOrgInvite(prev => ({ ...prev, name: e.target.value }))}
+              className="nc-input"
+              style={{ fontSize: 13 }}
+              data-testid="invite-org-name"
+            />
+            <input
+              placeholder="Tag (2–8 chars, e.g. SRC)"
+              value={orgInvite.tag}
+              onChange={e => setOrgInvite(prev => ({ ...prev, tag: e.target.value.toUpperCase() }))}
+              className="nc-input"
+              style={{ fontSize: 13 }}
+              data-testid="invite-org-tag"
+            />
+            <input
+              placeholder="Owner RSI handle (optional if email given)"
+              value={orgInvite.owner_handle}
+              onChange={e => setOrgInvite(prev => ({ ...prev, owner_handle: e.target.value }))}
+              className="nc-input"
+              style={{ fontSize: 13 }}
+              data-testid="invite-org-handle"
+            />
+            <input
+              placeholder="Owner email (or use handle above)"
+              value={orgInvite.owner_email}
+              onChange={e => setOrgInvite(prev => ({ ...prev, owner_email: e.target.value }))}
+              className="nc-input"
+              style={{ fontSize: 13 }}
+              data-testid="invite-org-email"
+            />
+            <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                type="button"
+                onClick={handleInviteOrgOwner}
+                disabled={orgInviteBusy || !orgInvite.name.trim() || !orgInvite.tag.trim() || (!orgInvite.owner_handle.trim() && !orgInvite.owner_email.trim())}
+                style={{
+                  background: 'transparent', border: '1px solid #c977ff', color: '#c977ff',
+                  padding: '6px 14px', fontSize: 11, letterSpacing: 1,
+                  fontFamily: 'var(--nc-font-mono)', cursor: 'pointer',
+                  opacity: orgInviteBusy ? 0.5 : 1,
+                }}
+                data-testid="invite-org-submit-btn"
+              >
+                ✉ {orgInviteBusy ? 'CREATING...' : 'CREATE ORG FOR USER'}
+              </button>
+              {orgInviteMsg && (
+                <span data-testid="invite-org-feedback" style={{
+                  fontSize: 12, fontFamily: 'var(--nc-font-mono)',
+                  color: orgInviteMsg.type === 'ok' ? '#00ff88' : '#ff4466',
+                }}>
+                  {orgInviteMsg.text}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {orgs.length > 0 ? (
+          <div style={{ overflowX: 'auto' }}>
               <table className="admin-table" style={{ minWidth: 700, fontSize: 12 }}>
                 <thead><tr>
                   <th>Tag</th><th>Name</th><th>Specialties</th><th>Discord</th><th>Status</th><th>Actions</th>
@@ -378,8 +471,12 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ padding: 10, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', fontSize: 12 }}>
+              No organizations yet. Use the form above to invite the first one.
+            </div>
+          )}
+        </div>
 
         {/* Demo Mode panel */}
         {demoStats && (

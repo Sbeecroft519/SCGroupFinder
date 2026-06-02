@@ -2727,6 +2727,10 @@ class OrgCreate(BaseModel):
     specialties: Optional[List[str]] = []
     home_regions: Optional[List[str]] = []
     service_systems: Optional[List[str]] = []
+    # Admin-only: owner of the new org (handle, email, or user_id).
+    owner_handle: Optional[str] = None
+    owner_email: Optional[str] = None
+    owner_id: Optional[str] = None
 
 
 class OrgUpdate(BaseModel):
@@ -2771,9 +2775,30 @@ async def get_org(org_id: str, user = Depends(get_current_user)):
     return _public_org(org)
 
 
+@api_router.get("/user/my-org")
+async def get_my_org(user = Depends(get_current_user)):
+    """Return the org owned by (or where the user is an officer of) the current user, with
+    PRIVATE fields (webhook URL, alert filters) included since they manage it."""
+    if not user or not org_tools_enabled():
+        return {'org': None}
+    org = await db.organizations.find_one({
+        '$or': [
+            {'owner_id': user['id']},
+            {'officers': user['id']},
+        ]
+    }, {'_id': 0})
+    if not org:
+        return {'org': None}
+    # Owner / officer sees the discord_webhook_url for management.
+    org['discord_connected'] = bool(org.get('discord_webhook_url'))
+    return {'org': org}
+
+
 @api_router.post("/orgs")
-async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
-    _require_org_tools_or_admin(user)
+async def create_org(payload: OrgCreate, admin = Depends(require_admin)):
+    """Admin-invitation only: admins create the org on behalf of a chosen owner.
+    The owner then becomes the only non-admin user who can edit the org / connect a webhook.
+    """
     name = (payload.name or '').strip()
     tag = (payload.tag or '').strip().upper()
     if not name or len(name) < 3 or len(name) > 64:
@@ -2782,8 +2807,22 @@ async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Tag must be 2–8 characters")
     if await db.organizations.find_one({'tag': tag}):
         raise HTTPException(status_code=400, detail="Tag already taken")
-    if await db.organizations.find_one({'owner_id': user['id']}):
-        raise HTTPException(status_code=400, detail="You already own an organization")
+
+    # Resolve target owner from handle / email / id (at least one is required).
+    if not (payload.owner_id or payload.owner_handle or payload.owner_email):
+        raise HTTPException(status_code=400, detail="owner_handle, owner_email, or owner_id is required")
+    owner_query = {}
+    if payload.owner_id:
+        owner_query = {'id': payload.owner_id}
+    elif payload.owner_email:
+        owner_query = {'email': payload.owner_email.strip().lower()}
+    elif payload.owner_handle:
+        owner_query = {'rsi_handle': payload.owner_handle.strip()}
+    owner = await db.users.find_one(owner_query, {'_id': 0})
+    if not owner:
+        raise HTTPException(status_code=404, detail="Target owner not found")
+    if await db.organizations.find_one({'owner_id': owner['id']}):
+        raise HTTPException(status_code=400, detail="That user already owns an organization")
 
     bad = [s for s in (payload.specialties or []) if s not in ALLOWED_SPECIALTIES]
     if bad:
@@ -2799,9 +2838,10 @@ async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
         'discord_invite_url': payload.discord_invite_url,
         'logo_url': payload.logo_url,
         'banner_url': payload.banner_url,
-        'owner_id': user['id'],
+        'owner_id': owner['id'],
+        'owner_handle': owner.get('rsi_handle'),
         'officers': [],
-        'members': [user['id']],
+        'members': [owner['id']],
         'specialties': payload.specialties or [],
         'home_regions': [r for r in (payload.home_regions or []) if r in ALLOWED_REGIONS],
         'service_systems': [s for s in (payload.service_systems or []) if s in ALLOWED_SYSTEMS],
@@ -2813,10 +2853,11 @@ async def create_org(payload: OrgCreate, user = Depends(get_current_user)):
         'alert_timing_types': [],
         'alert_rescue_only': False,
         'alert_min_payout': None,
-        # Admin approval workflow — admins auto-approve, everyone else is pending
-        'approval_status': 'approved' if user.get('is_admin') else 'pending',
-        'approved_at': now_iso if user.get('is_admin') else None,
-        'approved_by': user['id'] if user.get('is_admin') else None,
+        # Admin-created orgs still go through approval — admin can immediately approve them.
+        'approval_status': 'pending',
+        'approved_at': None,
+        'approved_by': None,
+        'invited_by': admin['id'],
         'created_at': now_iso,
         'updated_at': now_iso,
     }
