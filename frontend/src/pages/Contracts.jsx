@@ -393,8 +393,9 @@ export default function Contracts() {
     if (!c.title) return false;
     // Future scheduling requires date+time
     if (c.timing_type === 'future' && (!c.scheduled_date || !c.scheduled_time)) return false;
-    // Public meeting location requires system
-    if (c.meeting_visibility === 'public' && !c.meeting_system) return false;
+    // Public meeting location requires system — but multi-crew hides the meeting-location UI
+    // and coordinates via manifest slots, so don't gate the submit on it.
+    if (!isMultiCrew && c.meeting_visibility === 'public' && !c.meeting_system) return false;
 
     // Medical / Rescue
     if (isMedical) {
