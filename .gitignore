@@ -33,6 +33,7 @@ dist
 # Sensitive credentials (but NOT .env files - they are needed for deployment)
 *token.json*
 *credentials.json*
+memory/test_credentials.md
 
 # Logs and debug files
 npm-debug.log*
