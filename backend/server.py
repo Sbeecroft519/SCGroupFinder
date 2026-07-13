@@ -2707,8 +2707,9 @@ def participant_summary(user: dict) -> dict:
 
 
 def org_tools_enabled() -> bool:
-    # Default ON — Org features are live in early access. Set ENABLE_ORG_TOOLS=false to disable.
-    return os.environ.get('ENABLE_ORG_TOOLS', 'true').lower() == 'true'
+    # Org features are LIVE. Env var kept only as a kill-switch for local disable
+    # via ENABLE_ORG_TOOLS=off; anything else (including missing/false) enables.
+    return os.environ.get('ENABLE_ORG_TOOLS', 'on').lower() != 'off'
 
 
 def _require_org_tools_or_admin(user):
