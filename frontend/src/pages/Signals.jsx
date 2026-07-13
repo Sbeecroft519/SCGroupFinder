@@ -196,7 +196,18 @@ export default function Signals() {
     if (!showReportModal) return;
     if (showReportModal.requiresLocation && !reportLocation) return;
     if (showReportModal.requiresLocation && !reportConfirmed) return;
-    
+
+    // Always close and reset the modal after the attempt so the user isn't left
+    // stuck clicking a stuck popup if the network call fails.
+    const closeModal = () => {
+      setShowReportModal(null);
+      setReportLocation('');
+      setReportConfirmed(false);
+      setReportDetails('');
+      setReportDescription('');
+      setDescriptionError('');
+    };
+
     try {
       await axios.post(`${API}/signals/report`, {
         type: showReportModal.id,
@@ -207,15 +218,12 @@ export default function Signals() {
         description: reportDescription || null,
         timestamp: new Date().toISOString()
       });
-      setShowReportModal(null);
-      setReportLocation('');
-      setReportConfirmed(false);
-      setReportDetails('');
-      setReportDescription('');
-      setDescriptionError('');
       fetchSignalsData();
     } catch (error) {
       console.error('Failed to submit report:', error);
+      alert(error.response?.data?.detail || 'Failed to submit report. Please try again.');
+    } finally {
+      closeModal();
     }
   };
 
