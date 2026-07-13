@@ -1342,14 +1342,26 @@ async def get_signals_status():
                 # Parse RSS items
                 items = root.findall('.//item')
                 
-                # First pass: find game version from any deployment notice
+                # First pass: find the HIGHEST game version across all deployment notices
+                # (the feed order isn't guaranteed; historical notices can shadow current ones)
+                seen_versions = []
                 for item in items:
                     desc_el = item.find('description')
                     desc = desc_el.text if desc_el is not None else ''
-                    version_match = re.search(r'Star Citizen Alpha ([\d\.\-\w]+)', desc)
-                    if version_match:
-                        rsi_status['gameVersion'] = version_match.group(1)
-                        break
+                    for m in re.finditer(r'Star Citizen Alpha ([\d\.\-\w]+)', desc):
+                        seen_versions.append(m.group(1))
+                if seen_versions:
+                    def _ver_key(v):
+                        head = v.split('-', 1)[0]
+                        parts = [int(p) if p.isdigit() else 0 for p in head.split('.')]
+                        return parts + [0] * (4 - len(parts))
+                    rsi_status['gameVersion'] = max(seen_versions, key=_ver_key)
+
+                # Manual override — RSI often lags on hotfix deploys (4.8.1, 4.8.2, ...).
+                # Set GAME_VERSION_OVERRIDE=4.8.3 in backend/.env to pin the current version.
+                override = os.environ.get('GAME_VERSION_OVERRIDE', '').strip()
+                if override:
+                    rsi_status['gameVersion'] = override
                 
                 # Second pass: find latest unresolved incident
                 for item in items:
