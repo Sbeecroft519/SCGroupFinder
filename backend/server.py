@@ -204,6 +204,13 @@ async def broadcast_notification(notification: dict):
 app = FastAPI(title="NavCom API", version="2.0.0")
 socket_app = socketio.ASGIApp(sio, app)
 
+# Kubernetes liveness / readiness probe — must live at the raw root, NOT behind /api,
+# because the probe is executed inside the pod against http://localhost:8001/health.
+# Return a small JSON payload with 200 so the probe treats the pod as healthy.
+@app.get("/health")
+async def health_probe():
+    return {"status": "ok"}
+
 # Create router with /api prefix
 api_router = APIRouter(prefix="/api")
 
