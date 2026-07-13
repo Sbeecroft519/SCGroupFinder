@@ -204,6 +204,16 @@ async def broadcast_notification(notification: dict):
 app = FastAPI(title="NavCom API", version="2.0.0")
 socket_app = socketio.ASGIApp(sio, app)
 
+# CORS — must be added right after `app = FastAPI()` so cross-origin requests
+# from the deployed frontend (different origin under Emergent's hosting) reach the API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Kubernetes liveness / readiness probe — must live at the raw root, NOT behind /api,
 # because the probe is executed inside the pod against http://localhost:8001/health.
 # Return a small JSON payload with 200 so the probe treats the pod as healthy.
@@ -2609,15 +2619,6 @@ async def redeem_code(request: RedeemCodeRequest, user = Depends(get_current_use
 @api_router.get("/")
 async def root():
     return {"message": "NavCom API v2.0.0", "status": "operational"}
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # ===== Organizations (early-access, gated by ENABLE_ORG_TOOLS) =====
