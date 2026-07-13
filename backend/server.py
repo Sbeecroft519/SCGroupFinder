@@ -2695,7 +2695,8 @@ def participant_summary(user: dict) -> dict:
 
 
 def org_tools_enabled() -> bool:
-    return os.environ.get('ENABLE_ORG_TOOLS', '').lower() == 'true'
+    # Default ON — Org features are live in early access. Set ENABLE_ORG_TOOLS=false to disable.
+    return os.environ.get('ENABLE_ORG_TOOLS', 'true').lower() == 'true'
 
 
 def _require_org_tools_or_admin(user):
