@@ -1,0 +1,36 @@
+{
+  "summary": "Fully verified Discord OAuth login/signup implementation for the SC Group Finder app. Backend: 6/6 pytest cases pass — /api/auth/discord/login issues a 307 redirect to discord.com/api/oauth2/authorize with correct client_id (1526294227099713556), redirect_uri, response_type=code, scope='identify email'; /api/auth/discord/callback with no code redirects to /login?discord_error=missing_code (and propagates ?error=access_denied); /api/auth/discord/complete rejects bogus JWTs, JWTs with wrong scope, and expired JWTs (all 401 with 'Invalid or expired Discord session'). Frontend: Login page (/login) shows 'CONTINUE WITH DISCORD' button in Discord blue rgb(88,101,242) with 'RSI verification still required for new accounts.' subtext. Clicking the button navigates the browser AT TOP LEVEL to https://discord.com/oauth2/authorize?client_id=...&scope=identify+email — the iframe-breakout fix (<a target='_top'>) works correctly. Register page (/register) shows 'SIGN UP WITH DISCORD' on the standard form. Discord-pending mode (/register?discord=<token>&email=...&discord_username=TestUser) correctly shows the discord-linked-banner ('Linked to Discord as TestUser. Add your RSI handle to finish.'), prefills+disables the email field, hides both password fields (count=0), shows the RSI handle field, and hides the standalone 'SIGN UP WITH DISCORD' button. All requested checks in the review request pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_discord_oauth.py",
+    "/app/test_reports/pytest/discord_oauth_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 4621 lines — exceeds the 700-line guideline. Should be split into modular routers (auth, discord, contracts, signals, etc.). Not blocking, but flagging for future refactor.",
+    "_verify_discord_pending_token correctly enforces scope='discord_pending' — good defense against auth-token abuse.",
+    "The Discord callback creates a new user with a random unusable password when no email match found; this is fine, but note the placeholder email 'discord_{id}@starcitizengroupfinder.local' can never receive real notifications — consider marking such accounts explicitly and requiring email confirmation later.",
+    "Frontend handleDiscordLogin correctly uses <a target='_top'> with rel='noopener' — this is the correct pattern for breaking out of iframes; verified working on real preview URL."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_discord_oauth.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "JWT_SECRET=navcom-dev-secret-key-2025 (used to forge test pending token). Existing admin creds untouched.",
+  "seed_data_creation": "None. Tests only exercise token-validation error paths on /api/auth/discord/complete — no DB writes.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_discord_oauth.py covers all Discord OAuth error paths. Live Discord OAuth completion (real user consent + RSI bio verification) is NOT tested here — would require real Discord authorization + RSI account. Playwright verified the iframe-breakout fix works: clicking the Discord button in a top-level browser context navigates the page to discord.com/oauth2/authorize with all correct query params. When running inside the Emergent preview iframe, the fix uses target='_top' to escape the iframe before navigating.",
+  "rca of the issue": "Original bug: 'discord.com refused to connect' — Discord sets X-Frame-Options: DENY so it cannot be loaded inside the Emergent preview iframe. Fix (applied by main agent): handleDiscordLogin creates an <a target='_top' rel='noopener'> element pointing to /api/auth/discord/login and clicks it. target='_top' forces navigation to happen in the topmost browsing context, escaping any parent iframe. Verified: clicking the button in Playwright navigated the top-level page to https://discord.com/oauth2/authorize?client_id=1526294227099713556&...&scope=identify+email — confirming the fix works."
+}

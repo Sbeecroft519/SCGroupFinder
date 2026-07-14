@@ -66,7 +66,16 @@ export default function Register() {
   };
 
   const handleDiscordLogin = () => {
-    window.location.href = `${API}/auth/discord/login`;
+    const url = `${API}/auth/discord/login`;
+    // Break out of any parent iframe (e.g. Emergent preview) so Discord's page
+    // isn't blocked by X-Frame-Options.
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_top';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const handleCopyCode = async () => {
