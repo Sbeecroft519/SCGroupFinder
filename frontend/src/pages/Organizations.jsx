@@ -672,7 +672,15 @@ export default function Organizations() {
       ]);
       setComingSoon(!!listRes.data?.coming_soon);
       setOrgs(listRes.data?.orgs || []);
-      setMyOrg(mineRes.data?.org || null);
+      const mine = mineRes.data?.org || null;
+      setMyOrg(mine);
+      // Auto-accept a pending owner invitation the moment the invited user opens /orgs.
+      if (mine && mine.owner_pending && mine.owner_id === user?.id) {
+        try {
+          await axios.post(`${API}/user/org-invites/${mine.id}/accept`);
+          window.dispatchEvent(new CustomEvent('org-invite-accepted', { detail: { org_id: mine.id } }));
+        } catch (_e) { /* ignore */ }
+      }
     } finally {
       setLoading(false);
     }

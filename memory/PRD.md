@@ -204,6 +204,7 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - [ ] Extract clipboard utility to shared function
 - [ ] Org/group support — Discord webhook dispatch (gated behind ENABLE_ORG_TOOLS)
 - [x] Org Invite Notification (toast + bell) — done Feb 2026
+- [x] Persistent Org Invite (survives refresh; auto-accepted on /orgs visit) — done Feb 2026
 
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements

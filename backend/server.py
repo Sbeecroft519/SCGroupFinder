@@ -3138,6 +3138,36 @@ async def get_org(org_id: str, user = Depends(get_current_user)):
     return _public_org(org)
 
 
+@api_router.get("/user/org-invites")
+async def get_my_org_invites(user = Depends(get_current_user)):
+    """Persistent pending org-owner invitations for the current user."""
+    if not user or not org_tools_enabled():
+        return []
+    cursor = db.organizations.find(
+        {'owner_id': user['id'], 'owner_pending': True},
+        {'_id': 0, 'id': 1, 'name': 1, 'tag': 1, 'created_at': 1}
+    )
+    orgs = await cursor.to_list(50)
+    return [{
+        'org_id': o['id'],
+        'org_name': o.get('name'),
+        'org_tag': o.get('tag'),
+        'invited_at': o.get('created_at'),
+    } for o in orgs]
+
+
+@api_router.post("/user/org-invites/{org_id}/accept")
+async def accept_my_org_invite(org_id: str, user = Depends(get_current_user)):
+    """Clear the pending flag once the invited owner acknowledges the invite."""
+    res = await db.organizations.update_one(
+        {'id': org_id, 'owner_id': user['id'], 'owner_pending': True},
+        {'$set': {'owner_pending': False, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    return {'ok': True}
+
+
 @api_router.get("/user/my-org")
 async def get_my_org(user = Depends(get_current_user)):
     """Return the org owned by (or where the user is an officer of) the current user, with
@@ -3222,6 +3252,7 @@ async def create_org(payload: OrgCreate, admin = Depends(require_admin)):
         'approved_at': None,
         'approved_by': None,
         'invited_by': admin['id'],
+        'owner_pending': True,
         'created_at': now_iso,
         'updated_at': now_iso,
     }

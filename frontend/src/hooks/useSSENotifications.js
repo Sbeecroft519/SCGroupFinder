@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
 import { toast } from 'sonner';
 import { playContractSound, playThreatSound, playIssueSound, playStabilitySound, playBidSound, playBidAcceptedSound } from '../utils/sounds';
 import { API } from '../App';
@@ -25,6 +26,45 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
 
   useEffect(() => {
     if (!currentUserId) return;
+
+    // Seed persistent org-owner invites so the bell + toast survive refresh/offline.
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/user/org-invites`);
+        const invites = Array.isArray(res.data) ? res.data : [];
+        if (invites.length === 0) return;
+        setNotifications(prev => {
+          const existing = new Set(prev.map(n => n.id));
+          const seeded = invites
+            .filter(i => !existing.has(`invite-${i.org_id}`))
+            .map(i => ({
+              id: `invite-${i.org_id}`,
+              type: 'org_invite',
+              title: 'Organization Invitation',
+              message: `You have been invited to lead ${i.org_name} [${i.org_tag}]. Open Orgs to set it up.`,
+              org_id: i.org_id,
+              org_name: i.org_name,
+              org_tag: i.org_tag,
+              link: '/orgs',
+              read: false,
+              timestamp: i.invited_at || new Date().toISOString(),
+            }));
+          if (seeded.length === 0) return prev;
+          // Fire one toast summarising the invites (persistent-style).
+          toast.info(seeded.length === 1
+            ? 'Organization Invitation'
+            : `${seeded.length} Organization Invitations`, {
+            description: seeded.length === 1 ? seeded[0].message : 'Open Orgs to set them up.',
+            duration: 12000,
+            action: {
+              label: 'Open Orgs',
+              onClick: () => { window.location.assign('/orgs'); },
+            },
+          });
+          return [...seeded, ...prev];
+        });
+      } catch (_e) { /* silent */ }
+    })();
 
     const eventSource = new EventSource(`${API}/notifications/stream`);
 
@@ -102,11 +142,15 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
           playContractSound('Logistics'); // Default
         }
 
-        // Add to notifications list
-        setNotifications(prev => [
-          { ...data, id: Date.now(), read: false, timestamp: new Date().toISOString() },
-          ...prev.slice(0, 49) // Keep last 50
-        ]);
+        // Add to notifications list (dedupe invites by stable id)
+        const stableId = data.type === 'org_invite' && data.org_id ? `invite-${data.org_id}` : Date.now();
+        setNotifications(prev => {
+          if (data.type === 'org_invite' && prev.some(n => n.id === stableId)) return prev;
+          return [
+            { ...data, id: stableId, read: false, timestamp: new Date().toISOString() },
+            ...prev.slice(0, 49) // Keep last 50
+          ];
+        });
       } catch (e) {
         console.error('SSE parse error:', e);
       }
@@ -117,8 +161,17 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
       // Will auto-reconnect
     };
 
+    // Allow other pages (e.g. /orgs) to signal that an invite was accepted.
+    const onInviteAccepted = (ev) => {
+      const orgId = ev?.detail?.org_id;
+      if (!orgId) return;
+      setNotifications(prev => prev.filter(n => n.id !== `invite-${orgId}`));
+    };
+    window.addEventListener('org-invite-accepted', onInviteAccepted);
+
     return () => {
       eventSource.close();
+      window.removeEventListener('org-invite-accepted', onInviteAccepted);
     };
   }, [currentUserId]);
 
