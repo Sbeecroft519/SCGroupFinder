@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { playContractSound, playThreatSound, playIssueSound, playStabilitySound, playBidSound, playBidAcceptedSound } from '../utils/sounds';
 import { API } from '../App';
 
@@ -84,6 +85,17 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
           } else {
             playIssueSound();
           }
+        } else if (data.type === 'org_invite') {
+          playContractSound('Logistics');
+          // Toast prompt with click-through to Orgs page
+          toast.info(data.title || 'Organization Invitation', {
+            description: data.message,
+            duration: 10000,
+            action: {
+              label: 'Open Orgs',
+              onClick: () => { window.location.assign('/orgs'); },
+            },
+          });
         } else if (data.sound === 'alert') {
           playThreatSound();
         } else if (data.sound === 'notification') {

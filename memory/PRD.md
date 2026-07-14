@@ -200,8 +200,10 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 
 ### P2 - Medium Priority
 - [ ] Refactor Contracts.jsx into smaller components (~2300 lines)
+- [ ] Refactor server.py into route modules (~4600 lines)
 - [ ] Extract clipboard utility to shared function
 - [ ] Org/group support — Discord webhook dispatch (gated behind ENABLE_ORG_TOOLS)
+- [x] Org Invite Notification (toast + bell) — done Feb 2026
 
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements

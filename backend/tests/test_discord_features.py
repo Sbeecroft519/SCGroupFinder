@@ -15,7 +15,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-BASE_URL = os.environ['REACT_APP_BACKEND_URL'].rstrip('/') if os.environ.get('REACT_APP_BACKEND_URL') else 'https://group-finder-board.preview.emergentagent.com'
+BASE_URL = os.environ['REACT_APP_BACKEND_URL'].rstrip('/') if os.environ.get('REACT_APP_BACKEND_URL') else 'https://citizen-squad.preview.emergentagent.com'
 ADMIN_EMAIL = 'beecroft519@gmail.com'
 ADMIN_PASSWORD = 'Nv$C0m_Adm1n_2025!'
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')

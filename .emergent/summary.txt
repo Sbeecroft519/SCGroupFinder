@@ -1,51 +1,44 @@
 <analysis>**original_problem_statement**: 
-The user is building Star Citizen Group Finder (formerly NavCom Connect), a player-to-player Job Board. The recent focus has been on resolving complex business logic around Future Time post expirations, fixing an active-contract concurrency bug, introducing Multi-Join events (so multiple users can join a single LFG/Future post), implementing Discord webhook dispatch for Organizations with per-category routes, and resolving Kubernetes deployment blockers.
+The user is building Star Citizen Group Finder, a player-to-player Job Board. The core requirements include LFG, Paid Jobs, Medical Rescues, Multi-join events, and Public Organization profiles with Discord Webhook integrations. The recent focus has been on adding Discord OAuth sign-up/login capabilities while maintaining mandatory RSI player verification, adding a user-configurable Discord profile badge, and enabling Org leaders to edit their organization's public listing (name, tag, description) alongside a direct Discord invite link.
 
 **PRODUCT REQUIREMENTS**:
-- Job Board with LFG, Paid Jobs, and Medical Rescues (with bleed-out privacy).
-- Multi-join capability for LFG/Future Time events (includes capacity limits and participant rosters).
-- Public Organization profiles with Discord Webhook integrations.
-- Organizations can configure multiple Discord webhooks to route alerts by category (e.g., LFG to #lfg, Medical to #rescue).
-- Demo Mode with isolated data.
+- Job Board with LFG, Paid Jobs, and Medical Rescues.
+- Multi-join capability for LFG/Future Time events.
+- Public Organization profiles with Discord Webhook integrations and editable details (Name, Tag, Description, Discord Invite Link).
+- Discord OAuth Login and Registration (strictly ensuring it does not bypass the RSI verification flow to prevent bots/griefers).
+- Configurable Discord identity visibility on user profiles (toggleable via Settings).
 
 **User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only)
 
 **what currently exists?** 
-A full-stack React + FastAPI + MongoDB application heavily oriented around a central Job Board. Core mechanics include single-contractor jobs, multi-crew manifest jobs, and multi-join events. It features real-time SSE notifications, Admin controls (CSV export, User wipe, Org approvals), automated Discord Webhook dispatching, and K8s readiness (root  check). 
+A full-stack React + FastAPI + MongoDB application with a central Job Board. Core mechanics include single-contractor jobs, multi-crew manifest jobs, multi-join events, real-time SSE notifications, Admin controls, automated Discord Webhook dispatching, and K8s readiness. Most recently, full Discord OAuth integration was added, alongside customizable user Discord badges, and Org profile editing capabilities.
 
 **Last working item**:
-- **Last item agent was working**: Forcing the  environment variable check in  to evaluate to  unless explicitly set to . This was done to override a stale configuration in the user's production deployment that was causing the Organizations page to show Coming Soon.
-- **Status**: USER VERIFICATION PENDING (Awaiting user to deploy to production).
-- **Agent Testing Done**: Y (Verified locally).
-- **Which testing method agent to use?**: manual testing by curl / screenshot tool.
+- **Last item agent was working**: Implementing user-requested UI enhancements for Discord: A  component next to poster handles on the Job Board, a Settings toggle to make Discord usernames publicly visible, and expanding the  MyOrgPanel to allow Org leaders to edit Name, Tag, Description, and Discord invite links.
+- **Status**: USER VERIFICATION PENDING
+- **Agent Testing Done**: Y
+- **Which testing method agent to use?**: NA (already done via testing_agent_v3_fork)
 - **User Testing Done**: N
 
-**All Pending/In progress Issue list**:
-None. All immediate bugs and deployment blockers were resolved in the current session.
+**All Pending/In progress Issue list**: 
+None. All immediate bugs and feature requests were resolved and verified in the current session.
 
 **In progress Task List**:
 None.
 
 **Upcoming and Future Tasks**:
 - **P1**: **Refactor Contracts.jsx**: This file is ~2400 lines and heavily bloated. Needs component splitting (e.g., , ).
-- **P1**: **Refactor server.py**: The backend file is over 4300 lines long. Routes should be split into modular files.
+- **P1**: **Refactor server.py**: The backend file is over 4600 lines long. Routes should be split into modular files (, , ).
 - **P2**: **Mobile responsive improvements**.
 - **P2**: **Org Invite Notification**: Add a notification (toast + bell ping) or a banner on the Job Board when a user is invited to be an Organization owner, directing them to the  setup page.
 - **P3**: **Service worker push notifications**.
-- *Note: Fleet Manager is explicitly cancelled.*
 
 **Completed work in this session**:
-- **Future Time Expiration Bug**:  for future posts now anchors to  instead of creation time. (DONE)
-- **Admin Recovery Tools**: Added  and  with a UI panel in  to salvage legacy buggy posts. (DONE)
-- **Active Contract Concurrency Bug**: Fixed logic so users who *post* a contract can still apply to other jobs. (DONE)
-- **Multi-Join Events**: Added  and  to DB. Updated  to allow Group sizes, capacity badges, and a  drawer in . (DONE)
-- **Timer Fix**: Stopped Future Time posts from showing 5000+ hour countdowns. (DONE)
-- **Organizations Discord Dispatch**: Built  UI for Org owners. Added Admin Invite User form in . (DONE)
-- **Discord Per-Category Routing**: Enabled orgs to have multiple webhooks mapped to specific contract categories. (DONE)
-- **Multi-crew UI Bug**: Fixed  which was blocking multi-crew posts due to a hidden meeting location requirement. (DONE)
-- **Kubernetes Deployment Blockers**: Removed  block rules from  and added a root  endpoint for the Liveness Probe. (DONE)
-- **Game Version Override**: Added  to  to fix lagging RSI RSS feeds. (DONE)
-- **Signals Modal Fix**: Ensured the report modal in  always closes inside a  block on submit. (DONE)
+- Implemented Discord OAuth Login/Signup flow ( playbook used) (DONE)
+- Handled Discord OAuth iframe breakout to prevent refused to connect errors in preview (DONE)
+- Added  for Job Board and Contract Details, enriched backend  endpoints with Discord link status (DONE)
+- Added a Settings toggle for users to control Discord username public visibility (DONE)
+- Expanded Organization management so leaders can update Name, Tag, Description, and Discord Invite URLs (DONE)
 
 **Earlier issues found/mentioned but not fixed**:
 - None.
@@ -57,55 +50,56 @@ None.
 
 
 **Key Technical Concepts**:
+- **Discord OAuth integration**: Uses standard OAuth2 flow, but the registration branch specifically enforces RSI verification *after* Discord linking to prevent bots. The  temporarily holds state until the RSI step is finished.
+- **Iframe Breakouts**:  must be used on OAuth anchor links so Discord's login page doesn't get blocked by  within the Emergent platform iframe.
 - **Multi-Join vs Single**: Handled via  ('multi' or 'single'). Multi-join posts track  list and only close when capacity is met.
 - **Discord Dispatch**: Fires async when a contract is created. Checks Org filters (region, category, payout), strips private rescue data, and matches against .
-- **Environment Logic**: Production environment has separate  variables from preview. Code handles fallbacks and overrides (like ).
 
 **key DB schema**:
+- : {rsi_handle, password_hash, discord_id, discord_username, discord_public, contact_opt_in, ...}
+- : {owner_id, name, tag, description, rsi_org_url, discord_webhook_url, alert_routes: [...]}
 - : {timing_type, scheduled_start_at, join_mode, max_participants, accepted_participants, is_multi_crew, manifest, ...}
-- : {owner_id, name, tag, approval_status, discord_alerts_enabled, alert_routes: [{webhook_url, categories, rescue_only}], ...}
 
 **changes in tech stack**:
-- None.
+- Added Discord OAuth support logic.
 
 **All files of reference**:
-- : Extensively modified. Multi-join logic, health endpoint, Discord dispatch, and K8s readiness added.
-- : Added multi-join capacity UI, fixed timers, fixed  logic.
-- : Contains new  component.
-- : Fully built out with  and .
-- : Includes new repair tools and Invite Org Owner form.
-- : Fixed modal logic.
-- : Modified to allow  files.
+- : Heavily modified to add Discord  routes, new  toggles,  model expansion to include , and batch contract poster enrichments.
+-  & : Added Discord CTA buttons and pending state UI logic.
+- : New UI component.
+-  & : Imported Discord badge to render beside poster names.
+- : Added Discord visibility toggle.
+- : Added form inputs for Name, Tag, Description, and updated .
 
 **Areas that need refactoring**:
--  is critically large (>4300 lines) and should be split into routers (, , ).
+-  is critically large (>4600 lines) and should be split into routers (, , ).
 -  (~2400 lines) needs heavy component splitting.
 
 **key api endpoints**:
 - 
--  and  (Updated for multi-join)
 - 
--  & 
 - 
--  (Root level Kubernetes liveness probe)
+- 
+-  (Updated to handle name, tag, desc)
+-  &  (Enriched with  for posters)
 
 **Critical Info for New Agent**:
-- **PRODUCTION DEPLOYMENT ACTIVE**: The user has deployed to a live production environment. If the user reports bugs occurring on live, understand that changes MUST be made in your preview environment first. The user will have to click deploy to sync your fixes to production. Do not provide deployment URLs or preview URLs directly.
-- **Org Tools Gate**:  is evaluated in  to be  unless the string explicitly matches . This was done to forcefully bypass a  setting in the user's production .
-- Ensure multi-join and multi-crew concepts are treated separately. Multi-join is for a single task that takes multiple people (LFG). Multi-crew is a manifest with specific designated roles (Pilot, Turret, etc).
+- **PRODUCTION DEPLOYMENT ACTIVE**: The user has deployed to a live production environment. Always ensure fixes work in the preview environment first. The user will deploy to sync fixes to production.
+- **RSI Verification Guarantee**: Do not alter the Discord OAuth login/signup to bypass the RSI verification flow. The user explicitly demanded this safeguard to remain intact.
+- **Iframe Blocking**: When adding external authentications or redirects, avoid  if it's being blocked by  inside the preview iframe. Use anchor tags with .
 
 **documents and test reports created in this job**:
--  (Continuously updated)
+-  (Updated)
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. User: Asked to make admin account an org owner to see features. (Completed)
-2. User: Reported multi-crew contracts could not be posted in the live version. (Completed - Frontend validation bug fixed)
-3. User: Requested to run Deployer Agent. (Completed -  fixed)
-4. User (system): Passed K8s deployment logs showing 404 on . (Completed - Root health endpoint added)
-5. User: Requested to set 'Org' features to live using minimum tokens. (Completed)
-6. User: Reported Signals page game version was stuck on 4.8.0 instead of 4.8.3. (Completed - Built Env override)
-7. User: Reported Job titles/descriptions weren't showing on live, and Signals modal wasn't closing. (Completed - Signals modal fixed; titles were verified working locally, user just needs to redeploy).
-8. User: **(PENDING VERIFICATION)** Reported Organizations area was still not live on production despite the previous code change. (Agent modified code to forcefully override the production env var. User must redeploy to see the fix).
+1. User: Asked to add Discord sign-up/log-in with minimal credits and no other changes. (Completed)
+2. User: Asked what preview/production URLs mean for Discord setup. (Answered)
+3. User: Provided Discord credentials and explicitly demanded RSI verification NOT be bypassed. (Completed)
+4. User: Asked for exact preview URI for Discord. (Answered)
+5. User: Reported discord.com refused to connect error. (Completed - Fixed iframe breakout)
+6. User: **(PENDING VERIFICATION)** Requested Discord icon next to handles, Settings toggle for visibility, and Org listing edits (name, tag, desc, discord link). (Agent fully implemented and verified via testing subagent. Awaiting user visual confirmation on the preview environment).
 
 **Project Health Check:**
 - Broken: None.
@@ -113,12 +107,13 @@ None.
 
 **3rd Party Integrations**:
 - **Discord Webhooks**: (Requires User-provided Webhook URL per Org for routing).
+- **Discord OAuth**: Uses User-provided Client ID & Secret. (Emergent LLM Key not applicable).
 - **RSI Status Feed**: Public RSS feed.
 
 **Testing status**:
-- Testing agent used after significant changes: NO (Heavy manual bash testing with Python scripts and Playwright screenshotting used instead to preserve context).
+- Testing agent used after significant changes: YES (Tested iterations 14 and 15 successfully).
 - Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: NA
+- Test files created: None manually, used json test reports.
 - Known regressions: None.
 
 **Credentials to test flow:**
@@ -127,6 +122,15 @@ None.
   - Password: 
 - Demo User:
   - Email: 
+- Discord Test Client ID:  (Secret in )
 
 **What agent forgot to execute**:
-- Nothing. All tasks completed successfully.</analysis>
+- Nothing. All tasks completed successfully.
+
+**Debugging checklist for current issue**
+    No pending issues, but if the user wants to further test Discord OAuth flows:
+    Frontend files to check: 
+    -  (line 42)
+    -  (line 100)
+    Backend files to check: 
+    -  (line ~640+ for auth endpoints)</analysis>

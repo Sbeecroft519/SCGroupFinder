@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, X, Check, Wifi, WifiOff } from 'lucide-react';
 import { useSSENotifications } from '../hooks/useSSENotifications';
 
@@ -6,6 +7,7 @@ const NotificationBell = ({ currentUserId, notificationSettings }) => {
   const { notifications, connected, markAsRead, clearAll } = useSSENotifications(currentUserId, notificationSettings);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -26,6 +28,7 @@ const NotificationBell = ({ currentUserId, notificationSettings }) => {
       case 'new_bid': return '🤝';
       case 'bid_accepted': return '✅';
       case 'intel_alert': return '⚠️';
+      case 'org_invite': return '🏛️';
       default: return '🔔';
     }
   };
@@ -142,7 +145,13 @@ const NotificationBell = ({ currentUserId, notificationSettings }) => {
             notifications.map(notif => (
               <div
                 key={notif.id}
-                onClick={() => markAsRead(notif.id)}
+                onClick={() => {
+                  markAsRead(notif.id);
+                  if (notif.link) {
+                    setIsOpen(false);
+                    navigate(notif.link);
+                  }
+                }}
                 data-testid={`notification-${notif.id}`}
                 style={{
                   padding: '12px 16px',

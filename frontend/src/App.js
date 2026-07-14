@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
+import { Toaster } from 'sonner';
 import './App.css';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
@@ -271,6 +272,7 @@ function App() {
   return (
     <AuthContext.Provider value={authValue}>
       <div className="App">
+        <Toaster position="top-right" theme="dark" richColors closeButton />
         <BrowserRouter>
           {/* Only show tickers when logged in */}
           {user && <AlertTicker userShard={userShard} tickerSettings={tickerSettings} />}

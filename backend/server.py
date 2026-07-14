@@ -3226,6 +3226,23 @@ async def create_org(payload: OrgCreate, admin = Depends(require_admin)):
         'updated_at': now_iso,
     }
     await db.organizations.insert_one(org)
+
+    # Notify the invited owner in real-time (bell + toast on their client).
+    try:
+        await broadcast_notification({
+            "type": "org_invite",
+            "target_user_id": owner['id'],
+            "title": "Organization Invitation",
+            "message": f"You have been invited to lead {org['name']} [{org['tag']}]. Open Orgs to set it up.",
+            "org_id": org['id'],
+            "org_name": org['name'],
+            "org_tag": org['tag'],
+            "link": "/orgs",
+            "sound": "notification",
+        })
+    except Exception as _e:
+        pass
+
     return _public_org(org)
 
 
