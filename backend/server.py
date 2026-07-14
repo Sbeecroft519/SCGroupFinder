@@ -271,6 +271,9 @@ class UserResponse(BaseModel):
     badges: List[str] = []
     supporter_tier: str = "NONE"
     contact_opt_in: bool = False
+    discord_linked: bool = False
+    discord_username: Optional[str] = None
+    discord_public: bool = False
 
 class TokenResponse(BaseModel):
     token: str
@@ -462,6 +465,28 @@ async def require_admin(user = Depends(get_current_user)):
 
 
 RESCUE_PRIVATE_FIELDS = ('rescue_exact_location', 'rescue_body_location', 'rescue_private_notes')
+
+async def _enrich_posters_discord(contracts):
+    """Attach `poster.discord_linked` and (if the poster made it public) `poster.discord_username`
+    onto each contract's poster snapshot. Batched — one DB lookup per contract list."""
+    ids = list({c.get('poster_id') for c in contracts if c.get('poster_id')})
+    if not ids:
+        return
+    users = await db.users.find(
+        {'id': {'$in': ids}},
+        {'_id': 0, 'id': 1, 'discord_id': 1, 'discord_username': 1, 'discord_public': 1}
+    ).to_list(len(ids))
+    lookup = {u['id']: u for u in users}
+    for c in contracts:
+        u = lookup.get(c.get('poster_id'))
+        if not u:
+            continue
+        poster = c.get('poster') or {}
+        poster['discord_linked'] = bool(u.get('discord_id'))
+        if u.get('discord_id') and u.get('discord_public'):
+            poster['discord_username'] = u.get('discord_username')
+        c['poster'] = poster
+
 
 def redact_private_fields(contract, user):
     """Strip private rescue fields from contract dict unless caller is poster, accepted rescuer, or admin."""
@@ -1092,8 +1117,25 @@ async def get_me(user = Depends(get_current_user)):
         avatar_url=user.get('avatar_url'),
         avatar_preset=user.get('avatar_preset'),
         badges=user.get('badges', []),
-        supporter_tier=user.get('supporter_tier', 'NONE')
+        supporter_tier=user.get('supporter_tier', 'NONE'),
+        contact_opt_in=user.get('contact_opt_in', False),
+        discord_linked=bool(user.get('discord_id')),
+        discord_username=user.get('discord_username'),
+        discord_public=bool(user.get('discord_public', False)),
     )
+
+
+class DiscordVisibilityUpdate(BaseModel):
+    discord_public: bool
+
+@api_router.put("/user/discord-visibility")
+async def update_discord_visibility(data: DiscordVisibilityUpdate, user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not user.get('discord_id'):
+        raise HTTPException(status_code=400, detail="No Discord account linked")
+    await db.users.update_one({'id': user['id']}, {'$set': {'discord_public': bool(data.discord_public)}})
+    return {'discord_public': bool(data.discord_public)}
 
 
 # ===== Ships Routes =====
@@ -1827,6 +1869,7 @@ async def get_contracts(category: Optional[str] = None, user = Depends(get_curre
     )
 
     contracts = [redact_private_fields(c, user) for c in contracts]
+    await _enrich_posters_discord(contracts)
     return contracts
 
 @api_router.post("/contracts")
@@ -3004,6 +3047,7 @@ class OrgCreate(BaseModel):
 
 class OrgUpdate(BaseModel):
     name: Optional[str] = None
+    tag: Optional[str] = None
     description: Optional[str] = None
     rsi_org_url: Optional[str] = None
     discord_invite_url: Optional[str] = None
@@ -3195,6 +3239,19 @@ async def update_org(org_id: str, payload: OrgUpdate, user = Depends(get_current
         raise HTTPException(status_code=403, detail="Only owner or officer can edit")
 
     updates = {k: v for k, v in payload.dict(exclude_unset=True).items() if v is not None}
+    # Validate name / tag length + uniqueness (matches OrgCreate rules)
+    if 'name' in updates:
+        name = (updates['name'] or '').strip()
+        if not name or len(name) < 3 or len(name) > 64:
+            raise HTTPException(status_code=400, detail="Name must be 3–64 characters")
+        updates['name'] = name
+    if 'tag' in updates:
+        tag = (updates['tag'] or '').strip().upper()
+        if not tag or len(tag) < 2 or len(tag) > 8:
+            raise HTTPException(status_code=400, detail="Tag must be 2–8 characters")
+        if tag != (org.get('tag') or '') and await db.organizations.find_one({'tag': tag, 'id': {'$ne': org_id}}):
+            raise HTTPException(status_code=400, detail="Tag already taken")
+        updates['tag'] = tag
     # Validate enum-like sets
     if 'specialties' in updates:
         bad = [s for s in updates['specialties'] if s not in ALLOWED_SPECIALTIES]
@@ -4192,6 +4249,7 @@ async def get_contract_details(contract_id: str, user = Depends(get_current_user
         raise HTTPException(status_code=404, detail="Contract not found")
     contract.pop("_id", None)
     contract = redact_private_fields(contract, user)
+    await _enrich_posters_discord([contract])
     return contract
 
 

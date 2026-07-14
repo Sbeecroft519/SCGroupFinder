@@ -352,6 +352,8 @@ function AlertRoutesPanel({ orgId }) {
 
 function MyOrgPanel({ org, currentUser, onChanged }) {
   const [form, setForm] = useState(() => ({
+    name: org.name || '',
+    tag: org.tag || '',
     description: org.description || '',
     rsi_org_url: org.rsi_org_url || '',
     discord_invite_url: org.discord_invite_url || '',
@@ -377,6 +379,8 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
     setSaving(true);
     try {
       const payload = {
+        name: form.name.trim(),
+        tag: form.tag.trim().toUpperCase(),
         description: form.description,
         rsi_org_url: form.rsi_org_url || null,
         discord_invite_url: form.discord_invite_url || null,
@@ -463,6 +467,31 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
 
       {/* Profile section */}
       <div style={{ display: 'grid', gap: 12, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+          <div>
+            <label className="nc-label">ORG NAME</label>
+            <input
+              className="nc-input"
+              value={form.name}
+              onChange={e => update({ name: e.target.value })}
+              placeholder="Full organization name (3–64 chars)"
+              maxLength={64}
+              data-testid="org-name-input"
+            />
+          </div>
+          <div>
+            <label className="nc-label">ORG TAG</label>
+            <input
+              className="nc-input"
+              value={form.tag}
+              onChange={e => update({ tag: e.target.value.toUpperCase() })}
+              placeholder="ABBR (2–8)"
+              maxLength={8}
+              style={{ textTransform: 'uppercase', letterSpacing: 2 }}
+              data-testid="org-tag-input"
+            />
+          </div>
+        </div>
         <label className="nc-label">DESCRIPTION</label>
         <textarea
           className="nc-input"

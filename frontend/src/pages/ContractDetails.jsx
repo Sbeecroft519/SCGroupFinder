@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shield, Calendar, Lock, Copy } from 'lucide-react';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
+import DiscordBadge from '../components/DiscordBadge';
 
 const RescuePublicPanel = ({ contract }) => {
   const { label, expired } = useBleedoutCountdown(contract.rescue_bleedout_expires_at);
@@ -342,6 +343,11 @@ const ContractDetails = () => {
               <div style={styles.metaItem}>
                 <User size={16} color="#00f0ff" />
                 {contract.poster?.handle || contract.poster_handle}
+                <DiscordBadge
+                  discordLinked={contract.poster?.discord_linked}
+                  discordUsername={contract.poster?.discord_username}
+                  size={14}
+                />
               </div>
               <div style={styles.metaItem}>
                 <Clock size={16} color="#00f0ff" />

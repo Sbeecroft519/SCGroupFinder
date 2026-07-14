@@ -5,6 +5,7 @@ import axios from 'axios';
 import { API, useAuth } from '../App';
 import { CONTRACT_CATEGORIES, CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
+import DiscordBadge from '../components/DiscordBadge';
 
 const RescueCardSummary = ({ contract }) => {
   const { label, expired } = useBleedoutCountdown(contract.rescue_bleedout_expires_at);
@@ -1566,6 +1567,10 @@ export default function Contracts() {
                 <div className="contract-meta-item">
                   <Star size={12} className="text-gold" />
                   {contract.poster?.reputation?.toFixed(1) || '5.0'}
+                  <DiscordBadge
+                    discordLinked={contract.poster?.discord_linked}
+                    discordUsername={contract.poster?.discord_username}
+                  />
                 </div>
                 {/* Timing badge */}
                 {contract.timing_type === 'future' && contract.scheduled_start_at ? (

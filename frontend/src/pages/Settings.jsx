@@ -561,6 +561,32 @@ export default function Settings() {
                     <div className="toggle-thumb" />
                   </div>
                 </label>
+
+                {user?.discord_linked && (
+                  <label className="notification-option" data-testid="discord-visibility-row">
+                    <div className="option-info">
+                      <span className="option-name">💬 Show my Discord username publicly</span>
+                      <span className="option-desc">
+                        A small Discord icon always appears next to your handle so others know you signed up with Discord. Turn this on to also reveal your Discord username <strong style={{ color: 'var(--nc-cyan)' }}>{user?.discord_username || ''}</strong> — a single click will let other pilots copy it and add you as a friend in Discord.
+                      </span>
+                    </div>
+                    <div
+                      className={`toggle-switch ${user?.discord_public ? 'active' : ''}`}
+                      onClick={async () => {
+                        try {
+                          const next = !user?.discord_public;
+                          await axios.put(`${API}/user/discord-visibility`, { discord_public: next });
+                          updateUser({ discord_public: next });
+                        } catch (e) {
+                          alert('Failed to update Discord visibility');
+                        }
+                      }}
+                      data-testid="discord-visibility-toggle"
+                    >
+                      <div className="toggle-thumb" />
+                    </div>
+                  </label>
+                )}
               </div>
 
               {/* Contract Notifications Section */}
