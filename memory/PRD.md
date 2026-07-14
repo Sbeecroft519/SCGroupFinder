@@ -15,6 +15,18 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - **Real-time**: Socket.IO + SSE
 - **Payments**: Stripe
 
+## What's Been Implemented (Feb 14, 2026)
+
+### Discord OAuth Login/Signup - COMPLETE
+- [x] `GET /api/auth/discord/login` — redirects to Discord OAuth (scopes: `identify email`)
+- [x] `GET /api/auth/discord/callback` — exchanges code, upserts user by discord_id or email, routes to frontend
+- [x] `POST /api/auth/discord/complete` — Discord users must supply RSI handle + verification code before receiving a JWT (RSI verification is NOT bypassed)
+- [x] Short-lived signed pending token (`scope=discord_pending`, 30 min) prevents cross-user hijack
+- [x] "Continue with Discord" button on `/login` and "Sign up with Discord" on `/register`
+- [x] Env vars: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI` in `backend/.env`
+- [x] **Production deploy TODO**: user must add production callback URL (`https://<prod-domain>/api/auth/discord/callback`) in Discord Developer Portal → OAuth2 → Redirects
+
+
 ## What's Been Implemented (Jan 29, 2026)
 
 ### Core Features - COMPLETE

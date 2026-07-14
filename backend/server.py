@@ -58,6 +58,12 @@ JWT_EXPIRATION_HOURS = 24 * 7  # 1 week
 # Stripe Configuration
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
 
+# Discord OAuth Configuration
+DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '')
+DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET', '')
+DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+
 # Socket.IO for real-time notifications
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 
@@ -639,6 +645,242 @@ async def login(credentials: UserLogin):
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url')
+    ))
+
+# ===== Discord OAuth =====
+
+from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
+
+class DiscordCompleteRequest(BaseModel):
+    pending_token: str
+    rsi_handle: str
+    verification_code: str
+
+def _frontend_redirect(path: str, params: dict) -> RedirectResponse:
+    base = FRONTEND_URL.rstrip('/') if FRONTEND_URL else ''
+    qs = urlencode(params)
+    return RedirectResponse(url=f"{base}{path}?{qs}")
+
+def _create_discord_pending_token(user_id: str) -> str:
+    payload = {
+        'user_id': user_id,
+        'scope': 'discord_pending',
+        'exp': datetime.now(timezone.utc) + timedelta(minutes=30)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def _verify_discord_pending_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get('scope') != 'discord_pending':
+            return None
+        return payload.get('user_id')
+    except jwt.PyJWTError:
+        return None
+
+
+@api_router.get("/auth/discord/login")
+async def discord_login_start():
+    """Redirect the browser to Discord's OAuth authorization page."""
+    if not DISCORD_CLIENT_ID or not DISCORD_REDIRECT_URI:
+        raise HTTPException(status_code=503, detail="Discord login is not configured")
+    params = {
+        'client_id': DISCORD_CLIENT_ID,
+        'redirect_uri': DISCORD_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'identify email',
+        'prompt': 'consent',
+    }
+    return RedirectResponse(url=f"https://discord.com/api/oauth2/authorize?{urlencode(params)}")
+
+
+@api_router.get("/auth/discord/callback")
+async def discord_login_callback(code: Optional[str] = None, error: Optional[str] = None):
+    """Handle Discord OAuth callback. Route user to verified login or RSI verification step."""
+    if error or not code:
+        return _frontend_redirect('/login', {'discord_error': error or 'missing_code'})
+    if not DISCORD_CLIENT_ID or not DISCORD_CLIENT_SECRET or not DISCORD_REDIRECT_URI:
+        return _frontend_redirect('/login', {'discord_error': 'not_configured'})
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            token_resp = await http.post(
+                'https://discord.com/api/oauth2/token',
+                data={
+                    'client_id': DISCORD_CLIENT_ID,
+                    'client_secret': DISCORD_CLIENT_SECRET,
+                    'grant_type': 'authorization_code',
+                    'code': code,
+                    'redirect_uri': DISCORD_REDIRECT_URI,
+                },
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            )
+            if token_resp.status_code != 200:
+                logger.error(f"Discord token exchange failed: {token_resp.status_code} {token_resp.text}")
+                return _frontend_redirect('/login', {'discord_error': 'token_exchange_failed'})
+            access_token = token_resp.json().get('access_token')
+
+            user_resp = await http.get(
+                'https://discord.com/api/users/@me',
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            if user_resp.status_code != 200:
+                logger.error(f"Discord user fetch failed: {user_resp.status_code}")
+                return _frontend_redirect('/login', {'discord_error': 'user_fetch_failed'})
+            d = user_resp.json()
+    except httpx.HTTPError as e:
+        logger.error(f"Discord OAuth network error: {e}")
+        return _frontend_redirect('/login', {'discord_error': 'network'})
+
+    discord_id = str(d.get('id') or '')
+    discord_username = d.get('username') or d.get('global_name') or ''
+    discord_email = (d.get('email') or '').lower().strip()
+    discord_avatar = d.get('avatar')
+    discord_avatar_url = (
+        f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png"
+        if discord_id and discord_avatar else None
+    )
+
+    if not discord_id:
+        return _frontend_redirect('/login', {'discord_error': 'no_discord_id'})
+
+    # 1) Existing user by discord_id
+    user = await db.users.find_one({'discord_id': discord_id}, {'_id': 0})
+
+    # 2) Fall back to email match (link to existing account)
+    if not user and discord_email:
+        user = await db.users.find_one({'email': discord_email}, {'_id': 0})
+        if user:
+            await db.users.update_one(
+                {'id': user['id']},
+                {'$set': {
+                    'discord_id': discord_id,
+                    'discord_username': discord_username,
+                    'discord_avatar_url': discord_avatar_url,
+                }}
+            )
+            user['discord_id'] = discord_id
+
+    # 3) New user - create pending record (no RSI handle yet, not verified)
+    if not user:
+        new_id = str(uuid.uuid4())
+        user = {
+            'id': new_id,
+            'email': discord_email or f"discord_{discord_id}@starcitizengroupfinder.local",
+            'password_hash': hash_password(str(uuid.uuid4())),  # random, unusable
+            'rsi_handle': None,
+            'discord_id': discord_id,
+            'discord_username': discord_username,
+            'discord_avatar_url': discord_avatar_url,
+            'is_verified': False,
+            'is_supporter': False,
+            'is_admin': False,
+            'theme_id': 'default',
+            'reputation': 5.0,
+            'contracts_completed': 0,
+            'contact_opt_in': False,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+        }
+        await db.users.insert_one(user.copy())
+
+    # If verified, issue JWT and drop them back at /login for the frontend to pick up
+    if user.get('is_verified') and user.get('rsi_handle'):
+        token = create_token(user['id'])
+        return _frontend_redirect('/login', {'discord_token': token})
+
+    # Otherwise, hand back a short-lived pending token so they can complete RSI verification
+    pending = _create_discord_pending_token(user['id'])
+    return _frontend_redirect('/register', {
+        'discord': pending,
+        'email': user.get('email') or '',
+        'discord_username': discord_username or '',
+    })
+
+
+@api_router.post("/auth/discord/complete", response_model=TokenResponse)
+async def discord_complete(req: DiscordCompleteRequest):
+    """Finalize a Discord signup by attaching an RSI handle + verifying the bio code."""
+    user_id = _verify_discord_pending_token(req.pending_token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired Discord session. Please start over.")
+
+    user = await db.users.find_one({'id': user_id}, {'_id': 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Discord user record not found")
+
+    rsi_handle = (req.rsi_handle or '').strip()
+    if not rsi_handle:
+        raise HTTPException(status_code=400, detail="RSI handle is required")
+
+    # Enforce handle uniqueness (allow if it belongs to same user record)
+    existing = await db.users.find_one({'rsi_handle': rsi_handle}, {'_id': 0})
+    if existing and existing.get('id') != user_id:
+        raise HTTPException(status_code=400, detail="RSI Handle already registered")
+
+    # Verify RSI bio contains the code
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            resp = await http.get(
+                f"https://robertsspaceindustries.com/citizens/{rsi_handle}",
+                follow_redirects=True,
+            )
+            if resp.status_code == 404:
+                raise HTTPException(status_code=404, detail="RSI Handle not found")
+            page = resp.text
+            if req.verification_code not in page:
+                raise HTTPException(status_code=400, detail="Verification code not found in RSI bio")
+
+            # Pull avatar from RSI profile (same patterns as verify-rsi)
+            avatar_url = None
+            avatar_patterns = [
+                r'<img[^>]*class="[^"]*thumb[^"]*"[^>]*src="([^"]+)"',
+                r'src="(https://media\.robertsspaceindustries\.com/[^"]+)"',
+                r'src="(/media/[^"]+heap_thumb[^"]*)"',
+                r'src="(/media/[^"]+heap_infobox[^"]*\.(?:jpg|png))"',
+            ]
+            for pattern in avatar_patterns:
+                m = re.search(pattern, page)
+                if m:
+                    avatar_url = m.group(1)
+                    break
+            if avatar_url:
+                if avatar_url.startswith('//'):
+                    avatar_url = 'https:' + avatar_url
+                elif avatar_url.startswith('/'):
+                    avatar_url = 'https://robertsspaceindustries.com' + avatar_url
+    except HTTPException:
+        raise
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="RSI website timeout. Please try again.")
+    except Exception as e:
+        logger.error(f"Discord complete RSI verify error: {e}")
+        raise HTTPException(status_code=500, detail="Verification service error")
+
+    update_fields = {
+        'rsi_handle': rsi_handle,
+        'verification_code': req.verification_code,
+        'is_verified': True,
+    }
+    if avatar_url and not user.get('avatar_url'):
+        update_fields['avatar_url'] = avatar_url
+
+    await db.users.update_one({'id': user_id}, {'$set': update_fields})
+    user = await db.users.find_one({'id': user_id}, {'_id': 0})
+
+    token = create_token(user['id'])
+    return TokenResponse(token=token, user=UserResponse(
+        id=user['id'],
+        rsi_handle=user['rsi_handle'],
+        is_verified=True,
+        is_supporter=user.get('is_supporter', False),
+        is_admin=user.get('is_admin', False),
+        theme_id=user.get('theme_id', 'default'),
+        reputation=user.get('reputation', 5.0),
+        contracts_completed=user.get('contracts_completed', 0),
+        created_at=user.get('created_at', ''),
+        avatar_url=user.get('avatar_url'),
+        avatar_preset=user.get('avatar_preset'),
     ))
 
 @api_router.post("/auth/demo-login", response_model=TokenResponse)
