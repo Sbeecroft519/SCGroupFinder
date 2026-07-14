@@ -1,165 +1,132 @@
-<analysis>**original_problem_statement**: The user wants to build a responsive web application named NavCom for players of the game Star Citizen. It's a Mission Advisor and risk intelligence tool with a futuristic MobiGlass UI theme. Development has progressed through multiple phases of feature implementation and bug fixing, with a strong emphasis on data accuracy and real-time functionality.
+<analysis>**original_problem_statement**: 
+The user is building Star Citizen Group Finder (formerly NavCom Connect), a player-to-player Job Board. The recent focus has been on resolving complex business logic around Future Time post expirations, fixing an active-contract concurrency bug, introducing Multi-Join events (so multiple users can join a single LFG/Future post), implementing Discord webhook dispatch for Organizations with per-category routes, and resolving Kubernetes deployment blockers.
 
 **PRODUCT REQUIREMENTS**:
-- **Bug Fixes**: A series of critical bugs were reported and fixed, including issues with contract completion, incorrect profile links, missing mission history, and non-displaying descriptions.
-- **Admin & Feature Updates**: The user requested an overhaul of the Admin Roadmap page, a new player search feature, updates to the Settings page, and the addition of standard legal pages (Privacy/Terms).
-- **Data-Driven Intel**: A major requirement was to make the Mission Advisor more intelligent by integrating real-time Signals data (player reports on piracy, server issues, etc.) into its risk analysis.
-- **Location Accuracy**: Replace all hardcoded Points of Interest (POIs) with live, accurate data from the external UEXcorp API to ensure mission suggestions are valid.
-- **Real-Time Notifications**: Implement a system for real-time notifications with sound alerts for key events like new contracts, bids, and high-priority intel alerts.
+- Job Board with LFG, Paid Jobs, and Medical Rescues (with bleed-out privacy).
+- Multi-join capability for LFG/Future Time events (includes capacity limits and participant rosters).
+- Public Organization profiles with Discord Webhook integrations.
+- Organizations can configure multiple Discord webhooks to route alerts by category (e.g., LFG to #lfg, Medical to #rescue).
+- Demo Mode with isolated data.
 
-**User's preferred language**: English
+**User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only)
 
-**what currently exists?**
-The application is a feature-rich full-stack React/FastAPI/MongoDB app.
-- **Core Functionality**: All core pages (Contracts, Intel, Signals, Profile, Admin, etc.) are functional.
-- **Data Integration**:
-    - The backend now fetches, caches, and serves Points of Interest (POIs) from the UEXcorp API.
-    - The Mission Advisor (Intel page) has been significantly enhanced. Its risk analysis is no longer static; it dynamically adjusts risk levels and provides warnings based on real-time player reports from the Signals module.
-    - Hardcoded locations in mission generation and the Signals reporting form have been replaced with live data from the UEXcorp API.
-- **Feature Enhancements**:
-    - A player search page () allows users to look up others by their handle.
-    - The Admin page now features a full CRUD interface for managing Roadmap items.
-    - Privacy Policy and Terms of Service pages have been created and are linked in the footer.
-- **Bug Fixes**: All critical bugs reported in this session (contract completion, profile links, mission history, etc.) have been fixed and verified by the testing agent.
-- **Real-Time System**: The basic infrastructure for a Server-Sent Events (SSE) notification system has been built, including backend endpoints, frontend hooks, and UI components.
+**what currently exists?** 
+A full-stack React + FastAPI + MongoDB application heavily oriented around a central Job Board. Core mechanics include single-contractor jobs, multi-crew manifest jobs, and multi-join events. It features real-time SSE notifications, Admin controls (CSV export, User wipe, Org approvals), automated Discord Webhook dispatching, and K8s readiness (root  check). 
 
 **Last working item**:
-    - **Last item agent was working**: Implementing a real-time notification system with sound alerts using Server-Sent Events (SSE). The agent created the backend SSE endpoint, added notification broadcast triggers to key events (new contract, new bid, etc.), and integrated the frontend components ( in the header, sound toggle in Settings).
-    - **Status**: IN PROGRESS
-    - **Agent Testing Done**: N (The agent verified UI components were visible with screenshots but did not perform end-to-end functional testing of the notification flow.)
-    - **Which testing method agent to use?**: . This is a complex, real-time feature. The testing agent should be instructed to perform actions that trigger notifications (e.g., create a contract, place a bid from another account) and verify that the corresponding notifications appear in the UI for the correct user.
-    - **User Testing Done**: N
+- **Last item agent was working**: Forcing the  environment variable check in  to evaluate to  unless explicitly set to . This was done to override a stale configuration in the user's production deployment that was causing the Organizations page to show Coming Soon.
+- **Status**: USER VERIFICATION PENDING (Awaiting user to deploy to production).
+- **Agent Testing Done**: Y (Verified locally).
+- **Which testing method agent to use?**: manual testing by curl / screenshot tool.
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1**: The real-time notification system is not fully verified. (Priority: P0)
-
-  **Issues Detail**:
-  - **Issue 1**: End-to-end verification of the SSE notification system.
-     - **Attempted fixes**: The agent built all the required components and verified their UI presence, but did not test the actual event flow.
-     - **Next debug checklist**:
-         1. Use the  to simulate a multi-user workflow.
-         2. **Scenario 1 (New Contract)**: As User A, create a new contract. Verify User B receives a New Contract Posted notification in the  component.
-         3. **Scenario 2 (New Bid)**: As User B, bid on the contract created by User A. Verify User A receives a New Bid Received notification.
-         4. **Scenario 3 (Bid Accepted)**: As User A, accept User B's bid. Verify User B receives an urgent Bid Accepted! notification.
-         5. **Scenario 4 (Intel Alert)**: Post a 'piracy' report in the Signals module. Verify an Intel Alert is broadcast to all connected users.
-         6. **Scenario 5 (Sound Toggle)**: Navigate to Settings, disable sound, trigger a notification, and confirm no sound plays (verification might be limited to checking console logs or if the  function is not called).
-     - **Why fix this issue and what will be achieved with the fix?**: This will complete the final feature request of the session, making the application more interactive and responsive to user actions.
-     - **Status**: IN PROGRESS
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: Both
-     - **Blocked on other issue**: None
+None. All immediate bugs and deployment blockers were resolved in the current session.
 
 **In progress Task List**:
-- None besides the issue listed above.
+None.
 
-**Upcoming and Future Tasks**
-*   **Upcoming Tasks**:
-    *   **P1**: **Granular Notifications**: Allow users to get notifications for specific contract subtypes (e.g., only Bounty Hunting). This would involve adding notification preferences in  and checking them in the backend before broadcasting.
-*   **Future Tasks**:
-    *   **P2**: **Refactor **: This monolithic file (over 1400 lines) needs to be broken down into smaller components for maintainability.
-    *   **P3**: **Theme System**: Implement the Scavenger, Luxury, and MilSpec themes.
+**Upcoming and Future Tasks**:
+- **P1**: **Refactor Contracts.jsx**: This file is ~2400 lines and heavily bloated. Needs component splitting (e.g., , ).
+- **P1**: **Refactor server.py**: The backend file is over 4300 lines long. Routes should be split into modular files.
+- **P2**: **Mobile responsive improvements**.
+- **P2**: **Org Invite Notification**: Add a notification (toast + bell ping) or a banner on the Job Board when a user is invited to be an Organization owner, directing them to the  setup page.
+- **P3**: **Service worker push notifications**.
+- *Note: Fleet Manager is explicitly cancelled.*
 
-**Completed work in this session**
-- **Critical Bug Fixes**: Resolved all 5 critical bugs related to contract completion, profile links, mission history, description display, and added text moderation.
-- **Feature & Admin Updates**: Implemented a player search feature, overhauled the Admin roadmap management, updated the Settings About page, and added Privacy/Terms pages.
-- **Database Cleanup**: Removed all test user accounts from the database.
-- **Intel & POI Integration**:
-    - Successfully integrated Signals data into the Intel module for dynamic risk assessment.
-    - Replaced all hardcoded location data with a live, cached feed from the UEXcorp API, both in the backend mission generation and frontend reporting forms.
+**Completed work in this session**:
+- **Future Time Expiration Bug**:  for future posts now anchors to  instead of creation time. (DONE)
+- **Admin Recovery Tools**: Added  and  with a UI panel in  to salvage legacy buggy posts. (DONE)
+- **Active Contract Concurrency Bug**: Fixed logic so users who *post* a contract can still apply to other jobs. (DONE)
+- **Multi-Join Events**: Added  and  to DB. Updated  to allow Group sizes, capacity badges, and a  drawer in . (DONE)
+- **Timer Fix**: Stopped Future Time posts from showing 5000+ hour countdowns. (DONE)
+- **Organizations Discord Dispatch**: Built  UI for Org owners. Added Admin Invite User form in . (DONE)
+- **Discord Per-Category Routing**: Enabled orgs to have multiple webhooks mapped to specific contract categories. (DONE)
+- **Multi-crew UI Bug**: Fixed  which was blocking multi-crew posts due to a hidden meeting location requirement. (DONE)
+- **Kubernetes Deployment Blockers**: Removed  block rules from  and added a root  endpoint for the Liveness Probe. (DONE)
+- **Game Version Override**: Added  to  to fix lagging RSI RSS feeds. (DONE)
+- **Signals Modal Fix**: Ensured the report modal in  always closes inside a  block on submit. (DONE)
 
-**Earlier issues found/mentioned but not fixed**
+**Earlier issues found/mentioned but not fixed**:
 - None.
 
-**Known issue recurrence from previous fork**
+**Known issue recurrence from previous fork**:
 - None.
 
-**Code Architecture**
+**Code Architecture**:
 
 
-**Key Technical Concepts**
-- **Real-time Events**: Server-Sent Events (SSE) implemented for one-way server-to-client notifications.
-- **External API Integration**: Fetching and caching data from the UEXcorp API ().
-- **Dynamic Risk Analysis**: Using data from the  (Signals) collection to dynamically modify mission recommendations in the  endpoint.
-- **Browser Audio & Storage**: Using the  API to play sounds and  to persist user sound preferences.
+**Key Technical Concepts**:
+- **Multi-Join vs Single**: Handled via  ('multi' or 'single'). Multi-join posts track  list and only close when capacity is met.
+- **Discord Dispatch**: Fires async when a contract is created. Checks Org filters (region, category, payout), strips private rescue data, and matches against .
+- **Environment Logic**: Production environment has separate  variables from preview. Code handles fallbacks and overrides (like ).
 
-**key DB schema**
-- ****: New collection created to store roadmap items, with fields like , , .
+**key DB schema**:
+- : {timing_type, scheduled_start_at, join_mode, max_participants, accepted_participants, is_multi_crew, manifest, ...}
+- : {owner_id, name, tag, approval_status, discord_alerts_enabled, alert_routes: [{webhook_url, categories, rescue_only}], ...}
 
-**changes in tech stack**
--  is used for asynchronous external API calls in the backend.
-- The application now uses Server-Sent Events (SSE) for real-time updates.
+**changes in tech stack**:
+- None.
 
-**All files of reference**
-- **Created**:
-  - , : Audio alert files.
-  - : Utility for playing sounds and managing preferences.
-  - : Custom hook to manage the SSE connection and notification state.
-  - : UI component for displaying notifications in the header.
-  - , , : New feature/content pages.
-- **Updated**:
-  - : Major updates for bug fixes, new endpoints (search, roadmap CRUD, locations), and integration of Signals, UEXcorp, and SSE notifications.
-  - : UI updated to display dynamic risk warnings from Signals and cleanly formatted location data.
-  - : Location selection in the report form was changed from a static grid to a dynamic dropdown populated by the UEXcorp API.
-  - : Overhauled to provide a full CRUD interface for the new roadmap system.
-  - : Updated to include a toggle for sound notifications.
-  - : Integrated the new  component.
-  - : Added routes for the new pages.
-  - : Updated to reflect all completed work.
+**All files of reference**:
+- : Extensively modified. Multi-join logic, health endpoint, Discord dispatch, and K8s readiness added.
+- : Added multi-join capacity UI, fixed timers, fixed  logic.
+- : Contains new  component.
+- : Fully built out with  and .
+- : Includes new repair tools and Invite Org Owner form.
+- : Fixed modal logic.
+- : Modified to allow  files.
 
 **Areas that need refactoring**:
--  remains a very large component and is a candidate for future refactoring.
+-  is critically large (>4300 lines) and should be split into routers (, , ).
+-  (~2400 lines) needs heavy component splitting.
 
-**key api endpoints**
-- ****: New SSE endpoint that streams real-time events to connected clients.
-- ****: New endpoint serving categorized POI data from the UEXcorp cache.
-- ****: New endpoint for the player lookup feature.
-- ****: New CRUD endpoints for managing roadmap items.
-- ****: Heavily modified to use real-time Signals data and UEXcorp POIs for dynamic mission generation.
-- **Broadcast Triggers**: The following endpoints now trigger SSE notifications: , , , .
+**key api endpoints**:
+- 
+-  and  (Updated for multi-join)
+- 
+-  & 
+- 
+-  (Root level Kubernetes liveness probe)
 
-**Critical Info for New Agent**
-- The user is operating in a **STRICT LOW-CREDIT MODE**. Do not perform any work that is not explicitly requested.
-- The immediate next step is to complete the verification of the real-time notification system. Use the testing checklist provided in the All Pending/In progress Issue list section.
-- The sound files (, ) have been uploaded and placed in .
+**Critical Info for New Agent**:
+- **PRODUCTION DEPLOYMENT ACTIVE**: The user has deployed to a live production environment. If the user reports bugs occurring on live, understand that changes MUST be made in your preview environment first. The user will have to click deploy to sync your fixes to production. Do not provide deployment URLs or preview URLs directly.
+- **Org Tools Gate**:  is evaluated in  to be  unless the string explicitly matches . This was done to forcefully bypass a  setting in the user's production .
+- Ensure multi-join and multi-crew concepts are treated separately. Multi-join is for a single task that takes multiple people (LFG). Multi-crew is a manifest with specific designated roles (Pilot, Turret, etc).
 
-**documents and test reports created in this job**
-- 
-- 
-- 
-- 
-- 
+**documents and test reports created in this job**:
+-  (Continuously updated)
 
-**Last 10 User Messages and any pending HUMAN messages**
-1. **User (Msg 106)**: Requested features: Admin Roadmap update, Player Search, Settings About update, and Legal Pages. (DONE)
-2. **User (Msg 216)**: Asked if the Intel section uses data from the Signals module. (ANSWERED)
-3. **Agent (Msg 226)**: Confirmed Intel did NOT use Signals data and proposed the integration.
-4. **User (Msg 227)**: Agreed to the Signals integration and also requested integrating the UEXcorp API to fix location accuracy. (DONE)
-5. **Agent (Msg 366)**: Finished the initial Signals/UEXcorp backend integration.
-6. **User (Msg 367)**: Provided a follow-up request to replace ALL hardcoded locations and focus on clean UI styling. (DONE)
-7. **Agent (Msg 418)**: Finished the location replacement and UI cleanup task.
-8. **User (Msg 419)**: Requested real-time notifications with sound alerts via Server-Sent Events and uploaded the necessary sound files. (IN PROGRESS)
-9. **Agent (Msg 483)**: Confirmed the UI for the notification bell was visible.
-10. **Agent (Msg 485)**: Confirmed the UI for the sound toggle in settings was visible.
+**Last 10 User Messages and any pending HUMAN messages** 
+1. User: Asked to make admin account an org owner to see features. (Completed)
+2. User: Reported multi-crew contracts could not be posted in the live version. (Completed - Frontend validation bug fixed)
+3. User: Requested to run Deployer Agent. (Completed -  fixed)
+4. User (system): Passed K8s deployment logs showing 404 on . (Completed - Root health endpoint added)
+5. User: Requested to set 'Org' features to live using minimum tokens. (Completed)
+6. User: Reported Signals page game version was stuck on 4.8.0 instead of 4.8.3. (Completed - Built Env override)
+7. User: Reported Job titles/descriptions weren't showing on live, and Signals modal wasn't closing. (Completed - Signals modal fixed; titles were verified working locally, user just needs to redeploy).
+8. User: **(PENDING VERIFICATION)** Reported Organizations area was still not live on production despite the previous code change. (Agent modified code to forcefully override the production env var. User must redeploy to see the fix).
 
 **Project Health Check:**
-- **Broken**: The real-time notification feature is incomplete pending end-to-end verification.
-- **Mocked**: None.
+- Broken: None.
+- Mocked: None.
 
-**3rd Party Integrations**
-- **UEX Corp API**:  - Public API for Star Citizen game data (ships, POIs). Caching is implemented.
+**3rd Party Integrations**:
+- **Discord Webhooks**: (Requires User-provided Webhook URL per Org for routing).
 - **RSI Status Feed**: Public RSS feed.
 
-**Testing status**
-  - **Testing agent used after significant changes**: YES (Used after every major feature implementation and bug fix batch).
-  - **Troubleshoot agent used after agent stuck in loop**: NO
-  - **Test files created**: []
-  - **Known regressions**: None.
+**Testing status**:
+- Testing agent used after significant changes: NO (Heavy manual bash testing with Python scripts and Playwright screenshotting used instead to preserve context).
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: NA
+- Known regressions: None.
 
 **Credentials to test flow:**
-- **Admin Account**:
-    - Email: 
-    - Password: 
-- Regular users can be created via the registration form to test multi-user interactions.
+- Admin Account:
+  - Email: 
+  - Password: 
+- Demo User:
+  - Email: 
 
-**What agent forgot to execute**
-- Nothing was forgotten. The agent was in the process of completing the final requested feature when the session ended.</analysis>
+**What agent forgot to execute**:
+- Nothing. All tasks completed successfully.</analysis>
