@@ -189,6 +189,32 @@ export default function Admin() {
     }
   };
 
+  const handleReassignOrg = async (o) => {
+    const input = window.prompt(
+      `Reassign [${o.tag}] ${o.name} to a new owner.\n\nEnter RSI handle or email:`,
+      ''
+    );
+    if (!input) return;
+    const val = input.trim();
+    const payload = val.includes('@') ? { owner_email: val.toLowerCase() } : { owner_handle: val };
+    try {
+      await axios.post(`${API}/admin/orgs/${o.id}/reassign`, payload);
+      fetchData();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Reassign failed');
+    }
+  };
+
+  const handleDeleteOrg = async (o) => {
+    if (!window.confirm(`Permanently delete [${o.tag}] ${o.name}?\n\nThis cannot be undone.`)) return;
+    try {
+      await axios.delete(`${API}/admin/orgs/${o.id}`);
+      fetchData();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Delete failed');
+    }
+  };
+
   const handleExportUsers = (optInOnly = false) => {
     const list = optInOnly ? users.filter(u => u.contact_opt_in) : users;
     const rows = [['RSI Handle', 'Email', 'Verified', 'Contact Opt-In', 'Supporter Tier', 'Joined']];
@@ -464,6 +490,23 @@ export default function Admin() {
                               ❌ REJECT
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handleReassignOrg(o)}
+                            style={{ background: 'transparent', border: '1px solid var(--nc-cyan)', color: 'var(--nc-cyan)', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}
+                            data-testid={`reassign-org-${o.id}`}
+                            title={`Current owner: ${o.owner_handle || '—'}`}
+                          >
+                            🔀 REASSIGN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteOrg(o)}
+                            style={{ background: 'transparent', border: '1px solid #ff4466', color: '#ff4466', padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}
+                            data-testid={`delete-org-${o.id}`}
+                          >
+                            🗑 DELETE
+                          </button>
                         </div>
                       </td>
                     </tr>

@@ -3548,6 +3548,76 @@ async def admin_reject_org(org_id: str, admin = Depends(require_admin)):
     return {'message': 'Rejected', 'org_id': org_id}
 
 
+class OrgReassign(BaseModel):
+    owner_id: Optional[str] = None
+    owner_handle: Optional[str] = None
+    owner_email: Optional[str] = None
+
+
+@api_router.post("/admin/orgs/{org_id}/reassign")
+async def admin_reassign_org_owner(org_id: str, payload: OrgReassign, admin = Depends(require_admin)):
+    """Reassign an organization to a different owner (admin only)."""
+    org = await db.organizations.find_one({'id': org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if not (payload.owner_id or payload.owner_handle or payload.owner_email):
+        raise HTTPException(status_code=400, detail="owner_handle, owner_email, or owner_id is required")
+    q = {}
+    if payload.owner_id:
+        q = {'id': payload.owner_id}
+    elif payload.owner_email:
+        q = {'email': payload.owner_email.strip().lower()}
+    elif payload.owner_handle:
+        q = {'rsi_handle': payload.owner_handle.strip()}
+    new_owner = await db.users.find_one(q, {'_id': 0})
+    if not new_owner:
+        raise HTTPException(status_code=404, detail="Target owner not found")
+    if new_owner['id'] == org.get('owner_id'):
+        raise HTTPException(status_code=400, detail="User is already the owner")
+    existing = await db.organizations.find_one({'owner_id': new_owner['id'], 'id': {'$ne': org_id}})
+    if existing:
+        raise HTTPException(status_code=400, detail="That user already owns another organization")
+    members = list(org.get('members') or [])
+    if new_owner['id'] not in members:
+        members.append(new_owner['id'])
+    officers = [o for o in (org.get('officers') or []) if o != new_owner['id']]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.organizations.update_one({'id': org_id}, {'$set': {
+        'owner_id': new_owner['id'],
+        'owner_handle': new_owner.get('rsi_handle'),
+        'members': members,
+        'officers': officers,
+        'owner_pending': True,
+        'updated_at': now_iso,
+    }})
+    # Notify the new owner in real-time (bell + toast).
+    try:
+        await broadcast_notification({
+            "type": "org_invite",
+            "target_user_id": new_owner['id'],
+            "title": "Organization Ownership Transferred",
+            "message": f"You are now the owner of {org.get('name')} [{org.get('tag')}]. Open Orgs to manage it.",
+            "org_id": org_id,
+            "org_name": org.get('name'),
+            "org_tag": org.get('tag'),
+            "link": "/orgs",
+            "sound": "notification",
+        })
+    except Exception:
+        pass
+    updated = await db.organizations.find_one({'id': org_id}, {'_id': 0})
+    return _public_org(updated) | {'approval_status': updated.get('approval_status', 'pending')}
+
+
+@api_router.delete("/admin/orgs/{org_id}")
+async def admin_delete_org(org_id: str, admin = Depends(require_admin)):
+    """Permanently delete an organization (admin only)."""
+    res = await db.organizations.delete_one({'id': org_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Org not found")
+    return {'message': 'Deleted', 'org_id': org_id}
+
+
 # ===== Discord Dispatch =====
 
 def _build_discord_message(contract: dict) -> dict:
