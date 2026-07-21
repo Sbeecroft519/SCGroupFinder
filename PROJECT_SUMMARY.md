@@ -1,143 +1,140 @@
-# NavCom Connect - Project Summary
+# Star Citizen Group Finder — Project Summary
 
-## What It Is
-**NavCom Connect** is a companion web app for Star Citizen players. It's a "MobiGlass-inspired" mission advisor, contract board, and community intel platform that helps players connect, trade services, and stay informed about in-game threats and server conditions.
+## What it is
+**Star Citizen Group Finder** (SCGF) is a player-to-player job board and group-finder for the Star Citizen community, hosted at **https://scgroupfinder.com**. Players post and join LFG groups, paid contracts, and medical rescues, with real-time notifications, Discord webhook dispatch per organization, and mandatory RSI-handle verification.
 
 ## Tech Stack
-- **Frontend**: React 18 + Vite, Shadcn/UI components, Lucide icons
-- **Backend**: FastAPI (Python), async/await throughout
-- **Database**: MongoDB (Motor async driver)
-- **Auth**: JWT tokens, bcrypt password hashing
-- **Real-time**: Server-Sent Events (SSE) for live notifications
-- **Hosting**: Kubernetes container with Nginx reverse proxy
+- **Frontend**: React 18 (CRA), Shadcn/UI, Lucide, Sonner
+- **Backend**: FastAPI (async), Motor (MongoDB), httpx, python-jose (JWT), bcrypt
+- **Database**: MongoDB
+- **Realtime**: Server-Sent Events (`/api/notifications/stream`)
+- **Auth**: Email + password OR Discord OAuth2 — both routed through RSI verification
+- **Hosting**: Emergent (Kubernetes) — preview + production with custom domain
 
 ## Architecture
 ```
 /app
 ├── backend/
-│   └── server.py          # Single-file FastAPI app (~2600 lines)
+│   ├── server.py        # FastAPI app (~4700 lines — planned split)
+│   ├── ships.py
+│   └── requirements.txt
 ├── frontend/
-│   ├── src/
-│   │   ├── pages/         # Intel, Signals, Contracts, Profile, Settings, Admin, etc.
-│   │   ├── components/    # Header, AlertTicker, NotificationBell, etc.
-│   │   ├── hooks/         # useSSENotifications, useNotifications
-│   │   ├── utils/         # sounds.js
-│   │   └── constants/     # ranks.js, badges.js
-│   └── public/
-│       └── sounds/        # Audio files for notifications
-└── memory/
-    └── PRD.md             # Product requirements doc
+│   └── src/
+│       ├── pages/       # Contracts (Job Board), Organizations, ContractDetails,
+│       │                # Login, Register, Admin, Settings, Profile,
+│       │                # Signals, Intel, Roadmap, CitizenDirectory, ...
+│       ├── components/  # Header, MobileNav, NotificationBell, AlertTicker,
+│       │                # DiscordBadge, QuickActionsFAB, Footer, ...
+│       ├── hooks/       # useSSENotifications, useContractPolling, useNotifications
+│       └── utils/       # sounds, formatting, etc.
+└── memory/              # PRD, changelog, test credentials
 ```
 
 ## Core Features
 
-### 1. Mission Advisor (Intel Page)
-- AI-style mission recommendations based on player's ship loadout
-- Risk assessment using real-time Signals data
-- Location data from UEXcorp API (Stanton) + fallbacks (Pyro, Nyx)
+### 1. Job Board (Contracts)
+- Types: **LFG**, **Paid Job**, **Medical Rescue**
+- Categories: Combat / Medical / Logistics / Industrial / Other
+- Timing: **Looking Now** (`duration_minutes`) or **Future Time** (`scheduled_start_at`, 4h active window)
+- Join modes: **single** (bid → accept) or **multi** (up to `max_participants`)
+- Multi-crew manifest support (per-slot hiring)
+- Private rescue fields stripped from all public payloads and Discord dispatches
 
-### 2. Signals (Player-Led Reporting)
-- Report types: Pirates, PvP, Lag/Desync, Mission Bugs, Cargo Bugs
-- Shard-specific AND global alerts
-- Optional description field (150 char, profanity filtered)
-- Feeds into AlertTicker (top of screen) and Intel risk calculations
+### 2. Organizations (admin-invitation only)
+- Admin invites owner → **persistent bell + toast org invite** for the invited user; auto-accepts when they open `/orgs`
+- Owner / officers edit **name, tag, description, RSI URL, Discord invite URL, logo, banner, specialties, home regions, service systems**
+- Private **Discord Webhook URL** + per-route dispatch filters (category, region, system, timing, rescue-only, min payout)
+- Admin can **approve / reject / reassign / delete** any org
 
-### 3. Job Board (Contracts)
-- Players post contracts (Combat, Medical, Logistics, Industrial, Other)
-- Other players bid on contracts
-- Contract poster reviews bids, accepts one
-- Two-way rating system after completion
-- Multi-crew slot support
+### 3. Auth (RSI-verified, non-negotiable)
+- Register with email + password OR sign in via Discord OAuth2 (`identify + email`)
+- Both flows funnel into RSI-handle verification (biography token match on the public RSI profile)
+- Users can toggle **Discord username visibility** in Settings; when public, a Discord badge shows next to their handle on the Job Board and Contract Details
 
-### 4. Citizen Directory
-- Browse all registered players
-- Sortable by rank, rating, jobs completed
-- Click to view full Citizen ID / profile
+### 4. Real-time Notifications (SSE)
+- Types: `new_contract`, `new_bid`, `bid_accepted`, `intel_alert`, `org_invite`
+- Per-user targeting via `target_user_id`
+- Client honours user notification settings (categories, threat alerts, etc.)
+- Persistent org invites seeded from `GET /api/user/org-invites` on mount so they survive refresh / offline
 
-### 5. Reputation & Rank System
-- **Ranks** (based on contracts completed): CIVILIAN → FREELANCER → ASSOCIATE → OPERATIVE → VETERAN → ELITE → LEGEND
-- **Ratings**: 1-5 stars from completed contracts
-- **Badges**: Supporter tiers (Bronze/Silver/Gold), admin-assignable
+### 5. Signals (player intel)
+- Player-reported pirates, PvP, lag, mission/cargo bugs
+- Feeds `AlertTicker` and the Intel risk model
+- Shard-aware
 
-### 6. Real-Time Notifications (SSE)
-- New contract posted (category-specific sounds)
-- Someone bid on your contract
-- Your bid was accepted
-- Intel alerts (threats, server issues)
-- Sound toggle in Settings
+### 6. Reputation
+- Rank: CIVILIAN → FREELANCER → ASSOCIATE → OPERATIVE → VETERAN → ELITE → LEGEND (contract counts)
+- Two-way 1–5-star ratings on completed contracts
+- Supporter badges (admin-assignable)
 
-### 7. Theme System
-- 4 themes: MobiGlass (cyan), Scavenger (orange), Luxury (white), MilSpec (red)
-- CSS variables cascade via `[data-theme="x"]` on document root
-- Persisted to user profile in DB
+### 7. Theme system
+- Multiple themes via CSS variables + `[data-theme]` on `<html>`; persisted on the user record
 
-### 8. Admin Panel
-- User management (view all users, assign badges)
-- Roadmap management (CRUD for roadmap items)
+### 8. Admin panel
+- Users: list / export CSV / assign badges / reset password
+- Orgs: invite owner, approve / reject / reassign / delete
+- Roadmap CRUD
+- Demo mode + maintenance tooling (future-post expiry repair, etc.)
 
 ## Key Database Collections
-- `users` - accounts, profiles, badges, theme preference
-- `contracts` - job postings with status workflow
-- `contract_bids` - bids on contracts
-- `contract_ratings` - post-completion ratings
-- `reports` - player intel reports (signals)
-- `roadmap` - admin-managed roadmap items
-- `notification_settings` - per-user alert preferences
+- `users` — accounts, verification, Discord link, visibility, theme, admin flag
+- `organizations` — name / tag / description, owner, officers, members, webhook, alert routes, approval status, `owner_pending` invite flag
+- `contracts` — timing/join mode, participants, manifest, rescue-private fields, status
+- `contract_bids`, `contract_ratings`
+- `reports` (signals) · `notification_settings` · `roadmap`
 
 ## API Highlights
-- `POST /api/auth/register` / `login` / `GET /me`
-- `GET/POST /api/contracts`, `POST /:id/bid`, `POST /:id/accept-bid/:bidId`
-- `POST /api/signals/report`, `GET /api/signals/alerts`
-- `GET /api/notifications/stream` (SSE endpoint)
-- `GET /api/users/directory`
-- `GET /api/locations/categorized` (UEXcorp + fallbacks)
-- `PUT /api/user/theme`, `DELETE /api/user/account`
+```
+POST /api/auth/register  |  /login  |  /demo-login  |  GET /api/auth/me
+GET  /api/auth/discord/login  |  /callback  |  POST /api/auth/discord/complete
 
-## Sound System
-| Event | Sound File |
-|-------|------------|
-| Login success | login_success.mp3 |
-| Combat contract | combat_contract.mp3 |
-| Logistics contract | logistics_contract.mp3 |
-| Medical contract | medical_contract.mp3 |
-| Industrial contract | industrial_contract.mp3 |
-| Someone bid on your contract | mercenary_bid.mp3 |
-| Your bid accepted | bid_accepted.mp3 |
-| Pirate/PvP threat | threat_reported.mp3 |
-| Server stability issue | stability.mp3 |
-| Mission/cargo bug | server_issue.mp3 |
+GET  /api/contracts        POST /api/contracts
+POST /api/contracts/{id}/bid           /accept-bid/{bidId}          /join
+
+GET  /api/orgs             PUT  /api/orgs/{id}
+POST /api/orgs/{id}/discord-webhook    /test-discord
+CRUD /api/orgs/{id}/routes[/…]
+
+GET  /api/user/my-org             GET  /api/user/org-invites
+POST /api/user/org-invites/{org_id}/accept
+PUT  /api/user/discord-visibility
+
+Admin: POST /api/orgs (invite)  |  GET /api/admin/orgs
+       POST /api/admin/orgs/{id}/{approve|reject|reassign}
+       DELETE /api/admin/orgs/{id}
+
+GET  /api/notifications/stream (SSE)
+POST /api/signals/report        GET /api/signals/alerts
+```
 
 ## External Integrations
-- **UEXcorp API**: `https://api.uexcorp.uk/2.0/poi` - Star Citizen location data (cached 24h)
-- Fallback locations hardcoded for Pyro (10) and Nyx (6) systems
+- **Discord OAuth2** — login/signup (never bypasses RSI verification)
+- **Discord Webhooks** — per-org dispatch with route filtering
+- **RSI public profile** — token-in-bio verification
+- **UEXcorp API** — Star Citizen location data (cached 24h) + hardcoded fallbacks for Pyro / Nyx
 
 ## User Flow
-1. **Landing page** → explains features, prominent LOGIN/REGISTER
-2. **Register** → email, password, RSI handle (verified against RSI website pattern)
-3. **Onboarding carousel** → introduces key features
-4. **Shard prompt** → select current server shard for relevant alerts
-5. **Main app** → Intel, Signals, Job Board, Directory, Profile, Settings
+1. Landing page → LOGIN / REGISTER / Discord Sign-in
+2. Register (or Discord OAuth) → **mandatory RSI handle verification**
+3. Onboarding carousel + shard prompt
+4. Job Board (contracts), Orgs, Signals, Directory, Profile, Settings
+5. Admin-invited users become Org owners → persistent bell/toast invite → open `/orgs` to configure
 
 ## Design Philosophy
-- Futuristic "MobiGlass" aesthetic (dark backgrounds, cyan/orange accents)
+- MobiGlass-inspired aesthetic (dark backgrounds, cyan/orange accents)
 - Monospace fonts for data, display fonts for headers
-- Glow effects, subtle animations
-- Mobile-responsive with bottom nav
+- Glow / grain / subtle animations
+- Mobile bottom-nav + FAB
 
-## What's Next (Backlog)
-- P2: Refactor Contracts.jsx (1400+ lines) into smaller components
-- P2: Org/group support
-- P2: Fleet manager
-- P3: Service worker push notifications
-
-## Credentials (Dev/Test)
-- **Admin**: beecroft519@gmail.com / Nv$C0m_Adm1n_2025!
-- RSI Handle: Mowri
+## Backlog
+- **P1** Refactor `server.py` and `Contracts.jsx` into modular files
+- **P2** Mobile responsive polish, advanced org dispatch (role mentions), audit log for admin org actions
+- **P3** Service worker push notifications
 
 ## Critical Notes for Developers
-1. All API routes prefixed with `/api` (Nginx routes to backend:8001)
-2. Frontend uses `REACT_APP_BACKEND_URL` from `.env`
-3. MongoDB ObjectIds must be excluded from responses (`"_id": 0`)
-4. SSE notifications broadcast via in-memory queue (not persistent)
-5. Sounds controlled by `localStorage.navcom_sound_enabled`
-6. Theme controlled by `data-theme` attribute on `<html>`
+1. All API routes prefixed with `/api` (K8s ingress rule).
+2. Frontend uses `REACT_APP_BACKEND_URL` from `.env`.
+3. MongoDB `_id` must be excluded from every response (`{'_id': 0}`).
+4. SSE queue is in-memory; persistent notifications (e.g. org invites) also seed from REST on mount.
+5. **Discord OAuth must not bypass RSI verification.**
+6. `DISCORD_REDIRECT_URI` must match a URI registered in the Discord Developer Portal (currently `https://scgroupfinder.com/api/auth/discord/callback`).
