@@ -1860,13 +1860,20 @@ async def get_contracts(category: Optional[str] = None, user = Depends(get_curre
     ).sort('created_at', -1).limit(50).to_list(50)
     
     # Mark expired contracts - ONLY for open/mustering status (never expire active contracts)
-    await db.contracts.update_many(
+    expired_ids = [c['id'] for c in await db.contracts.find(
         {'$or': [
             {'status': {'$in': ['open', 'mustering']}, 'expires_at': {'$lt': now, '$ne': None}},
             {'status': 'open', 'expires_at': None, 'created_at': {'$lt': one_hour_ago}}
         ]},
-        {'$set': {'status': 'expired'}}
-    )
+        {'id': 1}
+    ).to_list(500)]
+    if expired_ids:
+        await db.contracts.update_many(
+            {'id': {'$in': expired_ids}},
+            {'$set': {'status': 'expired'}}
+        )
+        for cid in expired_ids:
+            asyncio.create_task(cleanup_discord_messages_for_contract(cid))
 
     contracts = [redact_private_fields(c, user) for c in contracts]
     await _enrich_posters_discord(contracts)
@@ -2098,6 +2105,7 @@ async def cancel_contract(contract_id: str, user = Depends(get_current_user)):
         {'id': contract_id},
         {'$set': {'status': 'cancelled', 'cancelled_at': datetime.now(timezone.utc).isoformat()}}
     )
+    asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
     
     return {'message': 'Contract cancelled', 'status': 'cancelled'}
 
@@ -2121,6 +2129,7 @@ async def complete_contract(contract_id: str, user = Depends(get_current_user)):
         {'id': contract_id},
         {'$set': {'status': 'completed'}}
     )
+    asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
     return {'message': 'Contract marked complete'}
 
 
@@ -3727,7 +3736,11 @@ def _org_matches_contract(org: dict, contract: dict) -> bool:
 
 
 async def dispatch_org_discord_alerts(contract: dict):
-    """Fire-and-forget. Never blocks contract creation. Logs on failure."""
+    """Fire-and-forget. Never blocks contract creation. Logs on failure.
+    Uses ?wait=true so Discord returns the created message id — we store one
+    record per destination in `discord_contract_messages` so the message can
+    be deleted from the channel when the contract expires / cancels / completes.
+    """
     if not org_tools_enabled():
         return
     try:
@@ -3756,16 +3769,103 @@ async def dispatch_org_discord_alerts(contract: dict):
             if not _org_matches_contract(org, contract):
                 continue
             for route in _select_alert_routes(org, contract):
+                webhook_url = route['webhook_url']
+                parsed = _parse_webhook_url(webhook_url)
+                request_url = webhook_url + ('&' if '?' in webhook_url else '?') + 'wait=true'
                 try:
-                    r = await client.post(route['webhook_url'], json=payload)
+                    r = await client.post(request_url, json=payload)
                     if r.status_code >= 400:
                         logger.warning(
                             f"org {org.get('id')} route {route.get('label')} returned {r.status_code}"
                         )
+                        continue
+                    if not parsed:
+                        continue
+                    try:
+                        body = r.json()
+                    except Exception:
+                        body = {}
+                    message_id = body.get('id')
+                    if not message_id:
+                        continue
+                    webhook_id, webhook_token = parsed
+                    await db.discord_contract_messages.insert_one({
+                        'id': str(uuid.uuid4()),
+                        'contract_id': contract.get('id'),
+                        'org_id': org.get('id'),
+                        'route_id': route.get('id'),
+                        'route_label': route.get('label'),
+                        'discord_message_id': str(message_id),
+                        'discord_channel_id': str(body.get('channel_id') or ''),
+                        'discord_webhook_id': webhook_id,
+                        'discord_webhook_token': webhook_token,
+                        'posted_at': datetime.now(timezone.utc).isoformat(),
+                        'deleted_at': None,
+                        'delete_status': 'pending',
+                    })
                 except Exception as e:
                     logger.warning(
                         f"org {org.get('id')} route {route.get('label')} dispatch failed: {e}"
                     )
+
+
+_WEBHOOK_URL_RE = re.compile(r"https?://(?:[^/]+\.)?discord(?:app)?\.com/api/webhooks/(\d+)/([^/?#]+)")
+
+
+def _parse_webhook_url(url: Optional[str]) -> Optional[tuple]:
+    """Return (webhook_id, webhook_token) or None."""
+    if not url:
+        return None
+    m = _WEBHOOK_URL_RE.match(url)
+    if not m:
+        return None
+    return m.group(1), m.group(2)
+
+
+async def _delete_discord_webhook_message(client: httpx.AsyncClient, webhook_id: str, token: str, message_id: str) -> bool:
+    """DELETE https://discord.com/api/webhooks/{id}/{token}/messages/{message_id}
+    Returns True if the message is gone from Discord (204 deleted, 404 already gone)."""
+    url = f"https://discord.com/api/webhooks/{webhook_id}/{token}/messages/{message_id}"
+    try:
+        r = await client.delete(url)
+        return r.status_code in (204, 404)
+    except Exception as e:
+        logger.warning(f"discord webhook delete failed for {message_id}: {e}")
+        return False
+
+
+async def cleanup_discord_messages_for_contract(contract_id: str) -> None:
+    """Delete every Discord message we posted for a contract. Safe to call multiple times."""
+    if not contract_id:
+        return
+    try:
+        pending = await db.discord_contract_messages.find(
+            {'contract_id': contract_id, 'deleted_at': None},
+            {'_id': 0}
+        ).to_list(200)
+    except Exception as e:
+        logger.warning(f"cleanup fetch failed for {contract_id}: {e}")
+        return
+    if not pending:
+        return
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for rec in pending:
+            ok = await _delete_discord_webhook_message(
+                client,
+                rec.get('discord_webhook_id'),
+                rec.get('discord_webhook_token'),
+                rec.get('discord_message_id'),
+            )
+            try:
+                await db.discord_contract_messages.update_one(
+                    {'id': rec['id']},
+                    {'$set': {
+                        'deleted_at': datetime.now(timezone.utc).isoformat() if ok else None,
+                        'delete_status': 'deleted' if ok else 'retry_required',
+                    }}
+                )
+            except Exception as e:
+                logger.warning(f"cleanup persist failed for {rec.get('id')}: {e}")
 
 
 
@@ -3801,6 +3901,22 @@ async def startup_event():
         while True:
             try:
                 cutoff_10min = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+                # Discord-message cleanup BEFORE we delete the contract row,
+                # so the linkage from message → contract survives the sweep.
+                doomed = await db.contracts.find(
+                    {'$or': [
+                        {'category': 'MEDICAL',
+                         'rescue_bleedout_expires_at': {'$ne': None, '$lt': cutoff_10min},
+                         'status': {'$nin': ['completed']}},
+                        {'category': 'MEDICAL', 'status': 'completed'},
+                    ]},
+                    {'id': 1}
+                ).to_list(500)
+                for c in doomed:
+                    try:
+                        await cleanup_discord_messages_for_contract(c['id'])
+                    except Exception as e:
+                        logger.warning(f"pre-delete discord cleanup failed for {c.get('id')}: {e}")
                 # Delete deceased rescues 10 min past bleedout
                 await db.contracts.delete_many({
                     'category': 'MEDICAL',
@@ -3817,7 +3933,50 @@ async def startup_event():
             # Run every 60 seconds for prompt deletion within the 10-minute target
             await asyncio.sleep(60)
 
+    async def contract_expiry_loop():
+        """Server-side expiry: never rely on the browser timer. Every minute, flip
+        open/mustering contracts whose expires_at has passed to `expired` and delete
+        the corresponding Discord webhook messages."""
+        while True:
+            try:
+                now_iso = datetime.now(timezone.utc).isoformat()
+                one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+                expired = await db.contracts.find(
+                    {'$or': [
+                        {'status': {'$in': ['open', 'mustering']},
+                         'expires_at': {'$ne': None, '$lt': now_iso}},
+                        {'status': 'open', 'expires_at': None,
+                         'created_at': {'$lt': one_hour_ago}},
+                    ]},
+                    {'id': 1}
+                ).to_list(500)
+                if expired:
+                    ids = [c['id'] for c in expired]
+                    await db.contracts.update_many(
+                        {'id': {'$in': ids}},
+                        {'$set': {'status': 'expired', 'expired_at': now_iso}}
+                    )
+                    for cid in ids:
+                        try:
+                            await cleanup_discord_messages_for_contract(cid)
+                        except Exception as e:
+                            logger.warning(f"expiry discord cleanup failed for {cid}: {e}")
+                # Retry previously-failed webhook deletes.
+                retries = await db.discord_contract_messages.find(
+                    {'delete_status': 'retry_required'},
+                    {'_id': 0, 'contract_id': 1}
+                ).to_list(200)
+                for cid in {rr['contract_id'] for rr in retries if rr.get('contract_id')}:
+                    try:
+                        await cleanup_discord_messages_for_contract(cid)
+                    except Exception as e:
+                        logger.warning(f"retry discord cleanup failed for {cid}: {e}")
+            except Exception as e:
+                logger.error(f"contract_expiry_loop error: {e}")
+            await asyncio.sleep(60)
+
     asyncio.create_task(deceased_cleanup_loop())
+    asyncio.create_task(contract_expiry_loop())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -205,6 +205,8 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - [ ] Org/group support — Discord webhook dispatch (gated behind ENABLE_ORG_TOOLS)
 - [x] Org Invite Notification (toast + bell) — done Feb 2026
 - [x] Persistent Org Invite (survives refresh; auto-accepted on /orgs visit) — done Feb 2026
+- [x] Admin org reassign + delete — done Feb 2026
+- [x] Discord webhook message tracking + auto-delete on contract expiry/cancel/complete (new collection `discord_contract_messages`, server-side `contract_expiry_loop` every 60s, `wait=true` on POST, retries via `retry_required`) — done Feb 2026
 
 ### P3 - Low Priority
 - [ ] Mobile responsive improvements
