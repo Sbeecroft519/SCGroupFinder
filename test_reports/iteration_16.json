@@ -1,0 +1,38 @@
+{
+  "summary": "Verified the new Contract-History Webhook feature on PREVIEW (https://citizen-squad.preview.emergentagent.com). Backend: 7/7 pytest checks pass — field is accepted in OrgUpdate, invalid non-Discord URLs are rejected 400, valid Discord webhook URLs persist, empty string clears to None, GET /api/user/my-org returns the field. Frontend: MyOrgPanel on /orgs shows the 'Contract-History Webhook (optional)' input with data-testid='org-discord-history-webhook'; filling a valid Discord URL and clicking Save Org Profile fires PUT /api/orgs/{id} (200), shows 'Org saved.' feedback, and the value re-populates on reload. dispatch_completion_history() helper is wired into POST /api/contracts/{id}/complete via asyncio.create_task and is defined without raising on invalid webhook (uses try/except with logger.warning).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/orgs (post-login)", "issues": ["Onboarding carousel modal appears on every navigation to /orgs even after prior sessions; it does not persist a 'seen' flag, forcing repeated dismissals. Not blocking the tested feature (Save still worked with force click) but poor UX for returning users."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_history_webhook.py",
+    "/app/test_reports/pytest/history_webhook.xml"
+  ],
+  "action_items": [
+    "No action required for the reported feature — user's complaint 'field is not visible' is confirmed as a PRODUCTION vs PREVIEW mismatch (feature exists in preview code only). Guide user to test on https://citizen-squad.preview.emergentagent.com, or promote the feature to production.",
+    "Optional: persist onboarding carousel dismissal in localStorage so it doesn't re-appear on every /orgs visit."
+  ],
+  "critical_code_review_comments": [
+    "Organizations.jsx is 785 lines — consider splitting MyOrgPanel into its own file for maintainability.",
+    "dispatch_completion_history runs fire-and-forget via asyncio.create_task — good; failures are logged as warnings and never bubble up to the /complete endpoint (correct pattern).",
+    "OrgUpdate.discord_history_webhook_url has no Pydantic-level format validator; validation is in-route (line 3304). Acceptable but could be moved into a Pydantic validator for consistency.",
+    "server.py is 5012 lines — should be split into routers per resource."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_history_webhook.py (new)"
+  ],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "100% (field visible, save works, persistence verified)"},
+  "test_credentials": "beecroft519@gmail.com / Nv$C0m_Adm1n_2025! (admin, owns org 'My Test Org' [MTO] id=b4ea1916-eb87-4c6f-9078-e01602869ffc)",
+  "seed_data_creation": "None. Test used existing admin org and cleaned up (cleared webhook value after each test).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://citizen-squad.preview.emergentagent.com. Admin owns org id=b4ea1916-eb87-4c6f-9078-e01602869ffc. Onboarding modal reappears often — use force=True clicks or hide via JS. Endpoint for admin's own org (with private fields) is GET /api/user/my-org (NOT /orgs/my). Field data-testid is 'org-discord-history-webhook', save button is 'save-org-btn'. Backend log location: /var/log/supervisor/backend.*.log — search 'history dispatch' for dispatch traces.",
+  "rca of the issue": "User said the Contract-History Webhook field 'isn't visible anywhere'. RCA: user was viewing PRODUCTION deployment (https://citizen-hub-8.emergent.host or https://scgroupfinder.com) which was last built BEFORE this feature was added to Organizations.jsx (~line 515-521). PREVIEW env has the code and the field renders correctly. Reproduction: log in on preview, /orgs — field appears under DISCORD INVITE URL in MyOrgPanel. Mitigation: redeploy production, or direct the user to the preview URL until next production release."
+}
