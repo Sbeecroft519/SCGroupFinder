@@ -357,6 +357,7 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
     description: org.description || '',
     rsi_org_url: org.rsi_org_url || '',
     discord_invite_url: org.discord_invite_url || '',
+    discord_history_webhook_url: org.discord_history_webhook_url || '',
     specialties: org.specialties || [],
     home_regions: org.home_regions || [],
     service_systems: org.service_systems || [],
@@ -384,6 +385,7 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
         description: form.description,
         rsi_org_url: form.rsi_org_url || null,
         discord_invite_url: form.discord_invite_url || null,
+        discord_history_webhook_url: form.discord_history_webhook_url ?? '',
         specialties: form.specialties,
         home_regions: form.home_regions,
         service_systems: form.service_systems,
@@ -509,6 +511,13 @@ function MyOrgPanel({ org, currentUser, onChanged }) {
           <div>
             <label className="nc-label">DISCORD INVITE URL</label>
             <input className="nc-input" value={form.discord_invite_url} onChange={e => update({ discord_invite_url: e.target.value })} placeholder="https://discord.gg/..." data-testid="org-discord-invite" />
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            <label style={{ fontSize: 11, color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-mono)', textTransform: 'uppercase' }}>Contract-History Webhook (optional)</label>
+            <input className="nc-input" value={form.discord_history_webhook_url} onChange={e => update({ discord_history_webhook_url: e.target.value })} placeholder="https://discord.com/api/webhooks/..." data-testid="org-discord-history-webhook" />
+            <div style={{ fontSize: 11, color: 'var(--nc-text-muted)' }}>
+              When a contract is marked <strong>complete</strong>, a summary post is sent here (leave blank to disable). Use a different channel (e.g. <code>#contract-history</code>) from your live alerts.
+            </div>
           </div>
         </div>
 

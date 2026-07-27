@@ -2130,6 +2130,7 @@ async def complete_contract(contract_id: str, user = Depends(get_current_user)):
         {'$set': {'status': 'completed'}}
     )
     asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
+    asyncio.create_task(dispatch_completion_history(contract))
     return {'message': 'Contract marked complete'}
 
 
@@ -3060,6 +3061,7 @@ class OrgUpdate(BaseModel):
     description: Optional[str] = None
     rsi_org_url: Optional[str] = None
     discord_invite_url: Optional[str] = None
+    discord_history_webhook_url: Optional[str] = None
     logo_url: Optional[str] = None
     banner_url: Optional[str] = None
     specialties: Optional[List[str]] = None
@@ -3296,6 +3298,12 @@ async def update_org(org_id: str, payload: OrgUpdate, user = Depends(get_current
         raise HTTPException(status_code=403, detail="Only owner or officer can edit")
 
     updates = {k: v for k, v in payload.dict(exclude_unset=True).items() if v is not None}
+    # Validate history webhook (allow empty string to clear it)
+    if 'discord_history_webhook_url' in updates:
+        val = (updates['discord_history_webhook_url'] or '').strip()
+        if val and not _is_valid_discord_webhook(val):
+            raise HTTPException(status_code=400, detail="Invalid Discord webhook URL")
+        updates['discord_history_webhook_url'] = val or None
     # Validate name / tag length + uniqueness (matches OrgCreate rules)
     if 'name' in updates:
         name = (updates['name'] or '').strip()
@@ -3733,6 +3741,54 @@ def _org_matches_contract(org: dict, contract: dict) -> bool:
     if min_payout and (contract.get('payment_amount') or 0) < min_payout:
         return False
     return True
+
+
+async def dispatch_completion_history(contract: dict) -> None:
+    """Fire-and-forget. Post a completion summary to any org's #contract-history webhook."""
+    if not org_tools_enabled():
+        return
+    try:
+        orgs = await db.organizations.find(
+            {'approval_status': 'approved', 'discord_history_webhook_url': {'$ne': None}},
+            {'_id': 0, 'id': 1, 'discord_history_webhook_url': 1}
+        ).to_list(500)
+    except Exception as e:
+        logger.warning(f"history dispatch fetch failed: {e}")
+        return
+    if not orgs:
+        return
+    cat = (contract.get('category') or 'OTHER').upper()
+    region = contract.get('shard') or 'Global'
+    system = contract.get('meeting_system') or contract.get('system') or 'Unknown'
+    payout = contract.get('payment_amount') or 0
+    poster = contract.get('poster_handle') or 'Unknown'
+    title = contract.get('title') or 'Contract'
+    payload = {
+        'embeds': [{
+            'title': f'✅ Contract Completed — {title}',
+            'color': 0x2ecc71,
+            'fields': [
+                {'name': 'Category', 'value': cat, 'inline': True},
+                {'name': 'Region', 'value': region, 'inline': True},
+                {'name': 'System', 'value': system, 'inline': True},
+                {'name': 'Payout', 'value': (f"{payout:,} aUEC" if payout else 'None'), 'inline': True},
+                {'name': 'Posted by', 'value': poster, 'inline': True},
+            ],
+            'footer': {'text': 'Star Citizen Group Finder'},
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+        }]
+    }
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for org in orgs:
+            url = org.get('discord_history_webhook_url')
+            if not url:
+                continue
+            try:
+                r = await client.post(url, json=payload)
+                if r.status_code >= 400:
+                    logger.warning(f"history dispatch org {org.get('id')} returned {r.status_code}")
+            except Exception as e:
+                logger.warning(f"history dispatch org {org.get('id')} failed: {e}")
 
 
 async def dispatch_org_discord_alerts(contract: dict):
