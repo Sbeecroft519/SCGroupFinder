@@ -365,6 +365,11 @@ class ReviewCreate(BaseModel):
     comment: Optional[str] = None
     review_type: str  # 'client_to_merc' or 'merc_to_client'
 
+class ParticipantRating(BaseModel):
+    participant_user_id: str
+    rating: int  # 1-5 stars
+    comment: Optional[str] = None
+
 class BadgeAssignRequest(BaseModel):
     action: str = "add"  # "add" or "remove"
     badge_id: str
@@ -2179,6 +2184,71 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
     return {'message': 'Review submitted'}
 
 
+@api_router.post("/contracts/{contract_id}/rate-participant")
+async def rate_participant(contract_id: str, payload: ParticipantRating, user = Depends(get_current_user)):
+    """Poster-only. Multi-role contracts: rate each accepted participant individually.
+    Upserts one rating per (contract, poster, participant)."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if payload.rating < 1 or payload.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the poster can rate participants")
+
+    # Build the set of valid participant ids (multi-join + multi-crew).
+    valid_ids = set()
+    handle_by_id = {}
+    for p in (contract.get('accepted_participants') or []):
+        if p.get('id'):
+            valid_ids.add(p['id'])
+            handle_by_id[p['id']] = p.get('rsi_handle') or p.get('handle')
+    for slot in (contract.get('manifest') or []):
+        ab = slot.get('accepted_by') or {}
+        if ab.get('id'):
+            valid_ids.add(ab['id'])
+            handle_by_id[ab['id']] = ab.get('rsi_handle') or ab.get('handle')
+    single = contract.get('accepted_by') or {}
+    if single.get('id'):
+        valid_ids.add(single['id'])
+        handle_by_id[single['id']] = single.get('rsi_handle') or single.get('handle')
+
+    if payload.participant_user_id not in valid_ids:
+        raise HTTPException(status_code=400, detail="Not a participant of this contract")
+    if payload.participant_user_id == user['id']:
+        raise HTTPException(status_code=400, detail="You cannot rate yourself")
+
+    entry = {
+        'rated_user_id': payload.participant_user_id,
+        'rated_handle': handle_by_id.get(payload.participant_user_id),
+        'rating': payload.rating,
+        'comment': payload.comment,
+        'reviewer_id': user['id'],
+        'reviewer_handle': user.get('rsi_handle'),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    # Replace any existing rating from this poster for this participant.
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$pull': {'participant_ratings': {
+            'rated_user_id': payload.participant_user_id,
+            'reviewer_id': user['id'],
+        }}}
+    )
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$push': {'participant_ratings': entry}}
+    )
+    # Recompute the rated user's reputation.
+    try:
+        await update_user_reputation(payload.participant_user_id)
+    except Exception as _e:
+        pass
+    return {'message': 'Rating recorded', 'rated_user_id': payload.participant_user_id}
+
+
 async def update_user_reputation(user_id: str):
     """Recalculate user reputation based on all reviews received"""
     # Get all reviews where this user was reviewed
@@ -2199,7 +2269,17 @@ async def update_user_reputation(user_id: str):
     for c in as_client:
         if c.get('merc_review', {}).get('rating'):
             ratings.append(c['merc_review']['rating'])
-    
+
+    # Include per-participant multi-role ratings targeting this user.
+    as_participant = await db.contracts.find(
+        {'participant_ratings.rated_user_id': user_id},
+        {'participant_ratings': 1}
+    ).to_list(200)
+    for c in as_participant:
+        for pr in (c.get('participant_ratings') or []):
+            if pr.get('rated_user_id') == user_id and pr.get('rating'):
+                ratings.append(pr['rating'])
+
     if ratings:
         avg_rating = sum(ratings) / len(ratings)
         await db.users.update_one(

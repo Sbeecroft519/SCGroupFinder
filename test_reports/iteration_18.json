@@ -1,0 +1,42 @@
+{
+  "summary": "Verified new multi-role per-participant rating flow. Backend: created /app/backend/tests/test_rate_participant.py with 8 pytest cases (happy path, re-rate replacement, reputation recalculation, 403 non-poster, 400 self-rate, 400 non-participant, 400 rating=0, 400 rating>5) — all 8 pass. Frontend: seeded a multi-join LFG contract, had admin join, injected demo token in localStorage, opened /contracts → My Contracts, clicked Mark Complete → the multi-rating-modal renders with per-participant row, 5 stars, comment, submit, and 'FINISH LATER'/'DONE' testids all present. Submitting a rating shows '✓ Rated' on the row and the rating persists in contract.participant_ratings with rated_handle populated. Clicking DONE closes the modal without forcing all rows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Multi-join LFG (join_mode='multi') → Mark Complete → multi-rating modal",
+        "issue": "Mark Complete button is only rendered when contract.status ∈ {'in_progress','pending_completion','active'} (Contracts.jsx L1827 & L2065). Multi-join LFG contracts stay status='open' even after participants join via /api/contracts/{id}/accept — there is no state transition to 'active'/'in_progress' for multi-join events (accept endpoint at server.py:2050-2074 keeps status='open'). Result: the poster of a plain multi-join LFG contract has NO UI path to reach the new multi-rating modal. Had to force status='active' via Mongo to reproduce the flow. Multi-crew works because /contracts/{id}/deploy moves status to 'active'.",
+        "affected_selectors": ["button:has-text('Mark Complete')", "[data-testid='multi-rating-modal']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rate_participant.py",
+    "/app/test_reports/pytest/rate_participant.xml"
+  ],
+  "action_items": [
+    "Decide how a multi-join LFG contract transitions out of 'open' so the poster can click Mark Complete. Options: (a) render Mark Complete on multi-join contracts while status='open' AND accepted_participants.length>0, or (b) add a 'Start' endpoint that flips status to 'active' once the group is filled/mustered (analogous to /deploy for multi-crew). Without this, the new multi-rating modal is only reachable for multi-crew (post-deploy) or single-slot accepted contracts."
+  ],
+  "critical_code_review_comments": [
+    "server.py rate_participant endpoint (L2187-2249) cleanly upserts via $pull + $push on (reviewer_id, rated_user_id) — correctly enforces one rating per (contract, poster, participant).",
+    "update_user_reputation now correctly includes participant_ratings (server.py:2273-2281). Note: `contracts_completed` is set to len(ratings) which conflates review-count with completed-contract-count — may be intentional but worth double-checking with product.",
+    "Contracts.jsx: `_openMultiRatingIfNeeded` is only invoked from handleMarkComplete (L544) which requires the Mark Complete button to be rendered — see integration issue above.",
+    "server.py is 5092 lines; still well over 700-line guideline. Consider splitting into routers.",
+    "Small: rate_participant does not enforce `contract.status == 'completed'` — a poster could rate participants before completion. Product may want this ordering, though the frontend only opens the modal after mark-complete."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rate_participant.py"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100% for the modal + rating UI; blocked upstream for multi-join LFG"},
+  "test_credentials": "demo via POST /api/auth/demo-login; admin beecroft519@gmail.com / Nv$C0m_Adm1n_2025!",
+  "seed_data_creation": "Created TEST_UI_multi_rating_v3 (multi-join LFG, demo poster, admin joined, status forced to 'active' in Mongo for the UI repro) and several TEST_rate_participant_flow contracts via API. Auto-expire in ~1h.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend endpoint POST /api/contracts/{id}/rate-participant fully verified via /app/backend/tests/test_rate_participant.py (8/8). Frontend multi-rating modal (data-testid=multi-rating-modal, row/star/comment/submit/done) verified end-to-end after forcing contract.status='active' in Mongo. The only outstanding item is: multi-join LFG contracts never transition off status='open' via any existing endpoint, so the Mark Complete button is not rendered for them — main agent should either loosen the status gate in Contracts.jsx (L1827, L2065) for multi-join with participants, or add a start/deploy endpoint for multi-join events.",
+  "rca of the issue": "Not a bug in the rating code itself — the per-participant rate endpoint and modal work exactly as specified. The gap is that multi-join LFG contracts have no state transition out of 'open', so the UI condition (status in {in_progress,pending_completion,active}) for Mark Complete never becomes true for that class of contracts, making the new modal unreachable from the UI for the LFG multi case."
+}

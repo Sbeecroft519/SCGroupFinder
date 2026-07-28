@@ -263,6 +263,7 @@ export default function Contracts() {
   const [showReview, setShowReview] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [multiRating, setMultiRating] = useState(null); // { contractId, participants:[{id,handle,rating,comment,submitted}] }
   const [copiedHandle, setCopiedHandle] = useState(null);
   const [myShard, setMyShard] = useState('');
   
@@ -501,10 +502,47 @@ export default function Contracts() {
     }
   };
 
-  const handleMarkComplete = async (contractId) => {
+  const _collectParticipants = (contract) => {
+    if (!contract) return [];
+    const seen = new Set();
+    const out = [];
+    (contract.accepted_participants || []).forEach(p => {
+      if (p?.id && !seen.has(p.id) && p.id !== contract.poster_id) {
+        seen.add(p.id);
+        out.push({ id: p.id, handle: p.rsi_handle || p.handle, slot: null });
+      }
+    });
+    (contract.manifest || []).forEach(slot => {
+      const ab = slot.accepted_by;
+      if (ab?.id && !seen.has(ab.id) && ab.id !== contract.poster_id) {
+        seen.add(ab.id);
+        out.push({ id: ab.id, handle: ab.rsi_handle || ab.handle, slot: slot.role || slot.slot_name || null });
+      }
+    });
+    return out;
+  };
+
+  const _openMultiRatingIfNeeded = (contract) => {
+    if (!contract || contract.poster_id !== user?.id) return false;
+    const isMulti = contract.join_mode === 'multi' || contract.is_multi_crew;
+    if (!isMulti) return false;
+    const participants = _collectParticipants(contract);
+    if (participants.length === 0) return false;
+    setMultiRating({
+      contractId: contract.id,
+      contractTitle: contract.title,
+      participants: participants.map(p => ({ ...p, rating: 0, comment: '', submitted: false })),
+    });
+    return true;
+  };
+
+  const handleMarkComplete = async (contract) => {
+    const contractId = typeof contract === 'string' ? contract : contract?.id;
     try {
       const response = await axios.post(`${API}/contracts/${contractId}/mark-complete`);
-      if (response.data.show_rating) {
+      // Multi-role poster gets the per-participant rating prompt.
+      const opened = typeof contract === 'object' ? _openMultiRatingIfNeeded(contract) : false;
+      if (!opened && response.data.show_rating) {
         setShowReview({ id: contractId, role: 'both' });
       }
       fetchContracts();
@@ -669,12 +707,33 @@ export default function Contracts() {
     }
   };
 
-  const handleCompleteContract = async (contractId) => {
+  const handleCompleteContract = async (contract) => {
+    const contractId = typeof contract === 'string' ? contract : contract?.id;
     try {
       await axios.post(`${API}/contracts/${contractId}/complete`);
+      if (typeof contract === 'object') _openMultiRatingIfNeeded(contract);
       fetchContracts();
     } catch (error) {
-      console.error('Failed to complete contract:', error);
+      alert(error.response?.data?.detail || 'Failed to complete contract');
+    }
+  };
+
+  const submitParticipantRating = async (participantId) => {
+    if (!multiRating) return;
+    const p = multiRating.participants.find(x => x.id === participantId);
+    if (!p || p.submitted || !p.rating) return;
+    try {
+      await axios.post(`${API}/contracts/${multiRating.contractId}/rate-participant`, {
+        participant_user_id: participantId,
+        rating: p.rating,
+        comment: p.comment || null,
+      });
+      setMultiRating(prev => prev && ({
+        ...prev,
+        participants: prev.participants.map(x => x.id === participantId ? { ...x, submitted: true } : x),
+      }));
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to submit rating');
     }
   };
 
@@ -838,6 +897,92 @@ export default function Contracts() {
               />
               <button className="nc-btn nc-btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={handleSubmitReview}>
                 SUBMIT REVIEW
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-role Rating Prompt */}
+      {multiRating && (
+        <div className="mission-modal-overlay" onClick={() => setMultiRating(null)}>
+          <div className="mission-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, maxHeight: '85vh', overflow: 'auto' }} data-testid="multi-rating-modal">
+            <div className="mission-modal-header">
+              <div>
+                <div className="mission-type-badge">// RATE_CREW</div>
+                <h2 className="mission-title">Rate Your Crew</h2>
+                <div style={{ fontSize: 12, color: 'var(--nc-text-muted)', marginTop: 4 }}>{multiRating.contractTitle}</div>
+              </div>
+              <button className="mission-modal-close" onClick={() => setMultiRating(null)} data-testid="multi-rating-close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mission-modal-content" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {multiRating.participants.length === 0 && (
+                <div style={{ color: 'var(--nc-text-muted)', fontSize: 13 }}>No crew members to rate.</div>
+              )}
+              {multiRating.participants.map((p, idx) => (
+                <div key={p.id} data-testid={`multi-rating-row-${p.id}`} style={{
+                  padding: 12,
+                  border: '1px solid rgba(0,240,255,0.2)',
+                  background: p.submitted ? 'rgba(0,240,255,0.06)' : 'transparent',
+                  opacity: p.submitted ? 0.7 : 1,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div>
+                      <strong style={{ color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-mono)' }}>{p.handle || 'Unknown'}</strong>
+                      {p.slot && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--nc-text-muted)' }}>· {p.slot}</span>}
+                    </div>
+                    {p.submitted && <span style={{ color: 'var(--nc-success, #6bff9e)', fontSize: 11 }}>✓ Rated</span>}
+                  </div>
+                  {!p.submitted && (
+                    <>
+                      <div className="rating-stars" style={{ marginBottom: 8 }}>
+                        {[1,2,3,4,5].map(star => (
+                          <button
+                            key={star}
+                            onClick={() => setMultiRating(prev => ({
+                              ...prev,
+                              participants: prev.participants.map((x, i) => i === idx ? { ...x, rating: star } : x),
+                            }))}
+                            className={`star-btn ${star <= p.rating ? 'active' : ''}`}
+                            data-testid={`multi-rating-star-${p.id}-${star}`}
+                          >
+                            <Star size={22} fill={star <= p.rating ? '#FFD700' : 'none'} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        className="nc-input"
+                        rows={2}
+                        placeholder="Optional comment..."
+                        value={p.comment}
+                        onChange={e => setMultiRating(prev => ({
+                          ...prev,
+                          participants: prev.participants.map((x, i) => i === idx ? { ...x, comment: e.target.value } : x),
+                        }))}
+                        data-testid={`multi-rating-comment-${p.id}`}
+                      />
+                      <button
+                        className="nc-btn nc-btn-primary"
+                        style={{ width: '100%', marginTop: 8 }}
+                        disabled={!p.rating}
+                        onClick={() => submitParticipantRating(p.id)}
+                        data-testid={`multi-rating-submit-${p.id}`}
+                      >
+                        SUBMIT RATING
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+              <button
+                className="nc-btn"
+                style={{ width: '100%', marginTop: 4 }}
+                onClick={() => setMultiRating(null)}
+                data-testid="multi-rating-done"
+              >
+                {multiRating.participants.every(p => p.submitted) ? 'DONE' : 'FINISH LATER'}
               </button>
             </div>
           </div>
@@ -1693,7 +1838,7 @@ export default function Contracts() {
                     </button>
                     <button 
                       className="nc-btn nc-btn-primary" 
-                      onClick={() => handleMarkComplete(contract.id)}
+                      onClick={() => handleMarkComplete(contract)}
                     >
                       <Check size={14} /> 
                       {contract.status === 'pending_completion' ? 'Confirm Complete' : 'Mark Complete'}
@@ -1929,7 +2074,7 @@ export default function Contracts() {
                     </button>
                     <button 
                       className="nc-btn nc-btn-primary" 
-                      onClick={() => handleMarkComplete(contract.id)}
+                      onClick={() => handleMarkComplete(contract)}
                     >
                       <Check size={14} /> 
                       {contract.status === 'pending_completion' ? 'Confirm Complete' : 'Mark Complete'}
