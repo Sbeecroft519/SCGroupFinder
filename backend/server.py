@@ -4422,6 +4422,48 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
     
     return {'message': 'Invalid contract state'}
 
+
+@api_router.post("/contracts/{contract_id}/mark-complete-multi")
+async def mark_multi_role_complete(contract_id: str, user = Depends(get_current_user)):
+    """Poster-only, one-shot completion for multi-join / multi-crew contracts (which
+    have no two-party handshake). Transitions status to 'completed' and triggers
+    Discord message cleanup + optional history dispatch."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract['poster_id'] != user['id']:
+        raise HTTPException(status_code=403, detail="Only the poster can complete this contract")
+    is_multi = contract.get('join_mode') == 'multi' or contract.get('is_multi_crew')
+    if not is_multi:
+        raise HTTPException(status_code=400, detail="Use /mark-complete for single-slot contracts")
+    if contract['status'] in ('completed', 'cancelled', 'expired'):
+        return {'message': 'Contract already finalised', 'status': contract['status']}
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$set': {'status': 'completed', 'completed_at': now_iso}}
+    )
+    # Increment poster's completion count.
+    await db.users.update_one({'id': contract['poster_id']}, {'$inc': {'contracts_completed': 1}})
+    # Increment each participant's completion count.
+    seen = set()
+    for p in (contract.get('accepted_participants') or []):
+        if p.get('id') and p['id'] not in seen and p['id'] != contract['poster_id']:
+            seen.add(p['id'])
+            await db.users.update_one({'id': p['id']}, {'$inc': {'contracts_completed': 1}})
+    for slot in (contract.get('manifest') or []):
+        ab = slot.get('accepted_by') or {}
+        if ab.get('id') and ab['id'] not in seen and ab['id'] != contract['poster_id']:
+            seen.add(ab['id'])
+            await db.users.update_one({'id': ab['id']}, {'$inc': {'contracts_completed': 1}})
+    contract['status'] = 'completed'
+    asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
+    asyncio.create_task(dispatch_completion_history(contract))
+    return {'message': 'Contract completed', 'status': 'completed', 'show_rating': True, 'multi': True}
+
+
 @api_router.get("/user/active-contract")
 async def get_user_active_contract(user = Depends(get_current_user)):
     """Whether the current user is currently *assigned* (accepted as sole contractor or

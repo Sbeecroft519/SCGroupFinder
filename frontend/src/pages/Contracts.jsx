@@ -538,8 +538,10 @@ export default function Contracts() {
 
   const handleMarkComplete = async (contract) => {
     const contractId = typeof contract === 'string' ? contract : contract?.id;
+    const isMulti = typeof contract === 'object' && (contract.join_mode === 'multi' || contract.is_multi_crew);
     try {
-      const response = await axios.post(`${API}/contracts/${contractId}/mark-complete`);
+      const endpoint = isMulti ? 'mark-complete-multi' : 'mark-complete';
+      const response = await axios.post(`${API}/contracts/${contractId}/${endpoint}`);
       // Multi-role poster gets the per-participant rating prompt.
       const opened = typeof contract === 'object' ? _openMultiRatingIfNeeded(contract) : false;
       if (!opened && response.data.show_rating) {

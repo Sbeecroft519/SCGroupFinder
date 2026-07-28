@@ -1,0 +1,23 @@
+{
+  "summary": "Iteration_20 verified the new POST /api/contracts/{id}/mark-complete-multi endpoint AND the frontend routing that hits it for multi-join / multi-crew contracts. Backend pytest suite (4 cases) all PASS: (1) poster completes a multi-join LFG -> 200 status='completed' and server-side GET confirms status='completed'; (2) idempotent second call -> 200 with message 'Contract already finalised' and status='completed'; (3) same endpoint on a single-slot contract -> 400; (4) non-poster (admin) calling on demo's multi-join -> 403. Poster contracts_completed and each distinct participant's contracts_completed each increment by 1 (verified via /auth/me before/after). Frontend spot-check (preview URL, demo user + admin acceptor): the demo poster's 'Mark Complete' click on a multi-join LFG (a) fires POST /api/contracts/{id}/mark-complete-multi (network request captured), (b) opens data-testid='multi-rating-modal' ('Rate Your Crew' with Mowri row + 5-star input + 'Finish Later'), and (c) after the call the contract moves to '// PENDING_RATINGS' with 'COMPLETED' badge — its server-side status is 'completed' (verified via GET /api/contracts/{id}). Single-slot regression: code inspection of Contracts.jsx handleMarkComplete (L539-555) confirms isMulti = (contract.join_mode==='multi' || contract.is_multi_crew), and endpoint = isMulti ? 'mark-complete-multi' : 'mark-complete' — single-slot still routes to /mark-complete and setShowReview({role:'both'}) still triggers when response.data.show_rating is set and _openMultiRatingIfNeeded returns false.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_mark_complete_multi.py",
+    "/app/test_reports/pytest/iter20_mc_multi.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Endpoint implementation (server.py L4426-L4464) is clean: guards auth (401), existence (404), poster (403), multi-only (400), idempotency (early-return 200 for terminal states). Increments contracts_completed for poster + de-duped participants across accepted_participants and manifest.accepted_by. Fires cleanup + history dispatch as background tasks. Good.",
+    "Minor: response body on success returns show_rating:true but frontend actually uses _openMultiRatingIfNeeded first (which succeeds for multi), so show_rating is effectively ignored on the multi path. Not a bug, just dead-ish signal in success payload.",
+    "Carry-over: server.py still ~5134 lines; consider router split when convenient."
+  ],
+  "updated_files": ["/app/backend/tests/test_mark_complete_multi.py"],
+  "success_rate": {"backend": "100% (4/4 new mark-complete-multi tests pass)", "frontend": "100% (UI happy path confirmed on preview)"},
+  "test_credentials": "demo via POST /api/auth/demo-login; admin beecroft519@gmail.com / Nv$C0m_Adm1n_2025!",
+  "seed_data_creation": "TEST_iter20_MC_success, TEST_iter20_MC_idem, TEST_iter20_MC_single_reject, TEST_iter20_MC_403 (pytest), TEST_iter20_UI2 (browser E2E) — all completed or short-lived test contracts owned by demo user with admin as sole accepted participant.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration_20 fix (new POST /api/contracts/{id}/mark-complete-multi + frontend routing) closes the gap from iter_19 where multi-join LFGs stayed status='open' after rating. Both backend and frontend are verified. Test file /app/backend/tests/test_mark_complete_multi.py is reusable as regression. No open bugs.",
+  "rca of the issue": "N/A — feature works as specified."
+}
