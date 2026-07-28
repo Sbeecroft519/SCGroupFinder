@@ -1,0 +1,29 @@
+{
+  "summary": "Retested the broadened Mark Complete render condition on Contracts.jsx (L1827 & L2065) for multi-role rating prompt UI integration. End-to-end flow now works with NO Mongo tinkering: (1) demo user creates a multi-join LFG (join_mode='multi', status stays 'open' after /accept), (2) admin joins via POST /api/contracts/{id}/accept, (3) demo poster's My Contracts card renders the Mark Complete button, (4) clicking it opens data-testid='multi-rating-modal' with one row per accepted participant (Mowri row visible), (5) selecting 5 stars and clicking submit calls POST /api/contracts/{id}/rate-participant, row shows '✓ Rated', and server-side contract.participant_ratings now contains {rating:5, rated_user_id, rated_handle:'Mowri'}, (6) the multi-rating-done button (labelled DONE once all rows are submitted, FINISH LATER otherwise) closes the modal. Non-poster regression also confirmed: admin (participant, not poster) does NOT see Mark Complete on demo's multi-join open contract in his My Contracts list — the card renders as 'COMBAT OPEN (ACCEPTED)' without any MC/Copy Handle buttons. Single-bid single-review regression verified by code inspection: _openMultiRatingIfNeeded early-returns false when join_mode!='multi' && !is_multi_crew (Contracts.jsx L527-528), so handleMarkComplete falls through to setShowReview({...role:'both'}) — the pre-existing single-review flow (unchanged). Multi-crew post-/deploy path was fully verified in iteration_18 and its render condition (contract.is_multi_crew branch of the OR) is unchanged relative to that verified path.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Onboarding modal on /contracts", "issues": ["Onboarding carousel cannot be dismissed by clicking the top-right X (data-testid missing on close button); Escape key does not close it either. Only 'Next' → 'Get Started' walks through and dismisses. Not blocking for functionality but worth adding data-testid='onboarding-close' + Escape handling for tests and a11y."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rate_participant.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix is minimal and correct: the OR clause added at Contracts.jsx L1827 and L2065 gates on poster_id == user.id AND (join_mode=='multi' || is_multi_crew) AND (has accepted_participants OR any manifest slot with accepted_by.id) AND status not in [completed, cancelled, expired]. This preserves single-bid behavior because _openMultiRatingIfNeeded early-returns for non-multi contracts.",
+    "Note: POST /api/contracts/{id}/mark-complete (server.py:4321) does NOT accept status='open' — it returns {'message':'Invalid contract state'} with 200. The frontend still opens the multi-rating modal because axios doesn't throw and _openMultiRatingIfNeeded runs unconditionally after the response. This works for the rating flow but the underlying contract remains status='open' server-side even after 'Mark Complete' is clicked and ratings are recorded. Consider extending mark_contract_complete to accept status='open' when join_mode='multi' with participants (auto-complete or transition to a 'completed' terminal state), otherwise poster can keep re-opening the rating modal indefinitely and the contract never moves off the Job Board.",
+    "server.py still 5092 lines — carry-over from prior review, split into routers when convenient.",
+    "The 'Cancel' button appears to render twice per card in some layouts (visible in screenshot as two CANCEL buttons side by side) — pre-existing, not caused by this fix, but worth de-duplicating."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (verified in iter18, unchanged)", "frontend": "100% for all requested multi-role rating flows"},
+  "test_credentials": "demo via POST /api/auth/demo-login; admin beecroft519@gmail.com / Nv$C0m_Adm1n_2025!",
+  "seed_data_creation": "Created TEST_iter19_multijoin_LFG, TEST_iter19_multijoin_LFG_v2, TEST_iter19_MJ_v3, TEST_iter19_MJ_rate — all multi-join (max_participants=4) with admin joined as sole participant. Rating persisted on TEST_iter19_MJ_rate (rated_user=Mowri, rating=5).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration_19 fix confirmed working end-to-end. The only lingering behavioral quirk (not a regression from this fix): backend mark-complete rejects status='open', so multi-join contracts stay 'open' forever server-side even after the poster clicks Mark Complete + rates everyone. If product wants the contract to actually complete for multi-join LFGs, main agent should extend server.py:4338 to accept join_mode='multi' && status='open' with accepted_participants and transition it to 'completed'.",
+  "rca of the issue": "N/A — fix verified. Root cause of the previously reported gap (iter_18): Mark Complete render condition only allowed status ∈ {in_progress, pending_completion, active}, but multi-join LFGs stay 'open' after /accept. The fix adds an OR branch permitting poster-of-multi-with-participants regardless of 'open' status, unblocking the multi-rating modal path for multi-join LFGs without any DB tampering."
+}

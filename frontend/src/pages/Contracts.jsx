@@ -1824,7 +1824,7 @@ export default function Contracts() {
                 })()}
                 
                 {/* In Progress - Show Handle & Mark Complete */}
-                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active') && (
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active' || (contract.poster_id === user?.id && (contract.join_mode === 'multi' || contract.is_multi_crew) && (contract.accepted_participants?.length > 0 || (contract.manifest || []).some(s => s.accepted_by?.id)) && contract.status !== 'completed' && contract.status !== 'cancelled' && contract.status !== 'expired')) && (
                   <>
                     <button
                       className="nc-btn nc-btn-secondary"
@@ -2062,7 +2062,7 @@ export default function Contracts() {
                 )}
                 
                 {/* In Progress - Mark Complete */}
-                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active') && (
+                {(contract.status === 'in_progress' || contract.status === 'pending_completion' || contract.status === 'active' || (contract.poster_id === user?.id && (contract.join_mode === 'multi' || contract.is_multi_crew) && (contract.accepted_participants?.length > 0 || (contract.manifest || []).some(s => s.accepted_by?.id)) && contract.status !== 'completed' && contract.status !== 'cancelled' && contract.status !== 'expired')) && (
                   <>
                     <button
                       className="nc-btn nc-btn-secondary"
