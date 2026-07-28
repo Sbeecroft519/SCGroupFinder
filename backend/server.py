@@ -2120,7 +2120,7 @@ async def complete_contract(contract_id: str, user = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Contract not found")
     
     is_poster = contract['poster_id'] == user['id']
-    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    is_merc = (contract.get('accepted_by') or {}).get('id') == user['id']
     
     if not is_poster and not is_merc:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -2147,7 +2147,7 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
         raise HTTPException(status_code=404, detail="Contract not found")
     
     is_poster = contract['poster_id'] == user['id']
-    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    is_merc = (contract.get('accepted_by') or {}).get('id') == user['id']
     
     if not is_poster and not is_merc:
         raise HTTPException(status_code=403, detail="Not authorized to review")
@@ -2163,7 +2163,7 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
     if is_poster:
         await db.contracts.update_one({'id': contract_id}, {'$set': {'client_review': review_data}})
         # Update merc's reputation
-        merc_id = contract.get('accepted_by', {}).get('id')
+        merc_id = (contract.get('accepted_by') or {}).get('id')
         if merc_id:
             await update_user_reputation(merc_id)
             # Update mission history with rating
@@ -4249,7 +4249,7 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
         raise HTTPException(status_code=404, detail="Contract not found")
     
     is_poster = contract['poster_id'] == user['id']
-    is_merc = contract.get('accepted_by', {}).get('id') == user['id']
+    is_merc = (contract.get('accepted_by') or {}).get('id') == user['id']
     
     if not is_poster and not is_merc:
         raise HTTPException(status_code=403, detail="Not a party to this contract")
