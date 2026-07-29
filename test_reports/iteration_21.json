@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only verification of the duplicate Cancel button bug fix on Contracts feed. Confirmed via UI + API setup that exactly ONE Cancel button renders per poster-owned contract card across all tested scenarios (single-role open, multi-role open with 1 accepted participant — the previously failing case). Non-posters see 0 Cancel buttons. Cancel action still works end-to-end: confirm() dialog fires, POST /api/contracts/{id}/cancel is invoked, status transitions to 'cancelled' both server-side and in UI.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix in Contracts.jsx lines 1849-1891 is correct: the inner Cancel button inside the 'In Progress' actions block was removed, and the standalone Cancel block's status whitelist was broadened to ['open','mustering','in_progress','pending_completion','active']. The duplicate render for poster + multi/is_multi_crew + status='open' + accepted_participants>0 is no longer possible because there is now exactly one location that renders the Cancel button, gated only by (poster_id === user.id && status in whitelist).",
+    "data-testid `cancel-btn-{contract.id}` is properly attached to the single Cancel button — good for automation."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "Admin beecroft519@gmail.com / Nv$C0m_Adm1n_2025!; Demo via POST /api/auth/demo-login",
+  "seed_data_creation": "Created several TEST_ prefixed contracts (TEST_MULTI_CANCEL, TEST_SINGLE_CANCEL, TEST_CANCEL_ACTION, TEST_CANCEL_ACT2, TEST_CANCEL_ACT3) under demo sessions. Cleanup: TEST_CANCEL_ACT3 auto-cancelled by the click test. Other TEST_ contracts belong to per-request demo user IDs, could not be bulk-cancelled with a fresh demo token (403). They will expire naturally (duration_minutes=60).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fix verified. Test evidence: (a) DOM scan on multi-role poster card with 1 accepted participant found exactly 1 button matching 'CANCEL' text and 1 element with selector cancel-btn-{id}; (b) same for single-role open contract; (c) admin viewing demo's cards showed 0 cancel buttons; (d) clicking Cancel triggered window.confirm() which was accepted, and GET /api/contracts/{id} returned status='cancelled'. Note: onboarding/tutorial modal auto-opens on /contracts for fresh demo sessions — must be dismissed via the SVG X close button before button clicks work (force=True on button under modal still fires the DOM click but React confirm doesn't fire until the modal overlay is closed).",
+  "rca of the issue": "Original RCA (per E1): for poster on multi-role 'open' contract with at least one accepted participant, the 'In Progress' actions block's 4th OR clause matched and rendered its inner Cancel button, while the standalone OPEN/MUSTERING Cancel block also rendered — producing two side-by-side CANCEL buttons. Fix removed the inner Cancel and consolidated to a single standalone Cancel gated by a broader status whitelist. Verified fix is effective in production preview build."
+}
