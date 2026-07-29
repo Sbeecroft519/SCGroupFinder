@@ -206,6 +206,24 @@ async def broadcast_notification(notification: dict):
         except:
             pass  # Client may have disconnected
 
+
+async def _notify_rating_received(rated_user_id: str, rating: int, reviewer_handle: Optional[str], contract_title: Optional[str] = None):
+    """Fire a 'rating_received' SSE toast to the rated user."""
+    if not rated_user_id:
+        return
+    try:
+        await broadcast_notification({
+            "type": "rating_received",
+            "target_user_id": rated_user_id,
+            "title": "Reputation earned",
+            "message": f"{reviewer_handle or 'A player'} rated you {rating}★" + (f" on \"{contract_title}\"" if contract_title else ""),
+            "rating": rating,
+            "reviewer_handle": reviewer_handle,
+            "sound": "notification",
+        })
+    except Exception:
+        pass
+
 # Create the main app
 app = FastAPI(title="NavCom API", version="2.0.0")
 socket_app = socketio.ASGIApp(sio, app)
@@ -2176,10 +2194,12 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
                 {'contract_id': contract_id, 'user_id': merc_id},
                 {'$set': {'rating_received': review.rating}}
             )
+            await _notify_rating_received(merc_id, review.rating, user.get('rsi_handle'), contract.get('title'))
     else:
         await db.contracts.update_one({'id': contract_id}, {'$set': {'merc_review': review_data}})
         # Update client's reputation
         await update_user_reputation(contract['poster_id'])
+        await _notify_rating_received(contract['poster_id'], review.rating, user.get('rsi_handle'), contract.get('title'))
     
     return {'message': 'Review submitted'}
 
@@ -2239,6 +2259,7 @@ async def rate_poster(contract_id: str, payload: PosterRating, user = Depends(ge
         await update_user_reputation(contract['poster_id'])
     except Exception:
         pass
+    await _notify_rating_received(contract['poster_id'], payload.rating, user.get('rsi_handle'), contract.get('title'))
     return {'message': 'Rating recorded'}
 
 
@@ -2304,6 +2325,7 @@ async def rate_participant(contract_id: str, payload: ParticipantRating, user = 
         await update_user_reputation(payload.participant_user_id)
     except Exception as _e:
         pass
+    await _notify_rating_received(payload.participant_user_id, payload.rating, user.get('rsi_handle'), contract.get('title'))
     return {'message': 'Rating recorded', 'rated_user_id': payload.participant_user_id}
 
 

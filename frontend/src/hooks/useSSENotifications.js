@@ -136,6 +136,12 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
               onClick: () => { window.location.assign('/orgs'); },
             },
           });
+        } else if (data.type === 'rating_received') {
+          playContractSound('Logistics');
+          toast.success(data.title || 'Reputation earned', {
+            description: data.message,
+            duration: 8000,
+          });
         } else if (data.sound === 'alert') {
           playThreatSound();
         } else if (data.sound === 'notification') {
