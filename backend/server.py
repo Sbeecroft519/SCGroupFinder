@@ -2184,6 +2184,64 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
     return {'message': 'Review submitted'}
 
 
+class PosterRating(BaseModel):
+    rating: int  # 1-5 stars
+    comment: Optional[str] = None
+
+
+@api_router.post("/contracts/{contract_id}/rate-poster")
+async def rate_poster(contract_id: str, payload: PosterRating, user = Depends(get_current_user)):
+    """Participants of multi-role contracts can rate the poster (mirror of rate-participant).
+    Upserts one rating per (contract, reviewer)."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if payload.rating < 1 or payload.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    contract = await db.contracts.find_one({'id': contract_id})
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract['poster_id'] == user['id']:
+        raise HTTPException(status_code=400, detail="You cannot rate yourself")
+
+    # User must have been an accepted participant of this contract.
+    participant_ids = set()
+    for p in (contract.get('accepted_participants') or []):
+        if p.get('id'):
+            participant_ids.add(p['id'])
+    for slot in (contract.get('manifest') or []):
+        ab = slot.get('accepted_by') or {}
+        if ab.get('id'):
+            participant_ids.add(ab['id'])
+    single = contract.get('accepted_by') or {}
+    if single.get('id'):
+        participant_ids.add(single['id'])
+    if user['id'] not in participant_ids:
+        raise HTTPException(status_code=403, detail="Only participants can rate the poster")
+
+    entry = {
+        'rated_user_id': contract['poster_id'],
+        'rated_handle': (contract.get('poster') or {}).get('handle'),
+        'rating': payload.rating,
+        'comment': payload.comment,
+        'reviewer_id': user['id'],
+        'reviewer_handle': user.get('rsi_handle'),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$pull': {'poster_ratings': {'reviewer_id': user['id']}}}
+    )
+    await db.contracts.update_one(
+        {'id': contract_id},
+        {'$push': {'poster_ratings': entry}}
+    )
+    try:
+        await update_user_reputation(contract['poster_id'])
+    except Exception:
+        pass
+    return {'message': 'Rating recorded'}
+
+
 @api_router.post("/contracts/{contract_id}/rate-participant")
 async def rate_participant(contract_id: str, payload: ParticipantRating, user = Depends(get_current_user)):
     """Poster-only. Multi-role contracts: rate each accepted participant individually.
@@ -2278,6 +2336,16 @@ async def update_user_reputation(user_id: str):
     for c in as_participant:
         for pr in (c.get('participant_ratings') or []):
             if pr.get('rated_user_id') == user_id and pr.get('rating'):
+                ratings.append(pr['rating'])
+
+    # Include multi-role poster ratings targeting this user (rated as poster).
+    as_poster = await db.contracts.find(
+        {'poster_id': user_id, 'poster_ratings': {'$exists': True, '$ne': []}},
+        {'poster_ratings': 1}
+    ).to_list(200)
+    for c in as_poster:
+        for pr in (c.get('poster_ratings') or []):
+            if pr.get('rating'):
                 ratings.append(pr['rating'])
 
     if ratings:
@@ -4563,7 +4631,9 @@ async def get_user_contracts(user = Depends(get_current_user)):
         {
             '$or': [
                 {'poster_id': user['id']},
-                {'accepted_by.id': user['id']}
+                {'accepted_by.id': user['id']},
+                {'accepted_participants.id': user['id']},
+                {'manifest.accepted_by.id': user['id']},
             ]
         },
         {'_id': 0}

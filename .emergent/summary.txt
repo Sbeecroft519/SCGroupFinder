@@ -1,23 +1,24 @@
 <analysis>**original_problem_statement**: 
-The user is building Star Citizen Group Finder, a player-to-player Job Board. The core requirements include LFG, Paid Jobs, Medical Rescues, Multi-join events, and Public Organization profiles with Discord Webhook integrations. The recent focus has been on adding Discord OAuth sign-up/login capabilities while maintaining mandatory RSI player verification, adding a user-configurable Discord profile badge, and enabling Org leaders to edit their organization's public listing (name, tag, description) alongside a direct Discord invite link.
+The user is building Star Citizen Group Finder, a player-to-player Job Board. The core requirements include LFG, Paid Jobs, Medical Rescues, Multi-join events, and Public Organization profiles with Discord Webhook integrations. The recent focus has been on improving Organization management (persistent invites, reassigning owners, deleting orgs), enhancing the Discord webhook integration (auto-deleting messages on contract expiry, posting to a history channel on completion), and adding a multi-role crew rating prompt upon contract completion.
 
 **PRODUCT REQUIREMENTS**:
 - Job Board with LFG, Paid Jobs, and Medical Rescues.
 - Multi-join capability for LFG/Future Time events.
-- Public Organization profiles with Discord Webhook integrations and editable details (Name, Tag, Description, Discord Invite Link).
-- Discord OAuth Login and Registration (strictly ensuring it does not bypass the RSI verification flow to prevent bots/griefers).
-- Configurable Discord identity visibility on user profiles (toggleable via Settings).
+- Public Organization profiles with Discord Webhook integrations.
+- Discord OAuth Login and Registration (with mandatory RSI verification).
+- Automated Discord Webhook dispatching with auto-deletion of expired/completed contract messages.
+- End-of-contract rating system for single and multi-crew jobs.
 
 **User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only)
 
 **what currently exists?** 
-A full-stack React + FastAPI + MongoDB application with a central Job Board. Core mechanics include single-contractor jobs, multi-crew manifest jobs, multi-join events, real-time SSE notifications, Admin controls, automated Discord Webhook dispatching, and K8s readiness. Most recently, full Discord OAuth integration was added, alongside customizable user Discord badges, and Org profile editing capabilities.
+A full-stack React + FastAPI + MongoDB application with a central Job Board. Core mechanics include single-contractor jobs, multi-crew manifest jobs, real-time SSE notifications, Admin controls, persistent Org invites, and robust Discord Webhook dispatching (now featuring message ID tracking, auto-deletion of expired jobs, and posting to an optional  channel). The app is actively deployed to a custom production domain.
 
 **Last working item**:
-- **Last item agent was working**: Implementing user-requested UI enhancements for Discord: A  component next to poster handles on the Job Board, a Settings toggle to make Discord usernames publicly visible, and expanding the  MyOrgPanel to allow Org leaders to edit Name, Tag, Description, and Discord invite links.
-- **Status**: USER VERIFICATION PENDING
+- **Last item agent was working**: Implementing the post-complete rating prompt nudge for multi-role contracts, allowing the poster to rate each crew member individually and correctly closing out multi-join contracts via a new  endpoint.
+- **Status**: NONE
 - **Agent Testing Done**: Y
-- **Which testing method agent to use?**: NA (already done via testing_agent_v3_fork)
+- **Which testing method agent to use?**: NA (testing_agent was used successfully for iterations 18, 19, 20)
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**: 
@@ -27,18 +28,20 @@ None. All immediate bugs and feature requests were resolved and verified in the 
 None.
 
 **Upcoming and Future Tasks**:
-- **P1**: **Refactor Contracts.jsx**: This file is ~2400 lines and heavily bloated. Needs component splitting (e.g., , ).
-- **P1**: **Refactor server.py**: The backend file is over 4600 lines long. Routes should be split into modular files (, , ).
+- **P1**: **Refactor server.py**: The backend file is over 5000 lines long. Routes must be split into modular files (, , ).
+- **P1**: **Refactor Contracts.jsx**: This file is over 2500 lines. Needs heavy component splitting (e.g., , ).
 - **P2**: **Mobile responsive improvements**.
-- **P2**: **Org Invite Notification**: Add a notification (toast + bell ping) or a banner on the Job Board when a user is invited to be an Organization owner, directing them to the  setup page.
+- **P2**: **Participant Rate Poster Prompt**: The current multi-role flow prompts the poster to rate participants. Symmetrically prompt participants to rate the poster in their My Contracts view.
 - **P3**: **Service worker push notifications**.
 
 **Completed work in this session**:
-- Implemented Discord OAuth Login/Signup flow ( playbook used) (DONE)
-- Handled Discord OAuth iframe breakout to prevent refused to connect errors in preview (DONE)
-- Added  for Job Board and Contract Details, enriched backend  endpoints with Discord link status (DONE)
-- Added a Settings toggle for users to control Discord username public visibility (DONE)
-- Expanded Organization management so leaders can update Name, Tag, Description, and Discord Invite URLs (DONE)
+- **Real-time & Persistent Org Invites**: SSE notifications combined with  and  to persist and manage Org owner invites. (DONE)
+- **Admin Org Management**: Added  and  for admin reassignment and deletion of orgs. (DONE)
+- **Documentation Update**: Refreshed  and . (DONE)
+- **Discord Message Auto-Delete**: Tracked Webhook message IDs via , added  collection, and implemented  to  Discord posts upon expiration/cancellation. (DONE)
+- **Contract History Webhook**: Added  for Orgs to post completed jobs to a separate channel. (DONE)
+- **Multi-Role Contract Complete Bug Fix**: Fixed a 500 error () caused by  defaulting to  in multi-role jobs. (DONE)
+- **Multi-Role Rating Prompts**: Added  and  to allow posters to individually rate crew members. (DONE)
 
 **Earlier issues found/mentioned but not fixed**:
 - None.
@@ -50,70 +53,72 @@ None.
 
 
 **Key Technical Concepts**:
-- **Discord OAuth integration**: Uses standard OAuth2 flow, but the registration branch specifically enforces RSI verification *after* Discord linking to prevent bots. The  temporarily holds state until the RSI step is finished.
-- **Iframe Breakouts**:  must be used on OAuth anchor links so Discord's login page doesn't get blocked by  within the Emergent platform iframe.
-- **Multi-Join vs Single**: Handled via  ('multi' or 'single'). Multi-join posts track  list and only close when capacity is met.
-- **Discord Dispatch**: Fires async when a contract is created. Checks Org filters (region, category, payout), strips private rescue data, and matches against .
+- **Discord Message Deletion**: When firing a webhook, we append  to get the Discord message ID. The backend loops and calls Discord's  when a contract expires or gets cancelled.
+- **Persistent Invites**: Org invites assign  to the Org schema, allowing the user to click the bell notification or visit  to auto-accept the ownership.
+- **Dual Environments**: The user utilizes a custom production domain. Preview environment  has been manually overridden to point to the production callback URL based on user preference. 
 
 **key DB schema**:
-- : {rsi_handle, password_hash, discord_id, discord_username, discord_public, contact_opt_in, ...}
-- : {owner_id, name, tag, description, rsi_org_url, discord_webhook_url, alert_routes: [...]}
+- : Added , .
+-  (NEW): {contract_id, webhook_destination_id, discord_message_id, discord_channel_id, posted_at, deleted_at, delete_status}
 - : {timing_type, scheduled_start_at, join_mode, max_participants, accepted_participants, is_multi_crew, manifest, ...}
 
 **changes in tech stack**:
-- Added Discord OAuth support logic.
+- None.
 
 **All files of reference**:
-- : Heavily modified to add Discord  routes, new  toggles,  model expansion to include , and batch contract poster enrichments.
--  & : Added Discord CTA buttons and pending state UI logic.
-- : New UI component.
--  & : Imported Discord badge to render beside poster names.
-- : Added Discord visibility toggle.
-- : Added form inputs for Name, Tag, Description, and updated .
+- 
+- 
+- 
+- 
+- 
+-  to 
 
 **Areas that need refactoring**:
--  is critically large (>4600 lines) and should be split into routers (, , ).
--  (~2400 lines) needs heavy component splitting.
+-  is critically large (>5000 lines) and must be broken into standard router files.
+-  (~2500 lines) needs heavy component splitting for readability.
 
 **key api endpoints**:
+-  & 
+-  & 
 - 
 - 
-- 
-- 
--  (Updated to handle name, tag, desc)
--  &  (Enriched with  for posters)
 
 **Critical Info for New Agent**:
-- **PRODUCTION DEPLOYMENT ACTIVE**: The user has deployed to a live production environment. Always ensure fixes work in the preview environment first. The user will deploy to sync fixes to production.
-- **RSI Verification Guarantee**: Do not alter the Discord OAuth login/signup to bypass the RSI verification flow. The user explicitly demanded this safeguard to remain intact.
-- **Iframe Blocking**: When adding external authentications or redirects, avoid  if it's being blocked by  inside the preview iframe. Use anchor tags with .
+- **PRODUCTION DEPLOYMENT ACTIVE**: The user has deployed to a live production environment. If the user complains about missing features, verify first if they are looking at Preview or Production. Features built in Preview require the use of the  to be pushed to Production.
+- **OAuth Callback Alignment**: The  in the preview  has been set to the production URL () at the user's request.
+- **Testing Agent Reliance**: The previous agent utilized the  subagent extensively. Continue to use it to prevent regressions in the heavily congested  and  files.
 
 **documents and test reports created in this job**:
--  (Updated)
+- 
+- 
+- 
+- 
+- 
 - 
 - 
 
-**Last 10 User Messages and any pending HUMAN messages** 
-1. User: Asked to add Discord sign-up/log-in with minimal credits and no other changes. (Completed)
-2. User: Asked what preview/production URLs mean for Discord setup. (Answered)
-3. User: Provided Discord credentials and explicitly demanded RSI verification NOT be bypassed. (Completed)
-4. User: Asked for exact preview URI for Discord. (Answered)
-5. User: Reported discord.com refused to connect error. (Completed - Fixed iframe breakout)
-6. User: **(PENDING VERIFICATION)** Requested Discord icon next to handles, Settings toggle for visibility, and Org listing edits (name, tag, desc, discord link). (Agent fully implemented and verified via testing subagent. Awaiting user visual confirmation on the preview environment).
+**Last 10 User Messages and any pending HUMAN messages**:
+1. User: Asked to enable #contract-history channel posts instead of just deleting them. (Completed)
+2. User: Reported the field wasn't visible. (Agent verified it was in preview, not prod. Redeployed to prod. Completed)
+3. User: Instructed redeploy using deployer agent. (Completed)
+4. User: Reported a bug with 500 error on marking multi-role contracts complete. (Fixed & Completed)
+5. User: Requested the post-complete rating prompt nudge for multi-role contracts. (Completed)
+6. System/User: Deployed changes to production. (Completed)
+*Pending Human Messages*: None.
 
 **Project Health Check:**
 - Broken: None.
 - Mocked: None.
 
 **3rd Party Integrations**:
-- **Discord Webhooks**: (Requires User-provided Webhook URL per Org for routing).
-- **Discord OAuth**: Uses User-provided Client ID & Secret. (Emergent LLM Key not applicable).
-- **RSI Status Feed**: Public RSS feed.
+- **Discord Webhooks**: Standard implementation with  message tracking. 
+- **Discord OAuth**: Uses User-provided Client ID & Secret.
+- **Stripe (Payments)**: Requires User API Key.
 
 **Testing status**:
-- Testing agent used after significant changes: YES (Tested iterations 14 and 15 successfully).
+- Testing agent used after significant changes: YES (Tested iterations 16 through 20 successfully).
 - Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: None manually, used json test reports.
+- Test files created: , .
 - Known regressions: None.
 
 **Credentials to test flow:**
@@ -122,15 +127,7 @@ None.
   - Password: 
 - Demo User:
   - Email: 
-- Discord Test Client ID:  (Secret in )
+- Discord Test Client ID: 
 
 **What agent forgot to execute**:
-- Nothing. All tasks completed successfully.
-
-**Debugging checklist for current issue**
-    No pending issues, but if the user wants to further test Discord OAuth flows:
-    Frontend files to check: 
-    -  (line 42)
-    -  (line 100)
-    Backend files to check: 
-    -  (line ~640+ for auth endpoints)</analysis>
+- Nothing. All tasks were completed and verified successfully.</analysis>

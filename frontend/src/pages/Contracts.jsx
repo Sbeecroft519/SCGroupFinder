@@ -742,12 +742,19 @@ export default function Contracts() {
   const handleSubmitReview = async () => {
     if (!showReview) return;
     try {
-      await axios.post(`${API}/contracts/${showReview.id}/review`, {
-        contract_id: showReview.id,
-        rating: reviewRating,
-        comment: reviewComment,
-        review_type: showReview.isClient ? 'client_to_merc' : 'merc_to_client'
-      });
+      if (showReview.isMultiRolePoster) {
+        await axios.post(`${API}/contracts/${showReview.id}/rate-poster`, {
+          rating: reviewRating,
+          comment: reviewComment || null,
+        });
+      } else {
+        await axios.post(`${API}/contracts/${showReview.id}/review`, {
+          contract_id: showReview.id,
+          rating: reviewRating,
+          comment: reviewComment,
+          review_type: showReview.isClient ? 'client_to_merc' : 'merc_to_client'
+        });
+      }
       setShowReview(null);
       setReviewRating(5);
       setReviewComment('');
@@ -755,6 +762,7 @@ export default function Contracts() {
       fetchMyContracts();
     } catch (error) {
       console.error('Failed to submit review:', error);
+      alert(error.response?.data?.detail || 'Failed to submit review');
     }
   };
 
@@ -860,6 +868,19 @@ export default function Contracts() {
     if (isClient && !contract.client_review) return { isClient: true };
     if (isMerc && !contract.merc_review) return { isClient: false };
     return false;
+  };
+
+  // Multi-role participant → poster rating pending?
+  const isMultiParticipantPending = (c) => {
+    if (!user || c?.status !== 'completed') return false;
+    if (c.poster_id === user.id) return false;
+    const isMulti = c.join_mode === 'multi' || c.is_multi_crew;
+    if (!isMulti) return false;
+    const inParticipants = (c.accepted_participants || []).some(p => p?.id === user.id);
+    const inManifest = (c.manifest || []).some(s => s?.accepted_by?.id === user.id);
+    if (!inParticipants && !inManifest) return false;
+    const alreadyRated = (c.poster_ratings || []).some(r => r?.reviewer_id === user.id);
+    return !alreadyRated;
   };
 
   return (
@@ -1945,7 +1966,8 @@ export default function Contracts() {
         {/* Pending Ratings Section */}
         {myContracts.filter(c => 
           (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
-          (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
+          (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review) ||
+          isMultiParticipantPending(c)
         ).length > 0 && (
           <div className="pending-ratings-section">
             <h3 style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-gold)', marginBottom: 12, letterSpacing: 2 }}>
@@ -1953,10 +1975,12 @@ export default function Contracts() {
             </h3>
             {myContracts.filter(c => 
               (c.status === 'completed' && c.poster_id === user?.id && !c.client_review) ||
-              (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review)
+              (c.status === 'completed' && c.accepted_by?.id === user?.id && !c.merc_review) ||
+              isMultiParticipantPending(c)
             ).map(contract => {
               const categoryDisplay = getCategoryDisplay(contract.category);
               const isClient = contract.poster_id === user?.id;
+              const isMultiPoster = isMultiParticipantPending(contract);
               return (
                 <div key={contract.id} className="contract-card pending-rating" data-testid={`my-contract-${contract.id}`}>
                   <div className="contract-header">
@@ -1975,7 +1999,8 @@ export default function Contracts() {
                   <div className="contract-actions">
                     <button 
                       className="nc-btn nc-btn-gold" 
-                      onClick={() => setShowReview({ id: contract.id, isClient })}
+                      onClick={() => setShowReview({ id: contract.id, isClient, isMultiRolePoster: isMultiPoster })}
+                      data-testid={`rate-btn-${contract.id}`}
                     >
                       <Star size={14} /> Rate {isClient ? 'Player' : 'Poster'}
                     </button>
@@ -2092,8 +2117,17 @@ export default function Contracts() {
                         <Star size={14} /> Rate Player
                       </button>
                     )}
-                    {!isClient && !contract.merc_review && (
+                    {!isClient && !contract.merc_review && contract.accepted_by?.id === user?.id && (
                       <button className="nc-btn nc-btn-gold" onClick={() => setShowReview({ id: contract.id, isClient: false })}>
+                        <Star size={14} /> Rate Poster
+                      </button>
+                    )}
+                    {isMultiParticipantPending(contract) && (
+                      <button
+                        className="nc-btn nc-btn-gold"
+                        onClick={() => setShowReview({ id: contract.id, isClient: false, isMultiRolePoster: true })}
+                        data-testid={`rate-poster-multi-${contract.id}`}
+                      >
                         <Star size={14} /> Rate Poster
                       </button>
                     )}

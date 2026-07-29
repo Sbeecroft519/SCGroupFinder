@@ -386,3 +386,11 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 
 ### Test Coverage
 - iteration_12.json: 100% pass on both backend (3/3) and frontend (26/26) rebrand checks.
+
+## Feature (Feb, 2026) — Two-Way Rating for Multi-Role Contracts
+- Added `POST /api/contracts/{id}/rate-poster` — participants of multi-join/multi-crew contracts can now rate the poster (mirror of `rate-participant`). One rating per (contract, reviewer), upsert semantics.
+- Extended `/api/user/my-contracts` to include contracts where the caller is in `accepted_participants` or `manifest[].accepted_by` (previously missed for multi-role participants).
+- `update_user_reputation` now aggregates `poster_ratings` targeting the user.
+- Frontend `Contracts.jsx`: participants see a "Rate Poster" button in both the PENDING_RATINGS section and completed contract cards for multi-role jobs. Reuses the existing review modal.
+- Test file: `/app/backend/tests/test_rate_poster.py` (7 tests, all passing). Existing `test_rate_participant.py` also passes (regression clean).
+

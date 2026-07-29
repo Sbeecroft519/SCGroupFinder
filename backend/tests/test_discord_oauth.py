@@ -13,12 +13,12 @@ import jwt
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://citizen-squad.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://org-manager-lite.preview.emergentagent.com").rstrip("/")
 JWT_SECRET = "navcom-dev-secret-key-2025"
 JWT_ALG = "HS256"
 
 EXPECTED_CLIENT_ID = "1526294227099713556"
-EXPECTED_REDIRECT_URI = "https://citizen-squad.preview.emergentagent.com/api/auth/discord/callback"
+EXPECTED_REDIRECT_URI = "https://org-manager-lite.preview.emergentagent.com/api/auth/discord/callback"
 
 
 # --- Discord login redirect ---
