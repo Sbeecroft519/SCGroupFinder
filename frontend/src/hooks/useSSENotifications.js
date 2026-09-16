@@ -142,6 +142,16 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
             description: data.message,
             duration: 8000,
           });
+        } else if (data.type === 'org_application') {
+          playContractSound('Logistics');
+          toast.info(data.title || 'New Org Application', {
+            description: data.message,
+            duration: 12000,
+            action: {
+              label: 'Review',
+              onClick: () => { window.location.assign('/admin'); },
+            },
+          });
         } else if (data.sound === 'alert') {
           playThreatSound();
         } else if (data.sound === 'notification') {

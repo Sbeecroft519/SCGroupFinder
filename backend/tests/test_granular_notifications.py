@@ -117,7 +117,7 @@ class TestSSENotificationWithCategory:
                         if data.get("type") == "new_contract":
                             received_notifications.put(data)
                             break
-                    except:
+                    except Exception:
                         pass
             except Exception as e:
                 print(f"SSE error: {e}")

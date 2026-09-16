@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -203,7 +203,7 @@ async def broadcast_notification(notification: dict):
     for queue in connected_clients:
         try:
             await queue.put(notification)
-        except:
+        except Exception:
             pass  # Client may have disconnected
 
 
@@ -3368,6 +3368,89 @@ async def get_my_org(user = Depends(get_current_user)):
     return {'org': org}
 
 
+@api_router.post("/orgs/register")
+async def register_org(payload: OrgCreate, user = Depends(get_current_user)):
+    """Self-serve org registration. Any RSI-verified user can apply; goes into the
+    admin approval queue. Blocks duplicate ownership and duplicate tags."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not org_tools_enabled():
+        raise HTTPException(status_code=403, detail="Org tools are not yet available.")
+    if not user.get('is_verified'):
+        raise HTTPException(status_code=403, detail="Verify your RSI handle before registering an org.")
+
+    name = (payload.name or '').strip()
+    tag = (payload.tag or '').strip().upper()
+    if not name or len(name) < 3 or len(name) > 64:
+        raise HTTPException(status_code=400, detail="Name must be 3–64 characters")
+    if not tag or len(tag) < 2 or len(tag) > 8:
+        raise HTTPException(status_code=400, detail="Tag must be 2–8 characters")
+    if await db.organizations.find_one({'tag': tag}):
+        raise HTTPException(status_code=400, detail="Tag already taken")
+    if await db.organizations.find_one({'owner_id': user['id']}):
+        raise HTTPException(status_code=400, detail="You already own an organization")
+
+    bad = [s for s in (payload.specialties or []) if s not in ALLOWED_SPECIALTIES]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Unknown specialties: {bad}")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    org = {
+        'id': str(uuid.uuid4()),
+        'name': name,
+        'tag': tag,
+        'description': (payload.description or '')[:1000],
+        'rsi_org_url': payload.rsi_org_url,
+        'discord_invite_url': payload.discord_invite_url,
+        'logo_url': payload.logo_url,
+        'banner_url': payload.banner_url,
+        'owner_id': user['id'],
+        'owner_handle': user.get('rsi_handle'),
+        'officers': [],
+        'members': [user['id']],
+        'specialties': payload.specialties or [],
+        'home_regions': [r for r in (payload.home_regions or []) if r in ALLOWED_REGIONS],
+        'service_systems': [s for s in (payload.service_systems or []) if s in ALLOWED_SYSTEMS],
+        'discord_webhook_url': None,
+        'discord_alerts_enabled': False,
+        'alert_routes': [],
+        'alert_categories': [],
+        'alert_regions': [],
+        'alert_systems': [],
+        'alert_timing_types': [],
+        'alert_rescue_only': False,
+        'alert_min_payout': None,
+        'approval_status': 'pending',
+        'approved_at': None,
+        'approved_by': None,
+        'self_registered': True,
+        'owner_pending': False,  # self-registered, no invite acceptance step
+        'created_at': now_iso,
+        'updated_at': now_iso,
+    }
+    await db.organizations.insert_one(org)
+
+    # Notify every admin in real-time.
+    try:
+        admins = await db.users.find({'is_admin': True}, {'id': 1}).to_list(50)
+        for a in admins:
+            await broadcast_notification({
+                "type": "org_application",
+                "target_user_id": a['id'],
+                "title": "New Org Application",
+                "message": f"[{tag}] {name} — submitted by {user.get('rsi_handle')}. Review in Admin › Org Approvals.",
+                "org_id": org['id'],
+                "org_name": name,
+                "org_tag": tag,
+                "link": "/admin",
+                "sound": "notification",
+            })
+    except Exception:
+        pass
+
+    return _public_org(org)
+
+
 @api_router.post("/orgs")
 async def create_org(payload: OrgCreate, admin = Depends(require_admin)):
     """Admin-invitation only: admins create the org on behalf of a chosen owner.
@@ -3694,11 +3777,11 @@ async def test_org_route(org_id: str, route_id: str, user = Depends(get_current_
 # ===== Admin Org Approval =====
 
 @api_router.get("/admin/orgs")
-async def admin_list_orgs(status: Optional[str] = None, admin = Depends(require_admin)):
+async def admin_list_orgs(status_filter: Optional[str] = Query(None, alias="status"), admin = Depends(require_admin)):
     """Admin sees ALL orgs (incl. pending/rejected). Optional ?status=pending|approved|rejected filter."""
     q = {}
-    if status:
-        q['approval_status'] = status
+    if status_filter:
+        q['approval_status'] = status_filter
     orgs = await db.organizations.find(q, {'_id': 0}).sort('created_at', -1).to_list(500)
     # Admin gets discord_connected (still no full URL)
     return [_public_org(o) | {'approval_status': o.get('approval_status', 'pending'),

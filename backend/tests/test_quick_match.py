@@ -458,7 +458,7 @@ class TestQuickMatchIntegration:
                     f"{BASE_URL}/api/lounge/broadcasts/{broadcast_id}/close",
                     headers=self.headers
                 )
-            except:
+            except Exception:
                 pass
     
     def test_quick_match_full_flow(self):
