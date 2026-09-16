@@ -1,0 +1,23 @@
+{
+  "summary": "Full E2E verification of Org self-registration + admin approval flow. Backend: 6/6 pytest passing in test_org_register.py (register creates pending, admin approval makes public, duplicate owner/tag blocked, validation, unauth). Frontend: All acceptance criteria verified end-to-end via Playwright — CTA card + Register button visible for RSI-verified user w/ no org, modal opens with all documented fields, client-side validation shows inline error 'Name must be 3–64 characters' for short name/tag without hitting backend, valid submission shows success state '✓ APPLICATION SUBMITTED — awaiting admin approval', modal auto-closes, MyOrgPanel appears with '⏳ PENDING REVIEW' badge, CTA is hidden post-registration, pending org excluded from GET /api/orgs, GET /api/user/my-org returns approval_status='pending' + self_registered=true, admin POST /api/admin/orgs/{id}/approve → org appears on public list, admin DELETE /api/admin/orgs/{id} cleans up. Regression on admin endpoints intact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_org_register.py",
+    "/app/test_reports/pytest/org_register.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Organizations.jsx (~980 lines) is approaching the 700-line threshold; consider splitting RegisterOrgModal and MyOrgPanel into their own files.",
+    "RegisterOrgModal success auto-closes after only 1400ms (Organizations.jsx:701) — barely long enough for the user to read the confirmation. Consider 2000-2500ms or dismiss-on-click.",
+    "Client-side validation only surfaces the FIRST failing rule (e.g. short name masks short tag). Minor UX polish — could show both errors."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% (10/10 checks)"},
+  "test_credentials": "Admin beecroft519@gmail.com / Nv$C0m_Adm1n_2025!; demo via POST /api/auth/demo-login (is_verified=true).",
+  "seed_data_creation": "Created TEST_SelfReg_<tag> and TEST_Success_<tag> pending orgs during the run — both were cleaned up via DELETE /api/admin/orgs/{id} (status 200).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth note: TRY DEMO button on / stores token under localStorage key 'navcom_token' (not 'nc_token'/'token'). To auth via API for headless flows, POST /api/auth/demo-login, then set localStorage.navcom_token=<token> AND localStorage.navcom_is_demo='true' before navigating (or simpler: click the TRY DEMO button which the flow uses). Data-testids for register flow: register-org-cta, register-org-btn, register-org-modal, register-org-overlay, register-org-close, register-org-name, register-org-tag, register-org-description, register-org-rsi-url, register-org-discord-invite, register-org-specialty-<label>, register-org-region-<label>, register-org-system-<label>, register-org-cancel, register-org-submit, register-org-error, register-org-success. MyOrgPanel: my-org-panel, org-approval-pill, pending-notice.",
+  "rca of the issue": "N/A — feature working as specified."
+}
