@@ -12,7 +12,7 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - **Frontend**: React.js with Tailwind CSS, Recharts
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Real-time**: Socket.IO + SSE
+- **Real-time**: Socket.IO + SSE; durable organization inbox + Web Push
 - **Payments**: Stripe
 
 ## What's Been Implemented (Feb 14, 2026)
@@ -199,7 +199,7 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - [ ] Real Stripe payment flow (needs production keys)
 
 ### P2 - Medium Priority
-- [ ] Refactor Contracts.jsx into smaller components (~2300 lines)
+- [x] Refactor Contracts.jsx into smaller components — completed September 16, 2026 (119-line page + focused hooks/components)
 - [ ] Refactor server.py into route modules (~4600 lines)
 - [ ] Extract clipboard utility to shared function
 - [ ] Org/group support — Discord webhook dispatch (gated behind ENABLE_ORG_TOOLS)
@@ -209,8 +209,8 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - [x] Discord webhook message tracking + auto-delete on contract expiry/cancel/complete (new collection `discord_contract_messages`, server-side `contract_expiry_loop` every 60s, `wait=true` on POST, retries via `retry_required`) — done Feb 2026
 
 ### P3 - Low Priority
-- [ ] Mobile responsive improvements
-- [ ] Service worker push notifications
+- [x] Mobile responsive improvements — board, org forms/routes, settings, navigation, notifications and landing header (September 16, 2026)
+- [x] Service worker push notifications — implemented September 16, 2026; real-device closed-tab delivery verification remains
 - [ ] Advanced Org dispatch (filters, role mentions)
 
 ### Cancelled
@@ -393,4 +393,44 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - `update_user_reputation` now aggregates `poster_ratings` targeting the user.
 - Frontend `Contracts.jsx`: participants see a "Rate Poster" button in both the PENDING_RATINGS section and completed contract cards for multi-role jobs. Reuses the existing review modal.
 - Test file: `/app/backend/tests/test_rate_poster.py` (7 tests, all passing). Existing `test_rate_participant.py` also passes (regression clean).
+
+## Previously Completed — Organization Self-Registration (handoff documentation repaired September 16, 2026)
+- `POST /api/orgs/register`: RSI-verified leaders submit an organization for admin approval. Validates name (3–64), tag (2–8), unique tag and one owned organization per user.
+- `/orgs` has registration CTA/modal, inline validation, success and pending-review states. Pending owners can edit profiles/connect Discord; dispatch/public listing requires approval.
+- Admin application notification uses SSE; existing admin approval/rejection endpoints are reused. Verified in iteration_22 (6 backend tests and frontend flow).
+- Previous rating work also added `rating_received` SSE reputation toasts and removed duplicate poster cancel buttons (iteration_21).
+
+## September 16, 2026 — Refactoring, Mobile Polish and Background Notifications
+### User-approved scope
+- P1: Split Contracts.jsx and Organizations.jsx; P2: mobile responsive polish; P3: service-worker push notifications so organization application/approval alerts survive closed tabs.
+- Preserve established MobiGlass styling, existing workflows and APIs. User requested minimal rereading/credit usage; no backend monolith refactor or auth migration in this batch.
+
+### Implemented
+- Contracts.jsx: **2,583 → 119 lines**, with named components under `frontend/src/components/contracts/` (cards/actions, applicants/handshake/ratings modals, create fields, manifest) and `useContractBoard`, `useCreateContract`, `useContractRatings`. Pure helpers and CSS extracted. Removed unused handlers; existing controls retained with scoped test IDs.
+- Organizations.jsx: **980 → 288 lines**, with components under `frontend/src/components/organizations/` (registration, owner panel/profile/dispatch, alert routes, public cards, shared constants/toggles).
+- Mobile: responsive form grids, wrapping long names/URLs/statuses/actions, safe-area-aware bottom navigation and modals, 44px touch controls, bounded notification dropdown, Orgs navigation. Tickers now rotate one alert at a time instead of overflowing duplicated marquee content. Landing header wraps; overflowing decorative glow elements removed.
+- Incidental flow fixes: Paid Jobs filter no longer returns an empty feed; LFG↔Paid preserves payout draft and restores payment control; medical category exits multi-crew; implicit multi-join honors edited capacity; pending-card selectors no longer duplicate history-card selectors.
+- Real Web Push implementation: `backend/push_notifications.py`, `frontend/public/push-sw.js`, `utils/webPush.js`, `PushNotificationSettings.jsx`, manifest and install icons. Opt-in in **Settings → Push Notifications**; no automatic browser prompt on login.
+- Persisted application/invitation/approval/rejection events, owner decision SSE toast, restored unread bell inbox and read/clear state. Organization page refreshes approval status on focus and decision event.
+- Queue uses Mongo leases, bounded retries, per-device success dedupe, 404/410 subscription cleanup, 90-day device TTL and 30-day inbox TTL. Private push keys remain backend-only. HTTPS provider allowlist/public DNS checks, valid encryption keys, no redirects, endpoint ownership, 10-device cap and test-send rate limit.
+- Logout pauses delivery in worker state and removes only the current browser subscription; worker checks recipient identity to protect shared devices. Existing authentication scheme is intentionally unchanged.
+
+### Added APIs / data
+- `/api/push/config`, `POST/DELETE /api/push/subscriptions`, `POST /api/push/test`, `GET /api/push/inbox`, `PUT /api/push/inbox/{id|all}/read`.
+- New collections: `push_subscriptions`, `push_events`. Every push API requires an authenticated user (missing/invalid tokens return 401).
+- Env: `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `PUSH_ENDPOINT_SUFFIXES`; configured with idempotent `backend/configure_web_push.py`. Keep the same key pair to preserve existing subscriptions. No third-party account needed. See `memory/WEB_PUSH.md`.
+
+### Verification and limits
+- Build passes (remaining pre-existing hook dependency warnings noted in build log). Backend regression **30/30 passed** after fixes: `test_org_register.py`, `test_rate_poster.py`, `test_rate_participant.py`, `test_push_notifications_regression.py`; retest XML at `test_reports/pytest/iteration23_retest.xml`.
+- `iteration_23.json` is the original report; `iteration_23_followup.md` records main-agent fixes/rechecks. Testing agent changed only tests/report; broad retry-to-skip modification to org registration tests was removed so failures remain visible.
+- Desktop 1920×800 and mobile 390×844: scheduled form and populated org dispatch with 64-character unbreakable name, long description/route URL and all route categories verified. Final stress checks returned **no horizontal overflow**. Mobile payout preservation verified.
+- Service worker actually registers at root scope. Push payload/target URL and logged-out recipient guard verified with **MOCKED notification display in a browser test**; queue tests use **MOCKED provider responses**. Application runtime is not mocked.
+- **Live browser-provider/OS delivery with tab closed remains unverified**: test-browser notification permission is denied even after a grant attempt. Do not claim end-to-end closed-tab delivery passed. Owner inbox/SSE and real encrypted push implementation are present.
+- Cleaned temporary stress org and mock-provider fixture devices/events. Existing test-rate fixture records from historical suites remain; no real org/account data changed.
+
+### Prioritized remaining work
+- **P0 / user verification:** enable notifications in a normal supported browser; send test, close tab, approve/reject a test org from another account; verify OS notification and click-through. iOS requires 16.4+ Home Screen app. Browser/system permission and background-delivery policies apply.
+- **P1:** Refactor server.py into route modules. Separate auth-hardening work: testing agent flagged pre-existing unsalted SHA-256/no brute-force lockout; this is not a regression introduced here. Its cookie and admin-password-reconciliation recommendations are outside the approved refactor scope; no auth format/credentials were silently migrated.
+- **P2:** Split remaining large Settings.jsx; expand real-device responsive coverage and Safari/Firefox push tests; advanced org dispatch filters/role mentions.
+- Suggested enhancement: opt-in scheduled-event reminder notifications.
 

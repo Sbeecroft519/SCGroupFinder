@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="15" time="17.537" timestamp="2026-09-16T02:26:46.498353+00:00" hostname="agent-env-94d68928-efd3-421b-ada7-d3d71e10d1db"><testcase classname="backend.tests.test_org_register" name="test_register_creates_pending_org" time="8.211" /><testcase classname="backend.tests.test_org_register" name="test_admin_approval_makes_public" time="0.690" /><testcase classname="backend.tests.test_org_register" name="test_second_registration_by_same_owner_blocked" time="0.510" /><testcase classname="backend.tests.test_org_register" name="test_duplicate_tag_blocked" time="0.452" /><testcase classname="backend.tests.test_org_register" name="test_missing_fields_return_400" time="0.287" /><testcase classname="backend.tests.test_org_register" name="test_unauthenticated_blocked" time="0.170" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_push_config_public_only" time="0.326" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_subscribe_idempotent_and_auth_ownership" time="0.963" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_subscription_endpoint_validation_rejects_non_vendor" time="0.169" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_device_cap_limit_10" time="3.372" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_push_test_rate_limit" time="0.607" /><testcase classname="backend.tests.test_push_notifications_regression" name="test_inbox_isolation_and_mark_read" time="1.181"><failure message="assert False&#10; +  where False = all(&lt;generator object test_inbox_isolation_and_mark_read.&lt;locals&gt;.&lt;genexpr&gt; at 0xfd9c27954820&gt;)">backend/tests/test_push_notifications_regression.py:208: in test_inbox_isolation_and_mark_read
+    assert all(e.get("org_id") != org_id for e in inbox_admin.json())
+E   assert False
+E    +  where False = all(&lt;generator object test_inbox_isolation_and_mark_read.&lt;locals&gt;.&lt;genexpr&gt; at 0xfd9c27954820&gt;)</failure></testcase><testcase classname="backend.tests.test_push_notifications_regression" name="test_queue_410_cleanup" time="0.004"><failure message="KeyError: 'VAPID_PRIVATE_KEY'">backend/tests/test_push_notifications_regression.py:263: in test_queue_410_cleanup
+    asyncio.run(_run())
+/usr/local/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+backend/tests/test_push_notifications_regression.py:227: in _run
+    service = PushNotifications(db)
+              ^^^^^^^^^^^^^^^^^^^^^
+backend/push_notifications.py:90: in __init__
+    self.private_key = os.environ['VAPID_PRIVATE_KEY']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'VAPID_PRIVATE_KEY'</failure></testcase><testcase classname="backend.tests.test_push_notifications_regression" name="test_queue_retry_and_per_device_dedupe" time="0.001"><failure message="KeyError: 'VAPID_PRIVATE_KEY'">backend/tests/test_push_notifications_regression.py:318: in test_queue_retry_and_per_device_dedupe
+    asyncio.run(_run())
+/usr/local/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+backend/tests/test_push_notifications_regression.py:269: in _run
+    service = PushNotifications(db)
+              ^^^^^^^^^^^^^^^^^^^^^
+backend/push_notifications.py:90: in __init__
+    self.private_key = os.environ['VAPID_PRIVATE_KEY']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'VAPID_PRIVATE_KEY'</failure></testcase><testcase classname="backend.tests.test_push_notifications_regression" name="test_queue_marks_pending_on_transient_failure" time="0.001"><failure message="KeyError: 'VAPID_PRIVATE_KEY'">backend/tests/test_push_notifications_regression.py:362: in test_queue_marks_pending_on_transient_failure
+    asyncio.run(_run())
+/usr/local/lib/python3.11/asyncio/runners.py:190: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+backend/tests/test_push_notifications_regression.py:324: in _run
+    service = PushNotifications(db)
+              ^^^^^^^^^^^^^^^^^^^^^
+backend/push_notifications.py:90: in __init__
+    self.private_key = os.environ['VAPID_PRIVATE_KEY']
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'VAPID_PRIVATE_KEY'</failure></testcase></testsuite></testsuites>

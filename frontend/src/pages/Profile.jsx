@@ -5,6 +5,8 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import MissionHistory from '../components/MissionHistory';
 import BadgeRack from '../components/BadgeRack';
+import { OrgTag } from '../components/OrgTag';
+import { AffiliationRegion } from '../components/settings/AffiliationRegion';
 import { getUserRank } from '../constants/ranks';
 
 // New transparent avatar presets - must match Settings.jsx
@@ -82,6 +84,11 @@ export default function Profile() {
           {/* Header */}
           <div className="card-header">
             <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
+            {user.org_affiliation?.org_tag && (
+              <div style={{ marginTop: 4 }}>
+                <OrgTag tag={user.org_affiliation.org_tag} orgId={user.org_affiliation.org_id} testId="profile-org-tag" />
+              </div>
+            )}
             <div className="card-label">CITIZEN RECORD</div>
           </div>
           
@@ -173,6 +180,15 @@ export default function Profile() {
           </button>
         )}
       </div>
+
+        {isOwnProfile && (
+          <div style={{ marginTop: 20, border: '1px solid var(--nc-border)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="profile-affiliation-panel">
+            <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--nc-text-muted)', marginBottom: 14 }}>
+              ORG AFFILIATION
+            </div>
+            <AffiliationRegion compact />
+          </div>
+        )}
         </div>
 
         {/* Right Column - BadgeRack and Mission History */}

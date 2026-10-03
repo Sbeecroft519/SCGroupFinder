@@ -1,0 +1,1 @@
+export const PRESET_ROLES = ['Pilot', 'Co-Pilot', 'Turret Gunner', 'Marine / FPS', 'Medic', 'Engineer / Repair', 'Cargo Handler', 'Mining Operator', 'Salvage Operator', 'Scout', 'Security', 'Navigator'];

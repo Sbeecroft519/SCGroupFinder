@@ -1,0 +1,84 @@
+/* Responsive constraints shared by the board, organization tools and app chrome. */
+.navcom-page { min-width: 0; overflow-wrap: anywhere; }
+.navcom-page :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.navcom-page :is(button, a) { max-width: 100%; }
+.navcom-page :is(h1, h2, h3, h4, p, span) { overflow-wrap: anywhere; }
+.navcom-page svg { flex-shrink: 0; }
+.scgf-form-grid > *, .scgf-wrap > * { min-width: 0; }
+.contract-card :is(.contract-type, .contract-header, .contract-actions, .contract-meta) { flex-wrap: wrap; min-width: 0; gap: 10px; }
+.contract-meta-item { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.contract-actions { position: relative; }
+.contract-actions button { white-space: normal; }
+.contract-card .contract-title { overflow-wrap: anywhere; }
+.push-settings { border-block: 1px solid var(--nc-border); margin-block: 24px; padding-block: 20px; }
+.push-settings h3 { display: flex; align-items: center; gap: 8px; font-family: var(--nc-font-display); font-size: 16px; }
+.push-settings p { margin: 12px 0; font-size: 13px; color: var(--nc-text-secondary); }
+.push-settings .text-red { color: var(--nc-red); }
+.push-settings-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.landing-header button { transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+.navcom-page :is(button, a):focus-visible { outline: 2px solid var(--nc-cyan); outline-offset: 3px; }
+.alert-tickers-container .alert-ticker { height: auto; min-height: 30px; }
+.alert-tickers-container .alert-ticker-scroll { min-width: 0; flex: 1; }
+.alert-tickers-container .alert-ticker-content { width: 100%; min-width: 0; padding: 0; animation: ticker-reveal 250ms ease-out; transform: none; display: flex; flex-wrap: wrap; white-space: normal; }
+.alert-tickers-container .alert-ticker-item { padding: 5px 12px; max-width: 100%; min-width: 0; flex-wrap: wrap; gap: 6px; white-space: normal; }
+.alert-tickers-container .alert-ticker-item span { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+@keyframes ticker-reveal { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 1024px) {
+  .navcom-header { flex-wrap: wrap; gap: 12px; height: auto; min-height: 64px; padding-block: 10px; }
+  [data-testid="contracts-page"] .page-header { flex-wrap: wrap; gap: 20px; }
+}
+@media (max-width: 768px) {
+  .navcom-main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+  .navcom-header .navcom-logo { min-width: 0; }
+  .navcom-header .navcom-avatar-area { gap: 6px; }
+  .notification-dropdown { position: fixed !important; top: 80px !important; right: 12px !important; width: min(360px, calc(100vw - 24px)) !important; max-height: min(420px, 65dvh) !important; }
+  .mission-modal-overlay { padding: 12px !important; z-index: 1200 !important; }
+  .mission-modal { max-height: calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)) !important; overflow-y: auto; overscroll-behavior: contain; }
+  [data-testid="register-org-overlay"] { z-index: 1200 !important; padding: 12px !important; }
+  [data-testid="register-org-modal"] { width: 100% !important; max-height: calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)) !important; }
+}
+@media (max-width: 640px) {
+  .landing-header { padding: 16px !important; }
+  .landing-header > div { min-width: 0; max-width: 100%; }
+  .landing-header .landing-header-actions { flex: 1 0 100%; width: 100%; }
+  .landing-header button { flex: 1; min-width: 0; min-height: 44px; padding-inline: 16px; }
+  .navcom-page { padding-inline: 16px !important; }
+  .navcom-header { padding: 12px 16px; }
+  .navcom-header .logo-text { font-size: 16px; letter-spacing: 0; }
+  .navcom-header .logo-subtitle { font-size: 8px; letter-spacing: 1px; }
+  .navcom-header .shard-display { padding: 4px 6px; font-size: 10px; }
+  .navcom-header .shard-label { display: none; }
+  .scgf-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .scgf-wrap { flex-wrap: wrap !important; gap: 10px; }
+  [data-testid="contracts-page"] .page-header > div { width: 100%; min-width: 0; }
+  [data-testid="contracts-page"] .page-header > div:last-child { flex-wrap: wrap; }
+  [data-testid="create-contract-btn"] { flex: 1 1 100%; justify-content: center; }
+  .navcom-page .nc-toggle-group { display: flex; flex-wrap: wrap; max-width: 100%; }
+  .navcom-page :is(.nc-toggle, .nc-btn) { white-space: normal; letter-spacing: 0; min-height: 44px; }
+  .navcom-page :is(input, select, textarea) { font-size: 16px !important; }
+  .contract-card { padding: 16px; }
+  .contract-card .payment-amount { font-size: 18px; }
+  .contract-header > div { flex-wrap: wrap; min-width: 0; }
+  .contract-actions > button { flex: 1 1 130px; justify-content: center; }
+  .mission-modal-header, .mission-modal-content { padding: 16px !important; }
+  .mission-modal-header > div { min-width: 0; }
+  .mission-modal-close { flex-shrink: 0; min-width: 44px; min-height: 44px; }
+  .mission-modal .pilot-card { flex-wrap: wrap; padding: 12px; gap: 12px; }
+  .mission-modal .pilot-info { min-width: 0; }
+  .mission-modal .pilot-actions { flex-wrap: wrap; width: 100%; }
+  .mission-modal .pilot-stats { flex-wrap: wrap; gap: 8px; }
+  .mission-modal :is(.handle, .merc-handle) { font-size: 20px; overflow-wrap: anywhere; }
+  [data-testid="my-org-panel"], [data-testid="register-org-modal"] { padding: 16px !important; }
+  [data-testid="orgs-page"] button, [data-testid="register-org-modal"] button { min-height: 44px; }
+  [data-testid="orgs-page"] :is(input, textarea, select) { width: 100%; }
+  [data-testid="orgs-page"] input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
+  [data-testid="alert-routes-panel"] { padding: 12px !important; }
+  .settings-layout, .settings-content, .settings-section, .option-info { min-width: 0; }
+  .settings-section .notification-option { gap: 12px; }
+  .settings-section .toggle-switch { flex-shrink: 0; }
+  .push-settings-actions > button { width: 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navcom-page *, .mobile-nav * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

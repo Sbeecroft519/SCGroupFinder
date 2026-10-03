@@ -1,843 +1,31 @@
+import { useAuth, API } from '../App';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Building2, Stethoscope, Shield, Truck, Pickaxe, Users, MessageSquare, Lock, Check, X, Send, AlertCircle } from 'lucide-react';
-import { API, useAuth } from '../App';
-
-const SPECIALTIES = [
-  { icon: Stethoscope, label: 'Medical / Rescue', color: '#ff4466' },
-  { icon: Shield, label: 'Security', color: '#00f0ff' },
-  { icon: Shield, label: 'Escort', color: '#00f0ff' },
-  { icon: Truck, label: 'Cargo', color: '#00ff88' },
-  { icon: Pickaxe, label: 'Mining', color: '#ffd700' },
-  { icon: Pickaxe, label: 'Salvage', color: '#ffd700' },
-  { icon: Users, label: 'New Player Help', color: '#c977ff' },
-  { icon: Building2, label: 'Events', color: '#ff9900' },
-  { icon: Building2, label: 'Roleplay', color: '#ff9900' },
-  { icon: Shield, label: 'Combat', color: '#ff6600' },
-  { icon: Users, label: 'Training', color: '#c977ff' },
-  { icon: Building2, label: 'Exploration', color: '#00f0ff' },
-];
-const SPECIALTY_LABELS = SPECIALTIES.map(s => s.label);
-const REGIONS = ['USA', 'Europe', 'Australia', 'Asia', 'Global'];
-const SYSTEMS = ['Stanton', 'Pyro', 'Nyx'];
-const TIMINGS = ['now', 'future'];
-const ALERT_CATEGORIES = ['MEDICAL', 'COMBAT', 'CARGO', 'MINING', 'SALVAGE', 'ESCORT', 'LFG', 'OTHER'];
-
-const FEATURES = [
-  'Public organization profiles',
-  'Org specialties: Medical, Rescue, Security, Cargo, Mining, Salvage',
-  'Discord alerts for matching contracts',
-  'Rescue-safe dispatch alerts that protect private patient location data',
-  'Region, system, timing, and category filters',
-  'Future org reputation and dispatch tools',
-];
-
-function MultiToggle({ options, selected, onChange, testidPrefix }) {
-  const set = new Set(selected || []);
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-      {options.map(o => {
-        const active = set.has(o);
-        return (
-          <button
-            key={o}
-            type="button"
-            onClick={() => {
-              const next = new Set(set);
-              if (active) next.delete(o); else next.add(o);
-              onChange([...next]);
-            }}
-            data-testid={`${testidPrefix}-${o}`}
-            style={{
-              padding: '5px 10px', fontSize: 11, letterSpacing: 1,
-              fontFamily: 'var(--nc-font-mono)',
-              background: active ? 'var(--nc-cyan)' : 'transparent',
-              color: active ? 'var(--nc-bg-primary)' : 'var(--nc-text-secondary)',
-              border: `1px solid ${active ? 'var(--nc-cyan)' : 'var(--nc-border)'}`,
-              cursor: 'pointer',
-            }}
-          >
-            {o}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function OrgCard({ org }) {
-  return (
-    <div data-testid={`org-card-${org.tag}`} style={{
-      background: 'rgba(2, 11, 20, 0.85)',
-      border: '1px solid var(--nc-border)',
-      borderLeft: '3px solid var(--nc-cyan)',
-      padding: 18,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, color: 'var(--nc-text-primary)' }}>{org.name}</span>
-        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, color: 'var(--nc-cyan)', letterSpacing: 1 }}>[{org.tag}]</span>
-        {org.discord_connected && (
-          <span style={{ marginLeft: 'auto', fontSize: 10, padding: '2px 6px', letterSpacing: 1,
-            background: 'rgba(0,255,136,0.10)', color: '#00ff88', border: '1px solid #00ff88',
-            fontFamily: 'var(--nc-font-mono)' }}>● DISCORD READY</span>
-        )}
-      </div>
-      {org.description && (
-        <p style={{ color: 'var(--nc-text-secondary)', fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>{org.description}</p>
-      )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {(org.specialties || []).map(s => (
-          <span key={s} style={{ fontSize: 11, padding: '2px 8px', background: 'rgba(0,240,255,0.06)',
-            border: '1px solid rgba(0,240,255,0.25)', color: 'var(--nc-cyan)',
-            fontFamily: 'var(--nc-font-mono)' }}>{s}</span>
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 12, fontSize: 11,
-        color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)' }}>
-        {(org.home_regions || []).length > 0 && <span>Regions: {org.home_regions.join(', ')}</span>}
-        {(org.service_systems || []).length > 0 && <span>Systems: {org.service_systems.join(', ')}</span>}
-        <span>{(org.members || []).length} member{(org.members || []).length === 1 ? '' : 's'}</span>
-      </div>
-    </div>
-  );
-}
-
-function AlertRouteRow({ orgId, route, onChanged }) {
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    webhook_url: route.webhook_url || '',
-    label: route.label || '',
-    categories: route.categories || [],
-    rescue_only: !!route.rescue_only,
-    enabled: route.enabled !== false,
-  });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null);
-
-  const flash = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
-
-  const save = async () => {
-    setBusy(true);
-    try {
-      await axios.put(`${API}/orgs/${orgId}/routes/${route.id}`, form);
-      setEditing(false);
-      onChanged?.();
-    } catch (e) {
-      flash('err', e.response?.data?.detail || 'Save failed');
-    } finally { setBusy(false); }
-  };
-  const remove = async () => {
-    if (!window.confirm('Remove this route?')) return;
-    setBusy(true);
-    try {
-      await axios.delete(`${API}/orgs/${orgId}/routes/${route.id}`);
-      onChanged?.();
-    } catch (e) {
-      flash('err', e.response?.data?.detail || 'Delete failed');
-    } finally { setBusy(false); }
-  };
-  const test = async () => {
-    setBusy(true);
-    try {
-      const r = await axios.post(`${API}/orgs/${orgId}/routes/${route.id}/test`);
-      if (r.data?.success) flash('ok', 'Test ping delivered.');
-      else flash('err', `Webhook returned ${r.data?.status || 'error'}`);
-    } catch (e) {
-      flash('err', e.response?.data?.detail || 'Test failed');
-    } finally { setBusy(false); }
-  };
-
-  const cats = route.categories || [];
-  const catSummary = cats.length === 0 ? 'CATCH-ALL' : cats.join(', ');
-  const maskedUrl = (route.webhook_url || '').replace(/^(https:\/\/[^/]+\/api\/webhooks\/\d+\/).*$/, '$1•••');
-
-  return (
-    <div data-testid={`route-row-${route.id}`} style={{
-      border: '1px solid rgba(0,240,255,0.25)',
-      background: route.enabled === false ? 'rgba(255,255,255,0.02)' : 'rgba(0,240,255,0.03)',
-      padding: 12, marginBottom: 8,
-      opacity: route.enabled === false ? 0.55 : 1,
-    }}>
-      {!editing ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-cyan)' }}>
-                › {(route.label || 'unnamed').toUpperCase()}
-              </span>
-              <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1,
-                background: cats.length === 0 ? 'rgba(255,153,0,0.10)' : 'rgba(0,240,255,0.10)',
-                color: cats.length === 0 ? '#ff9900' : 'var(--nc-cyan)',
-                border: `1px solid ${cats.length === 0 ? '#ff9900' : 'var(--nc-cyan)'}`,
-                fontFamily: 'var(--nc-font-mono)' }}>{catSummary}</span>
-              {route.rescue_only && (
-                <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
-                  background: 'rgba(255,68,102,0.10)', color: '#ff4466', border: '1px solid #ff4466' }}>RESCUE-ONLY</span>
-              )}
-              {route.enabled === false && (
-                <span style={{ fontSize: 10, padding: '2px 6px', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
-                  background: 'rgba(255,255,255,0.05)', color: 'var(--nc-text-muted)', border: '1px solid var(--nc-text-muted)' }}>DISABLED</span>
-              )}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', marginTop: 4 }}>
-              {maskedUrl}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" onClick={test} disabled={busy}
-              data-testid={`route-test-${route.id}`}
-              style={{ background: 'transparent', border: '1px solid #00f0ff', color: '#00f0ff',
-                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              {busy ? '…' : 'TEST'}
-            </button>
-            <button type="button" onClick={() => setEditing(true)} disabled={busy}
-              data-testid={`route-edit-${route.id}`}
-              style={{ background: 'transparent', border: '1px solid var(--nc-text-secondary)', color: 'var(--nc-text-secondary)',
-                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              EDIT
-            </button>
-            <button type="button" onClick={remove} disabled={busy}
-              data-testid={`route-delete-${route.id}`}
-              style={{ background: 'transparent', border: '1px solid #ff4466', color: '#ff4466',
-                padding: '4px 10px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              ✕
-            </button>
-          </div>
-          {msg && (
-            <div style={{ flex: '0 0 100%', fontSize: 11, fontFamily: 'var(--nc-font-mono)',
-              color: msg.type === 'ok' ? '#00ff88' : '#ff4466' }}>{msg.text}</div>
-          )}
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          <input className="nc-input" placeholder="Label (e.g. medical-alerts)" value={form.label}
-            onChange={e => setForm(p => ({ ...p, label: e.target.value }))} />
-          <input className="nc-input" placeholder="https://discord.com/api/webhooks/..."
-            value={form.webhook_url} onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))} />
-          <div>
-            <label className="nc-label" style={{ fontSize: 10 }}>CATEGORIES (empty = catch-all)</label>
-            <MultiToggle options={ALERT_CATEGORIES} selected={form.categories}
-              onChange={v => setForm(p => ({ ...p, categories: v }))}
-              testidPrefix={`route-cat-${route.id}`} />
-          </div>
-          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
-            <input type="checkbox" checked={form.rescue_only} onChange={e => setForm(p => ({ ...p, rescue_only: e.target.checked }))} />
-            Rescue-only (only fire for MEDICAL contracts)
-          </label>
-          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
-            <input type="checkbox" checked={form.enabled} onChange={e => setForm(p => ({ ...p, enabled: e.target.checked }))} />
-            Enabled
-          </label>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" onClick={save} disabled={busy || !form.webhook_url.trim()}
-              data-testid={`route-save-${route.id}`}
-              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88',
-                padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              {busy ? 'SAVING...' : 'SAVE'}
-            </button>
-            <button type="button" onClick={() => setEditing(false)}
-              style={{ background: 'transparent', border: '1px solid var(--nc-text-muted)', color: 'var(--nc-text-muted)',
-                padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              CANCEL
-            </button>
-            {msg && (
-              <span style={{ fontSize: 11, fontFamily: 'var(--nc-font-mono)',
-                color: msg.type === 'ok' ? '#00ff88' : '#ff4466', marginLeft: 8, alignSelf: 'center' }}>{msg.text}</span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AlertRoutesPanel({ orgId }) {
-  const [routes, setRoutes] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [newRoute, setNewRoute] = useState({ webhook_url: '', label: '', categories: [], rescue_only: false });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null);
-
-  const fetchRoutes = async () => {
-    try {
-      const r = await axios.get(`${API}/orgs/${orgId}/routes`);
-      setRoutes(r.data?.routes || []);
-    } catch (e) {
-      setRoutes([]);
-    }
-  };
-  useEffect(() => { fetchRoutes(); /* eslint-disable-next-line */ }, [orgId]);
-
-  const add = async () => {
-    setBusy(true);
-    try {
-      await axios.post(`${API}/orgs/${orgId}/routes`, newRoute);
-      setNewRoute({ webhook_url: '', label: '', categories: [], rescue_only: false });
-      setShowAdd(false);
-      fetchRoutes();
-    } catch (e) {
-      setMsg({ type: 'err', text: e.response?.data?.detail || 'Failed to add route' });
-      setTimeout(() => setMsg(null), 4000);
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <div data-testid="alert-routes-panel" style={{ background: 'rgba(0,240,255,0.03)',
-      border: '1px solid rgba(0,240,255,0.2)', padding: 16, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)' }}>
-          DISPATCH ROUTES
-        </span>
-        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, color: 'var(--nc-text-muted)' }}>
-          Route alerts to different Discord channels by contract category.
-        </span>
-        <button type="button" onClick={() => setShowAdd(s => !s)}
-          data-testid="route-add-toggle"
-          style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--nc-cyan)',
-            color: 'var(--nc-cyan)', padding: '4px 12px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-          {showAdd ? '✕ CANCEL' : '+ ADD ROUTE'}
-        </button>
-      </div>
-
-      {showAdd && (
-        <div data-testid="route-add-form" style={{ display: 'grid', gap: 8, padding: 12,
-          marginBottom: 14, background: 'rgba(0,0,0,0.2)', border: '1px dashed rgba(0,240,255,0.4)' }}>
-          <input className="nc-input" placeholder="Label (e.g. medical-alerts)" value={newRoute.label}
-            onChange={e => setNewRoute(p => ({ ...p, label: e.target.value }))}
-            data-testid="new-route-label" />
-          <input className="nc-input" placeholder="https://discord.com/api/webhooks/..."
-            value={newRoute.webhook_url} onChange={e => setNewRoute(p => ({ ...p, webhook_url: e.target.value }))}
-            data-testid="new-route-webhook" />
-          <div>
-            <label className="nc-label" style={{ fontSize: 10 }}>CATEGORIES (empty = catch-all)</label>
-            <MultiToggle options={ALERT_CATEGORIES} selected={newRoute.categories}
-              onChange={v => setNewRoute(p => ({ ...p, categories: v }))} testidPrefix="new-route-cat" />
-          </div>
-          <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--nc-text-secondary)' }}>
-            <input type="checkbox" checked={newRoute.rescue_only}
-              onChange={e => setNewRoute(p => ({ ...p, rescue_only: e.target.checked }))}
-              data-testid="new-route-rescue-only" />
-            Rescue-only (only fire for MEDICAL contracts)
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={add} disabled={busy || !newRoute.webhook_url.trim()}
-              data-testid="new-route-submit"
-              style={{ background: 'transparent', border: '1px solid #00ff88', color: '#00ff88',
-                padding: '6px 14px', fontSize: 11, fontFamily: 'var(--nc-font-mono)', cursor: 'pointer' }}>
-              {busy ? 'ADDING...' : '+ ADD ROUTE'}
-            </button>
-            {msg && (
-              <span style={{ fontSize: 11, alignSelf: 'center', fontFamily: 'var(--nc-font-mono)',
-                color: msg.type === 'ok' ? '#00ff88' : '#ff4466' }}>{msg.text}</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {routes.length === 0 ? (
-        <div style={{ padding: 10, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', fontSize: 12 }}>
-          No routes yet — dispatch uses the single Discord Webhook (above). Add per-category routes to send
-          medical alerts to <code>#med</code>, LFG to <code>#lfg</code>, etc.
-        </div>
-      ) : (
-        <div>{routes.map(r => <AlertRouteRow key={r.id} orgId={orgId} route={r} onChanged={fetchRoutes} />)}</div>
-      )}
-
-      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)' }}>
-        Selection: the first specific category match wins. If nothing matches, all catch-all routes fire.
-      </div>
-    </div>
-  );
-}
-
-function MyOrgPanel({ org, currentUser, onChanged }) {
-  const [form, setForm] = useState(() => ({
-    name: org.name || '',
-    tag: org.tag || '',
-    description: org.description || '',
-    rsi_org_url: org.rsi_org_url || '',
-    discord_invite_url: org.discord_invite_url || '',
-    discord_history_webhook_url: org.discord_history_webhook_url || '',
-    specialties: org.specialties || [],
-    home_regions: org.home_regions || [],
-    service_systems: org.service_systems || [],
-    discord_alerts_enabled: !!org.discord_alerts_enabled,
-    alert_categories: org.alert_categories || [],
-    alert_regions: org.alert_regions || [],
-    alert_systems: org.alert_systems || [],
-    alert_timing_types: org.alert_timing_types || [],
-    alert_rescue_only: !!org.alert_rescue_only,
-    alert_min_payout: org.alert_min_payout || '',
-  }));
-  const [webhookInput, setWebhookInput] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [feedback, setFeedback] = useState(null);
-
-  const update = (patch) => setForm(prev => ({ ...prev, ...patch }));
-
-  const saveProfile = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        tag: form.tag.trim().toUpperCase(),
-        description: form.description,
-        rsi_org_url: form.rsi_org_url || null,
-        discord_invite_url: form.discord_invite_url || null,
-        discord_history_webhook_url: form.discord_history_webhook_url ?? '',
-        specialties: form.specialties,
-        home_regions: form.home_regions,
-        service_systems: form.service_systems,
-        discord_alerts_enabled: form.discord_alerts_enabled,
-        alert_categories: form.alert_categories,
-        alert_regions: form.alert_regions,
-        alert_systems: form.alert_systems,
-        alert_timing_types: form.alert_timing_types,
-        alert_rescue_only: form.alert_rescue_only,
-        alert_min_payout: form.alert_min_payout === '' ? null : parseInt(form.alert_min_payout),
-      };
-      await axios.put(`${API}/orgs/${org.id}`, payload);
-      setFeedback({ type: 'ok', text: 'Org saved.' });
-      onChanged?.();
-    } catch (e) {
-      setFeedback({ type: 'err', text: e.response?.data?.detail || 'Save failed' });
-    } finally {
-      setSaving(false);
-      setTimeout(() => setFeedback(null), 3000);
-    }
-  };
-
-  const connectWebhook = async () => {
-    if (!webhookInput.trim()) return;
-    setSaving(true);
-    try {
-      await axios.post(`${API}/orgs/${org.id}/discord-webhook`, { discord_webhook_url: webhookInput.trim() });
-      setWebhookInput('');
-      setFeedback({ type: 'ok', text: 'Webhook saved.' });
-      onChanged?.();
-    } catch (e) {
-      setFeedback({ type: 'err', text: e.response?.data?.detail || 'Webhook save failed' });
-    } finally {
-      setSaving(false);
-      setTimeout(() => setFeedback(null), 3000);
-    }
-  };
-
-  const sendTest = async () => {
-    setTesting(true);
-    try {
-      const r = await axios.post(`${API}/orgs/${org.id}/test-discord`);
-      if (r.data?.success) setFeedback({ type: 'ok', text: 'Test alert delivered to Discord.' });
-      else setFeedback({ type: 'err', text: `Webhook returned ${r.data?.status || 'error'}` });
-    } catch (e) {
-      setFeedback({ type: 'err', text: e.response?.data?.detail || 'Test failed' });
-    } finally {
-      setTesting(false);
-      setTimeout(() => setFeedback(null), 4000);
-    }
-  };
-
-  const approved = org.approval_status === 'approved';
-  const pending = org.approval_status === 'pending';
-
-  return (
-    <div data-testid="my-org-panel" style={{ background: 'rgba(2, 11, 20, 0.92)', border: '1px solid var(--nc-cyan)', padding: 24, marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)' }}>// YOUR ORGANIZATION</span>
-        <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 22, color: 'var(--nc-text-primary)' }}>{org.name}</span>
-        <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 12, color: 'var(--nc-cyan)' }}>[{org.tag}]</span>
-        <span data-testid="org-approval-pill" style={{
-          marginLeft: 'auto', fontSize: 10, padding: '3px 8px', letterSpacing: 1, fontFamily: 'var(--nc-font-mono)',
-          color: approved ? '#00ff88' : (pending ? '#ffd700' : '#ff4466'),
-          border: `1px solid ${approved ? '#00ff88' : (pending ? '#ffd700' : '#ff4466')}`,
-        }}>
-          {approved ? '● APPROVED' : pending ? '⏳ PENDING REVIEW' : '✕ REJECTED'}
-        </span>
-      </div>
-
-      {pending && (
-        <div data-testid="pending-notice" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: 10,
-          background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.3)', marginBottom: 16 }}>
-          <AlertCircle size={14} style={{ color: '#ffd700', marginTop: 2 }} />
-          <span style={{ color: 'var(--nc-text-secondary)', fontSize: 12, lineHeight: 1.6 }}>
-            Your org is awaiting admin approval. You can still fill in your profile and connect a webhook —
-            dispatch will start firing once approved.
-          </span>
-        </div>
-      )}
-
-      {/* Profile section */}
-      <div style={{ display: 'grid', gap: 12, marginBottom: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-          <div>
-            <label className="nc-label">ORG NAME</label>
-            <input
-              className="nc-input"
-              value={form.name}
-              onChange={e => update({ name: e.target.value })}
-              placeholder="Full organization name (3–64 chars)"
-              maxLength={64}
-              data-testid="org-name-input"
-            />
-          </div>
-          <div>
-            <label className="nc-label">ORG TAG</label>
-            <input
-              className="nc-input"
-              value={form.tag}
-              onChange={e => update({ tag: e.target.value.toUpperCase() })}
-              placeholder="ABBR (2–8)"
-              maxLength={8}
-              style={{ textTransform: 'uppercase', letterSpacing: 2 }}
-              data-testid="org-tag-input"
-            />
-          </div>
-        </div>
-        <label className="nc-label">DESCRIPTION</label>
-        <textarea
-          className="nc-input"
-          rows={3}
-          value={form.description}
-          onChange={e => update({ description: e.target.value })}
-          placeholder="What does your org do? Who's it for?"
-          data-testid="org-description-input"
-        />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label className="nc-label">RSI ORG URL</label>
-            <input className="nc-input" value={form.rsi_org_url} onChange={e => update({ rsi_org_url: e.target.value })} placeholder="https://robertsspaceindustries.com/orgs/..." data-testid="org-rsi-url" />
-          </div>
-          <div>
-            <label className="nc-label">DISCORD INVITE URL</label>
-            <input className="nc-input" value={form.discord_invite_url} onChange={e => update({ discord_invite_url: e.target.value })} placeholder="https://discord.gg/..." data-testid="org-discord-invite" />
-          </div>
-          <div style={{ display: 'grid', gap: 6 }}>
-            <label style={{ fontSize: 11, color: 'var(--nc-cyan)', fontFamily: 'var(--nc-font-mono)', textTransform: 'uppercase' }}>Contract-History Webhook (optional)</label>
-            <input className="nc-input" value={form.discord_history_webhook_url} onChange={e => update({ discord_history_webhook_url: e.target.value })} placeholder="https://discord.com/api/webhooks/..." data-testid="org-discord-history-webhook" />
-            <div style={{ fontSize: 11, color: 'var(--nc-text-muted)' }}>
-              When a contract is marked <strong>complete</strong>, a summary post is sent here (leave blank to disable). Use a different channel (e.g. <code>#contract-history</code>) from your live alerts.
-            </div>
-          </div>
-        </div>
-
-        <label className="nc-label" style={{ marginTop: 8 }}>SPECIALTIES</label>
-        <MultiToggle options={SPECIALTY_LABELS} selected={form.specialties} onChange={v => update({ specialties: v })} testidPrefix="org-specialty" />
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
-          <div>
-            <label className="nc-label">HOME REGIONS</label>
-            <MultiToggle options={REGIONS} selected={form.home_regions} onChange={v => update({ home_regions: v })} testidPrefix="org-region" />
-          </div>
-          <div>
-            <label className="nc-label">SERVICE SYSTEMS</label>
-            <MultiToggle options={SYSTEMS} selected={form.service_systems} onChange={v => update({ service_systems: v })} testidPrefix="org-system" />
-          </div>
-        </div>
-      </div>
-
-      {/* Discord webhook + alert filters */}
-      <div style={{ background: 'rgba(0,240,255,0.04)', border: '1px solid rgba(0,240,255,0.2)', padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <MessageSquare size={14} style={{ color: 'var(--nc-cyan)' }} />
-          <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)' }}>DISCORD DISPATCH</span>
-          <span data-testid="webhook-status" style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'var(--nc-font-mono)',
-            color: org.discord_connected ? '#00ff88' : 'var(--nc-text-muted)' }}>
-            {org.discord_connected ? '● Webhook connected' : '○ No webhook configured'}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <input
-            className="nc-input"
-            placeholder="https://discord.com/api/webhooks/..."
-            value={webhookInput}
-            onChange={e => setWebhookInput(e.target.value)}
-            style={{ flex: '1 1 320px' }}
-            data-testid="webhook-input"
-          />
-          <button
-            type="button"
-            className="nc-btn nc-btn-primary"
-            onClick={connectWebhook}
-            disabled={saving || !webhookInput.trim()}
-            data-testid="webhook-save-btn"
-          >
-            <Check size={14} /> Save Webhook
-          </button>
-          <button
-            type="button"
-            className="nc-btn nc-btn-secondary"
-            onClick={sendTest}
-            disabled={testing || !org.discord_connected}
-            data-testid="webhook-test-btn"
-          >
-            <Send size={14} /> {testing ? 'Sending...' : 'Send Test'}
-          </button>
-        </div>
-
-        {/* Per-category alert routes */}
-        <AlertRoutesPanel orgId={org.id} />
-
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--nc-text-secondary)', cursor: 'pointer', marginBottom: 12 }}>
-          <input
-            type="checkbox"
-            checked={form.discord_alerts_enabled}
-            onChange={e => update({ discord_alerts_enabled: e.target.checked })}
-            data-testid="alerts-enabled-toggle"
-          />
-          <span><strong style={{ color: 'var(--nc-cyan)' }}>Enable dispatch</strong> — fire Discord alerts for new contracts matching the filters below.</span>
-        </label>
-
-        <div style={{ display: 'grid', gap: 12 }}>
-          <div>
-            <label className="nc-label">ALERT CATEGORIES (empty = all)</label>
-            <MultiToggle options={ALERT_CATEGORIES} selected={form.alert_categories} onChange={v => update({ alert_categories: v })} testidPrefix="alert-cat" />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="nc-label">REGIONS</label>
-              <MultiToggle options={REGIONS} selected={form.alert_regions} onChange={v => update({ alert_regions: v })} testidPrefix="alert-region" />
-            </div>
-            <div>
-              <label className="nc-label">SYSTEMS</label>
-              <MultiToggle options={SYSTEMS} selected={form.alert_systems} onChange={v => update({ alert_systems: v })} testidPrefix="alert-system" />
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label className="nc-label">TIMING</label>
-              <MultiToggle options={TIMINGS} selected={form.alert_timing_types} onChange={v => update({ alert_timing_types: v })} testidPrefix="alert-timing" />
-            </div>
-            <div>
-              <label className="nc-label">MIN PAYOUT (aUEC)</label>
-              <input
-                className="nc-input"
-                type="number"
-                min={0}
-                placeholder="0"
-                value={form.alert_min_payout}
-                onChange={e => update({ alert_min_payout: e.target.value })}
-                data-testid="alert-min-payout"
-              />
-            </div>
-          </div>
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--nc-text-secondary)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={form.alert_rescue_only}
-              onChange={e => update({ alert_rescue_only: e.target.checked })}
-              data-testid="alert-rescue-only"
-            />
-            <span><strong style={{ color: '#ff4466' }}>Rescue-only mode</strong> — only fire alerts for Medical / Rescue contracts.</span>
-          </label>
-        </div>
-
-        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', padding: 10, marginTop: 14,
-          background: 'rgba(255,0,68,0.04)', border: '1px solid rgba(255,0,68,0.2)' }}>
-          <Lock size={14} style={{ color: '#ff4466', marginTop: 2 }} />
-          <span style={{ color: 'var(--nc-text-secondary)', fontSize: 12, lineHeight: 1.5 }}>
-            Rescue-safe: exact patient location, body location, and private notes are <strong>never</strong> sent to Discord —
-            only public risk fields and bleed-out timing. Webhook URL is never exposed publicly.
-          </span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          className="nc-btn nc-btn-primary"
-          onClick={saveProfile}
-          disabled={saving}
-          data-testid="save-org-btn"
-        >
-          <Check size={14} /> {saving ? 'Saving...' : 'Save Org Profile'}
-        </button>
-        {feedback && (
-          <span data-testid="org-feedback" style={{
-            fontSize: 12, fontFamily: 'var(--nc-font-mono)',
-            color: feedback.type === 'ok' ? '#00ff88' : '#ff4466',
-          }}>
-            {feedback.text}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RegisterOrgModal({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({
-    name: '', tag: '', description: '',
-    rsi_org_url: '', discord_invite_url: '',
-    specialties: [], home_regions: [], service_systems: [],
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState(null);
-  const [ok, setOk] = useState(false);
-
-  if (!open) return null;
-  const update = (patch) => setForm(prev => ({ ...prev, ...patch }));
-
-  const submit = async () => {
-    setErr(null);
-    const name = form.name.trim();
-    const tag = form.tag.trim().toUpperCase();
-    if (name.length < 3 || name.length > 64) { setErr('Name must be 3–64 characters'); return; }
-    if (tag.length < 2 || tag.length > 8) { setErr('Tag must be 2–8 characters'); return; }
-    setSubmitting(true);
-    try {
-      const payload = {
-        name, tag,
-        description: form.description,
-        rsi_org_url: form.rsi_org_url || null,
-        discord_invite_url: form.discord_invite_url || null,
-        specialties: form.specialties,
-        home_regions: form.home_regions,
-        service_systems: form.service_systems,
-      };
-      await axios.post(`${API}/orgs/register`, payload);
-      setOk(true);
-      setTimeout(() => { onCreated?.(); onClose?.(); }, 1400);
-    } catch (e) {
-      setErr(e.response?.data?.detail || 'Registration failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div
-      onClick={onClose}
-      data-testid="register-org-overlay"
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 999,
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '5vh', overflow: 'auto',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        data-testid="register-org-modal"
-        style={{
-          background: 'rgba(2,11,20,0.98)', border: '1px solid var(--nc-cyan)', padding: 24,
-          width: 'min(720px, 92vw)', maxHeight: '90vh', overflow: 'auto',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <Building2 size={16} style={{ color: 'var(--nc-cyan)' }} />
-          <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)' }}>// REGISTER YOUR ORG</span>
-          <button onClick={onClose} data-testid="register-org-close" style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--nc-text-muted)', cursor: 'pointer' }}>
-            <X size={18} />
-          </button>
-        </div>
-        <p style={{ color: 'var(--nc-text-secondary)', fontSize: 13, lineHeight: 1.6, marginTop: 0 }}>
-          Fill in your org's public profile. Your submission goes to the admin queue for approval —
-          you'll be able to keep editing while it's pending.
-        </p>
-
-        {ok ? (
-          <div data-testid="register-org-success" style={{
-            padding: 16, border: '1px solid #00ff88', color: '#00ff88', textAlign: 'center',
-            fontFamily: 'var(--nc-font-mono)', fontSize: 13, letterSpacing: 1,
-          }}>
-            ✓ APPLICATION SUBMITTED — awaiting admin approval
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-              <div>
-                <label className="nc-label">ORG NAME *</label>
-                <input className="nc-input" value={form.name}
-                  onChange={e => update({ name: e.target.value })}
-                  placeholder="Full organization name (3–64 chars)" maxLength={64}
-                  data-testid="register-org-name" />
-              </div>
-              <div>
-                <label className="nc-label">ORG TAG *</label>
-                <input className="nc-input" value={form.tag}
-                  onChange={e => update({ tag: e.target.value.toUpperCase() })}
-                  placeholder="ABBR (2–8)" maxLength={8}
-                  style={{ textTransform: 'uppercase', letterSpacing: 2 }}
-                  data-testid="register-org-tag" />
-              </div>
-            </div>
-            <div>
-              <label className="nc-label">DESCRIPTION</label>
-              <textarea className="nc-input" rows={3} value={form.description}
-                onChange={e => update({ description: e.target.value })}
-                placeholder="What does your org do? Who's it for?"
-                data-testid="register-org-description" />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label className="nc-label">RSI ORG URL</label>
-                <input className="nc-input" value={form.rsi_org_url}
-                  onChange={e => update({ rsi_org_url: e.target.value })}
-                  placeholder="https://robertsspaceindustries.com/orgs/..."
-                  data-testid="register-org-rsi-url" />
-              </div>
-              <div>
-                <label className="nc-label">DISCORD INVITE URL</label>
-                <input className="nc-input" value={form.discord_invite_url}
-                  onChange={e => update({ discord_invite_url: e.target.value })}
-                  placeholder="https://discord.gg/..."
-                  data-testid="register-org-discord-invite" />
-              </div>
-            </div>
-            <div>
-              <label className="nc-label">SPECIALTIES</label>
-              <MultiToggle options={SPECIALTY_LABELS} selected={form.specialties}
-                onChange={v => update({ specialties: v })} testidPrefix="register-org-specialty" />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label className="nc-label">HOME REGIONS</label>
-                <MultiToggle options={REGIONS} selected={form.home_regions}
-                  onChange={v => update({ home_regions: v })} testidPrefix="register-org-region" />
-              </div>
-              <div>
-                <label className="nc-label">SERVICE SYSTEMS</label>
-                <MultiToggle options={SYSTEMS} selected={form.service_systems}
-                  onChange={v => update({ service_systems: v })} testidPrefix="register-org-system" />
-              </div>
-            </div>
-
-            {err && (
-              <div data-testid="register-org-error" style={{
-                padding: 10, border: '1px solid #ff4466', color: '#ff4466',
-                fontSize: 12, fontFamily: 'var(--nc-font-mono)',
-              }}>{err}</div>
-            )}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button className="nc-btn" onClick={onClose} disabled={submitting}
-                data-testid="register-org-cancel">CANCEL</button>
-              <button className="nc-btn nc-btn-primary" onClick={submit} disabled={submitting}
-                data-testid="register-org-submit">
-                {submitting ? 'Submitting…' : 'Submit for Approval'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
+import { FEATURES } from '../components/organizations/orgConstants.js';
+import { MyOrgPanel } from '../components/organizations/MyOrgPanel.jsx';
+import { Building2, Lock, MessageSquare } from 'lucide-react';
+import { RegisterOrgModal } from '../components/organizations/RegisterOrgModal.jsx';
+import { OrgCard } from '../components/organizations/OrgCard.jsx';
 export default function Organizations() {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [comingSoon, setComingSoon] = useState(false);
   const [orgs, setOrgs] = useState([]);
   const [myOrg, setMyOrg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
-
   const fetchAll = async () => {
     try {
-      const [listRes, mineRes] = await Promise.all([
-        axios.get(`${API}/orgs`),
-        user ? axios.get(`${API}/user/my-org`).catch(() => ({ data: { org: null } })) : Promise.resolve({ data: { org: null } }),
-      ]);
+      const [listRes, mineRes] = await Promise.all([axios.get(`${API}/orgs`), user ? axios.get(`${API}/user/my-org`).catch(() => ({
+        data: {
+          org: null
+        }
+      })) : Promise.resolve({
+        data: {
+          org: null
+        }
+      })]);
       setComingSoon(!!listRes.data?.coming_soon);
       setOrgs(listRes.data?.orgs || []);
       const mine = mineRes.data?.org || null;
@@ -846,134 +34,255 @@ export default function Organizations() {
       if (mine && mine.owner_pending && mine.owner_id === user?.id) {
         try {
           await axios.post(`${API}/user/org-invites/${mine.id}/accept`);
-          window.dispatchEvent(new CustomEvent('org-invite-accepted', { detail: { org_id: mine.id } }));
-        } catch (_e) { /* ignore */ }
+          window.dispatchEvent(new CustomEvent('org-invite-accepted', {
+            detail: {
+              org_id: mine.id
+            }
+          }));
+        } catch (_e) {/* ignore */}
       }
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, [user?.id]);
-
+  useEffect(() => {
+    fetchAll(); /* eslint-disable-next-line */
+  }, [user?.id]);
+  useEffect(() => {
+    const refresh = () => {
+      fetchAll();
+    };
+    window.addEventListener('org-status-changed', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.removeEventListener('org-status-changed', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   if (comingSoon) {
     // Original Coming Soon view, preserved verbatim per spec
-    return (
-      <div className="navcom-page" data-testid="orgs-page">
+    return <div className="navcom-page" data-testid="orgs-page">
         <div className="page-header">
           <div className="page-label">// ORGANIZATIONS</div>
-          <h1 className="page-title">Organizations</h1>
-          <p className="page-subtitle">Org dispatch tools for rescue teams, escorts, haulers, and industrial crews.</p>
+          <h1 data-testid="organizations-page-title" className="page-title">Organizations</h1>
+          <p data-testid="organizations-page-subtitle" className="page-subtitle">Org dispatch tools for rescue teams, escorts, haulers, and industrial crews.</p>
         </div>
-        <div className="nc-card" style={{ borderLeft: '3px solid var(--nc-cyan)', padding: '32px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <span style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: '#c977ff', padding: '3px 10px', border: '1px solid #c977ff' }} data-testid="orgs-status-pill">COMING SOON</span>
+        <div className="nc-card" style={{
+        borderLeft: '3px solid var(--nc-cyan)',
+        padding: '32px 28px'
+      }}>
+          <div className="scgf-wrap" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 16
+        }}>
+            <span style={{
+            fontFamily: 'var(--nc-font-mono)',
+            fontSize: 11,
+            letterSpacing: 2,
+            color: '#c977ff',
+            padding: '3px 10px',
+            border: '1px solid #c977ff'
+          }} data-testid="orgs-status-pill">COMING SOON</span>
           </div>
-          <h2 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 28, color: 'var(--nc-text-primary)', margin: '0 0 12px' }}>Organizations Coming Soon</h2>
-          <p style={{ color: 'var(--nc-text-secondary)', fontSize: 15, lineHeight: 1.7, maxWidth: 760 }}>
+          <h2 data-testid="organizations-h2" style={{
+          fontFamily: 'var(--nc-font-display)',
+          fontSize: 28,
+          color: 'var(--nc-text-primary)',
+          margin: '0 0 12px'
+        }}>Organizations Coming Soon</h2>
+          <p data-testid="organizations-p" style={{
+          color: 'var(--nc-text-secondary)',
+          fontSize: 15,
+          lineHeight: 1.7,
+          maxWidth: 760
+        }}>
             Soon, organizations will be able to create public org profiles, connect Discord alert channels,
             and receive filtered contract notifications when relevant jobs are posted.
           </p>
-          <ul style={{ listStyle: 'none', padding: 0, marginTop: 20, display: 'grid', gap: 8 }}>
-            {FEATURES.map(f => (
-              <li key={f} style={{ color: 'var(--nc-text-secondary)', fontSize: 14 }}>
-                <span style={{ color: '#00ff88', marginRight: 8 }}>›</span>{f}
-              </li>
-            ))}
+          <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          marginTop: 20,
+          display: 'grid',
+          gap: 8
+        }}>
+            {FEATURES.map(f => <li key={f} style={{
+            color: 'var(--nc-text-secondary)',
+            fontSize: 14
+          }}>
+                <span data-testid={`organizations-span-${f}`} style={{
+              color: '#00ff88',
+              marginRight: 8
+            }}>›</span>{f}
+              </li>)}
           </ul>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="navcom-page" data-testid="orgs-page">
+  return <div className="navcom-page" data-testid="orgs-page">
       <div className="page-header">
         <div className="page-label">// ORGANIZATIONS</div>
-        <h1 className="page-title">Organizations</h1>
-        <p className="page-subtitle">Org dispatch tools for rescue teams, escorts, haulers, and industrial crews. Early-access — admin invitation only.</p>
+        <h1 data-testid="organizations-page-title-2" className="page-title">Organizations</h1>
+        <p data-testid="organizations-page-subtitle-2" className="page-subtitle">Rescue teams, escorts, haulers, and industrial crews.</p>
       </div>
 
-      {myOrg && (
-        <MyOrgPanel org={myOrg} currentUser={user} onChanged={fetchAll} />
-      )}
+      {myOrg && <MyOrgPanel org={myOrg} currentUser={user} onChanged={fetchAll} />}
 
       {/* Self-serve org registration CTA — visible when user has no org */}
-      {!myOrg && user && (
-        <div data-testid="register-org-cta" style={{
-          background: 'rgba(0,240,255,0.06)', border: '1px solid var(--nc-cyan)',
-          borderLeft: '3px solid var(--nc-cyan)', padding: 18, marginBottom: 24,
-          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+      {!myOrg && user && <div data-testid="register-org-cta" style={{
+      background: 'rgba(0,240,255,0.06)',
+      border: '1px solid var(--nc-cyan)',
+      borderLeft: '3px solid var(--nc-cyan)',
+      padding: 18,
+      marginBottom: 24,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      flexWrap: 'wrap'
+    }}>
+          <Building2 size={22} style={{
+        color: 'var(--nc-cyan)'
+      }} />
+          <div style={{
+        flex: '1 1 220px',
+        minWidth: 0
+      }}>
+            <div style={{
+          fontFamily: 'var(--nc-font-mono)',
+          fontSize: 11,
+          letterSpacing: 2,
+          color: 'var(--nc-cyan)',
+          marginBottom: 4
+        }}>// LEAD AN ORGANIZATION?</div>
+            <div style={{
+          color: 'var(--nc-text-primary)',
+          fontSize: 14,
+          fontFamily: 'var(--nc-font-display)'
         }}>
-          <Building2 size={22} style={{ color: 'var(--nc-cyan)' }} />
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 2, color: 'var(--nc-cyan)', marginBottom: 4 }}>// LEAD AN ORGANIZATION?</div>
-            <div style={{ color: 'var(--nc-text-primary)', fontSize: 14, fontFamily: 'var(--nc-font-display)' }}>
               Register your org for a public profile and Discord dispatch.
             </div>
-            <div style={{ color: 'var(--nc-text-muted)', fontSize: 12, marginTop: 4 }}>
-              {user.is_verified
-                ? 'Submit an application — an admin reviews before it goes live.'
-                : 'Verify your RSI handle first to unlock org registration.'}
+            <div style={{
+          color: 'var(--nc-text-muted)',
+          fontSize: 12,
+          marginTop: 4
+        }}>
+              {user.is_verified ? 'Submit an application — an admin reviews before it goes live.' : 'Verify your RSI handle first to unlock org registration.'}
             </div>
           </div>
-          <button
-            className="nc-btn nc-btn-primary"
-            onClick={() => setShowRegister(true)}
-            disabled={!user.is_verified}
-            data-testid="register-org-btn"
-          >
+          <button className="nc-btn nc-btn-primary" onClick={() => setShowRegister(true)} disabled={!user.is_verified} data-testid="register-org-btn">
             Register Your Org
           </button>
-        </div>
-      )}
+        </div>}
 
-      <RegisterOrgModal
-        open={showRegister}
-        onClose={() => setShowRegister(false)}
-        onCreated={fetchAll}
-      />
+      <RegisterOrgModal open={showRegister} onClose={() => setShowRegister(false)} onCreated={fetchAll} />
 
       {/* Public org list */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '24px 0 12px' }}>
-        <h2 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 18, color: 'var(--nc-text-primary)', margin: 0 }}>APPROVED ORGS</h2>
-        <span style={{ fontSize: 12, color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)' }}>
+      <div className="scgf-wrap" style={{
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 12,
+      margin: '24px 0 12px'
+    }}>
+        <h2 data-testid="organizations-h2-2" style={{
+        fontFamily: 'var(--nc-font-display)',
+        fontSize: 18,
+        color: 'var(--nc-text-primary)',
+        margin: 0
+      }}>APPROVED ORGS</h2>
+        <span data-testid="organizations-span-2" style={{
+        fontSize: 12,
+        color: 'var(--nc-text-muted)',
+        fontFamily: 'var(--nc-font-mono)'
+      }}>
           {loading ? 'Loading…' : `${orgs.length} active`}
         </span>
       </div>
 
-      {orgs.length === 0 ? (
-        <div data-testid="empty-orgs" style={{ padding: 18, border: '1px dashed var(--nc-border)',
-          color: 'var(--nc-text-muted)', fontFamily: 'var(--nc-font-mono)', fontSize: 13 }}>
-          No approved organizations yet. Talk to an admin to get your org invited.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+      {orgs.length === 0 ? <div data-testid="empty-orgs" style={{
+      padding: 18,
+      border: '1px dashed var(--nc-border)',
+      color: 'var(--nc-text-muted)',
+      fontFamily: 'var(--nc-font-mono)',
+      fontSize: 13
+    }}>
+          No approved organizations yet.
+        </div> : <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+      gap: 14
+    }}>
           {orgs.map(o => <OrgCard key={o.id} org={o} />)}
-        </div>
-      )}
+        </div>}
 
       {/* Rescue-safe + Early access notes (preserved from Coming Soon) */}
-      <div style={{ marginTop: 28, display: 'grid', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 14, background: 'rgba(255, 0, 68, 0.05)', border: '1px solid rgba(255,0,68,0.25)' }}>
-          <Lock size={16} style={{ color: '#ff4466', marginTop: 2 }} />
-          <div style={{ color: 'var(--nc-text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
-            <strong style={{ color: '#ff4466', display: 'block', marginBottom: 4, fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1 }}>RESCUE-SAFE DISPATCH</strong>
+      <div style={{
+      marginTop: 28,
+      display: 'grid',
+      gap: 12
+    }}>
+        <div className="scgf-wrap" style={{
+        display: 'flex',
+        gap: 10,
+        alignItems: 'flex-start',
+        padding: 14,
+        background: 'rgba(255, 0, 68, 0.05)',
+        border: '1px solid rgba(255,0,68,0.25)'
+      }}>
+          <Lock size={16} style={{
+          color: '#ff4466',
+          marginTop: 2
+        }} />
+          <div style={{
+          color: 'var(--nc-text-secondary)',
+          fontSize: 13,
+          lineHeight: 1.6
+        }}>
+            <strong data-testid="organizations-strong" style={{
+            color: '#ff4466',
+            display: 'block',
+            marginBottom: 4,
+            fontFamily: 'var(--nc-font-mono)',
+            fontSize: 11,
+            letterSpacing: 1
+          }}>RESCUE-SAFE DISPATCH</strong>
             Discord alerts for medical/rescue jobs include only public risk fields and bleed-out timing.
-            Exact patient location, body location, and private notes are <strong>never</strong> sent to Discord
+            Exact patient location, body location, and private notes are <strong data-testid="organizations-strong-2">never</strong> sent to Discord
             — they're disclosed only to the accepted rescuer.
           </div>
         </div>
-        <div style={{ padding: 14, background: 'rgba(0,240,255,0.05)', border: '1px solid rgba(0,240,255,0.25)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <MessageSquare size={14} style={{ color: 'var(--nc-cyan)' }} />
-            <strong style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 11, letterSpacing: 1, color: 'var(--nc-cyan)' }}>EARLY ACCESS</strong>
+        <div style={{
+        padding: 14,
+        background: 'rgba(0,240,255,0.05)',
+        border: '1px solid rgba(0,240,255,0.25)'
+      }}>
+          <div className="scgf-wrap" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 4
+        }}>
+            <MessageSquare size={14} style={{
+            color: 'var(--nc-cyan)'
+          }} />
+            <strong data-testid="organizations-strong-3" style={{
+            fontFamily: 'var(--nc-font-mono)',
+            fontSize: 11,
+            letterSpacing: 1,
+            color: 'var(--nc-cyan)'
+          }}>EARLY ACCESS</strong>
           </div>
-          <p style={{ color: 'var(--nc-text-secondary)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          <p data-testid="organizations-p-2" style={{
+          color: 'var(--nc-text-secondary)',
+          fontSize: 13,
+          lineHeight: 1.6,
+          margin: 0
+        }}>
             Org tools are free during early access. Advanced org dispatch tools may be added later.
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }

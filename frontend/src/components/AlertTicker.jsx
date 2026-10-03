@@ -27,6 +27,16 @@ const TICKER_CONFIG = {
 export const AlertTicker = ({ userShard, tickerSettings }) => {
   const [alerts, setAlerts] = useState([]);
   const [rsiStatus, setRsiStatus] = useState({ status: 'operational' });
+  const [tickerIndex, setTickerIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = setInterval(() => {
+      if (!document.hidden) setTickerIndex(index => index + 1);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, [paused]);
 
   useEffect(() => {
     fetchAlerts();
@@ -99,16 +109,16 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
     }
 
     return (
-      <div className="alert-ticker" style={{ '--ticker-color': showColor ? config.color : '#4a6070' }} key={configKey}>
-        <div className="alert-ticker-label" style={{ background: showColor ? `${config.color}22` : '#1a2530', borderColor: showColor ? `${config.color}44` : '#2a3540', color: showColor ? config.color : '#6a7a8a' }}>
+      <div className="alert-ticker" data-testid={`ticker-${configKey}`} style={{ '--ticker-color': showColor ? config.color : '#4a6070' }} key={configKey}>
+        <div className="alert-ticker-label" data-testid={`ticker-label-${configKey}`} style={{ background: showColor ? `${config.color}22` : '#1a2530', borderColor: showColor ? `${config.color}44` : '#2a3540', color: showColor ? config.color : '#6a7a8a' }}>
           <Radio size={12} className={showColor ? 'pulse-icon' : ''} />
           <span>{config.label}</span>
         </div>
         <div className="alert-ticker-scroll">
-          <div className="alert-ticker-content">
+          <div className="alert-ticker-content" key={`${configKey}-${tickerIndex}`} data-testid={`ticker-content-${configKey}`}>
             {configKey === 'stability' && isRsiDegraded && (
               <>
-                <div className="alert-ticker-item" style={{ '--alert-color': config.color }}>
+                <div className="alert-ticker-item" data-testid="ticker-rsi-status" style={{ '--alert-color': config.color }}>
                   <Wifi size={14} style={{ color: config.color }} />
                   <span style={{ color: config.color, fontWeight: 600 }}>RSI SERVER: {rsiStatus.status?.toUpperCase()}</span>
                   {rsiStatus.lastIncident && (
@@ -119,21 +129,19 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
             )}
             {isEmpty && !isRsiDegraded ? (
               <>
-                <div className="alert-ticker-item all-clear">
-                  <span style={{ color: '#4a6070' }}>{stabilityMessage || `ALL CLEAR — No active ${config.label.toLowerCase()} reported`}</span>
-                </div>
-                <div className="alert-ticker-item all-clear">
+                <div className="alert-ticker-item all-clear" data-testid={`ticker-all-clear-${configKey}`}>
                   <span style={{ color: '#4a6070' }}>{stabilityMessage || `ALL CLEAR — No active ${config.label.toLowerCase()} reported`}</span>
                 </div>
               </>
             ) : (
-              [...filteredAlerts, ...filteredAlerts].map((alert, idx) => {
+              filteredAlerts.slice(tickerIndex % (filteredAlerts.length || 1), tickerIndex % (filteredAlerts.length || 1) + 1).map((alert, idx) => {
                 const Icon = config.icons[alert.type] || AlertTriangle;
                 const isOnMyShard = userShard && alert.shard === userShard;
                 
                 return (
                   <div 
                     key={`${alert.id || idx}-${idx}`} 
+                    data-testid={`ticker-alert-${configKey}-${alert.id || idx}`}
                     className={`alert-ticker-item ${isOnMyShard ? 'my-shard' : ''}`}
                     style={{ '--alert-color': config.color }}
                   >
@@ -163,7 +171,7 @@ export const AlertTicker = ({ userShard, tickerSettings }) => {
   };
 
   return (
-    <div className="alert-tickers-container" data-testid="alert-tickers">
+    <div className="alert-tickers-container" data-testid="alert-tickers" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {renderTicker('threats')}
       {renderTicker('stability')}
       {renderTicker('issues')}

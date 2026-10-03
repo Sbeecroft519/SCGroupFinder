@@ -1,0 +1,101 @@
+{
+  "summary": "Comprehensive regression run completed for requested batch. Backend: 30/30 pytest passing across org registration, rating flows, and new push notification regressions (including queue retry/cleanup with MOCKED provider only in unit tests). Frontend: responsive and integration checks executed via Playwright on public URL with desktop/mobile screenshots; core org registration and push settings UI reachable, but key integration/auth hardening issues remain.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/push/inbox",
+        "issue": "Unauthenticated request returns 500 Internal Server Error instead of 401/403.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Password hashing is SHA-256 (server.py hash_password) instead of bcrypt ($2b$), with no brute-force lockout after repeated failed attempts.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "No application auth cookie (httpOnly session cookie) is set by backend login flow; auth is bearer-token only."
+      },
+      {
+        "endpoint": "startup admin seed logic",
+        "issue": "seed admin path only enforces is_admin flag; does not update existing admin password when ADMIN_PASSWORD changes."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CreatePostModal",
+        "issue": "LFG -> Paid mode toggle does not restore previous payout value (observed restored value: 0).",
+        "selector": "[data-testid='mode-lfg-btn'], [data-testid='mode-paid-btn'], [data-testid='payment-amount-input']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Authenticated notifications preload",
+        "issue": "Console repeatedly shows 500 on /api/push/inbox when app bootstraps unauthenticated state before demo token is established.",
+        "affected_selectors": [
+          "[data-testid='notification-bell-btn']"
+        ]
+      },
+      {
+        "flow": "Web push end-to-end closed-tab delivery",
+        "issue": "Not fully verifiable in headless environment; browser reported 'Blocked in browser settings' path. Service worker/provider live delivery cannot be claimed E2E from this run.",
+        "affected_selectors": [
+          "[data-testid='push-settings']",
+          "[data-testid='push-enable-toggle']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Global alert ticker",
+        "issues": [
+          "Known smoke issue acknowledged: animated ticker descendants can extend right while clipped (alert-ticker-content / repeated all-clear rows).",
+          "Targeted fix suggestion: constrain animated content width to container, avoid duplicate all-clear node expansion, keep animation transform inside overflow-hidden wrapper."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_org_register.py",
+    "/app/backend/tests/test_rate_poster.py",
+    "/app/backend/tests/test_rate_participant.py",
+    "/app/backend/tests/test_push_notifications_regression.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/iteration23_backend_regression.xml"
+  ],
+  "action_items": [
+    "Fix /api/push/inbox auth guard to return 401/403 for missing/invalid bearer token (not 500).",
+    "Migrate password hashing to bcrypt ($2b$) and add brute-force lockout/rate-limit policy for login.",
+    "Implement seed-admin password reconciliation when ADMIN_PASSWORD changes.",
+    "Fix payout restoration regression when toggling LFG back to Paid in create modal.",
+    "Validate and fix ticker animated overflow behavior noted by smoke while preserving alert animations.",
+    "After fixes, rerun frontend push tests in headed/real-browser permission-enabled environment for closed-tab delivery verification."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 5333+ lines (well beyond maintainability threshold); split auth, push, org-admin, contracts, and signals routers into separate modules.",
+    "Settings.jsx is 1200+ lines and should be split similarly to Contracts/Organizations refactor pattern.",
+    "Auth uses unsalted SHA-256; this is a security weakness and fails expected modern auth baseline.",
+    "CORS middleware defaults to '*' in code while allow_credentials=True; risky/misconfigured pattern for credentialed requests."
+  ],
+  "updated_files": [
+    "/app/backend/tests/conftest.py",
+    "/app/backend/tests/test_org_register.py",
+    "/app/backend/tests/test_push_notifications_regression.py",
+    "/app/test_reports/iteration_23.json"
+  ],
+  "success_rate": {
+    "backend": "100% (30/30)",
+    "frontend": "75% (core routes and most flows pass; key issues listed)"
+  },
+  "test_credentials": "Admin: beecroft519@gmail.com / Nv$C0m_Adm1n_2025!; Demo via POST /api/auth/demo-login.",
+  "seed_data_creation": "Created TEST_ org records via UI/API during validation; admin cleanup executed in API tests. Existing TEST_rate_* contracts from regression tests remain as non-destructive fixture artifacts.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Playwright evidence: desktop screenshot generated in first run and mobile screenshot at /app/test_reports/iteration23_ui/mobile_final.jpg. Overflow checks at widths 320/768/1024/1440 reported no document-level horizontal overflow. Paid filter bug appears fixed at card-level (LFG_CARD_COUNT_IN_PAID_FILTER=0). Socket.io websocket warnings are recurring legacy noise. Push provider live closed-tab verification remains environment-limited (headless notifications blocked).",
+  "rca of the issue": "RCA-1 (/api/push/inbox 500): endpoint depends on authenticated_user dependency; missing bearer currently bubbles into internal error path instead of mapped 401/403. Repro: GET /api/push/inbox without Authorization -> HTTP 500. RCA-2 (LFG->Paid payout reset): create-contract form state loses prior payment_amount while toggling category/mode, resulting in reset to 0 on return to paid mode. Repro through create modal using mode-lfg-btn then mode-paid-btn and reading payment-amount-input."
+}

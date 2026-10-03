@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Clock, User, Users, Check, X, AlertCircle, Star, Shi
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '../constants/badges';
 import { useBleedoutCountdown, HeartMonitor } from '../utils/bleedout';
 import DiscordBadge from '../components/DiscordBadge';
+import { OrgTag } from '../components/OrgTag';
 
 const RescuePublicPanel = ({ contract }) => {
   const { label, expired } = useBleedoutCountdown(contract.rescue_bleedout_expires_at);
@@ -450,7 +451,7 @@ const ContractDetails = () => {
                       {slot.status === 'FILLED' && slot.filled_by && (
                         <div style={styles.filledByInfo}>
                           <Shield size={18} />
-                          <span>Assigned: <strong>{slot.filled_by.handle}</strong></span>
+                          <span>Assigned: <strong>{slot.filled_by.handle}</strong> <OrgTag tag={slot.filled_by.org_tag} orgId={slot.filled_by.org_id} testId={`crew-org-tag-${index}`} /></span>
                         </div>
                       )}
 
@@ -465,6 +466,7 @@ const ContractDetails = () => {
                                 <div key={bidIdx} style={styles.bidItem}>
                                   <div style={styles.bidderInfo}>
                                     <span style={styles.bidderHandle}>{bid.handle}</span>
+                                    <OrgTag tag={bid.org_tag} orgId={bid.org_id} testId={`slot-bid-org-tag-${index}-${bidIdx}`} />
                                   </div>
                                   <button
                                     style={{ ...styles.button, ...styles.acceptButton }}

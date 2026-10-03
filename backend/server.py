@@ -21,6 +21,8 @@ import asyncio
 import json
 
 from ships import SHIP_SPECS, get_ship_scu, get_all_ships
+import affiliation
+import ratings_queue
 import re
 
 ROOT_DIR = Path(__file__).parent
@@ -49,6 +51,9 @@ def moderate_text(text: str) -> str:
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+from push_notifications import PushNotifications, create_push_router, ORG_EVENTS
+push_notifications = PushNotifications(db)
 
 # JWT Configuration
 JWT_SECRET = os.environ['JWT_SECRET']
@@ -200,6 +205,11 @@ connected_clients: List[asyncio.Queue] = []
 
 async def broadcast_notification(notification: dict):
     """Send notification to all connected SSE clients"""
+    if notification.get('type') in ORG_EVENTS and notification.get('target_user_id'):
+        try:
+            notification = {**notification, **await push_notifications.enqueue(notification)}
+        except Exception as exc:
+            logger.error('Could not persist org notification (%s)', type(exc).__name__)
     for queue in connected_clients:
         try:
             await queue.put(notification)
@@ -292,6 +302,8 @@ class UserResponse(BaseModel):
     discord_linked: bool = False
     discord_username: Optional[str] = None
     discord_public: bool = False
+    region: Optional[str] = None
+    org_affiliation: Optional[dict] = None
 
 class TokenResponse(BaseModel):
     token: str
@@ -352,6 +364,8 @@ class ContractCreate(BaseModel):
     # Multi-crew manifest
     is_multi_crew: Optional[bool] = False
     manifest: Optional[List[ManifestSlot]] = None
+    # Named crew roles with a seat count each, e.g. [{'name': 'Turret', 'count': 2}]
+    crew_roles: Optional[List[dict]] = None
     # Duration
     duration_minutes: Optional[int] = 60
     # Timing (looking now vs scheduled future)
@@ -692,7 +706,9 @@ async def login(credentials: UserLogin):
         reputation=user.get('reputation', 5.0),
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
-        avatar_url=user.get('avatar_url')
+        avatar_url=user.get('avatar_url'),
+        region=user.get('region'),
+        org_affiliation=await affiliation.org_affiliation_for(db, user),
     ))
 
 # ===== Discord OAuth =====
@@ -929,6 +945,8 @@ async def discord_complete(req: DiscordCompleteRequest):
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
         avatar_preset=user.get('avatar_preset'),
+        region=user.get('region'),
+        org_affiliation=await affiliation.org_affiliation_for(db, user),
     ))
 
 @api_router.post("/auth/demo-login", response_model=TokenResponse)
@@ -979,6 +997,8 @@ async def demo_login():
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
         avatar_preset=user.get('avatar_preset'),
+        region=user.get('region') or 'USA',
+        org_affiliation=await affiliation.org_affiliation_for(db, user),
     ))
 
 
@@ -1145,6 +1165,8 @@ async def get_me(user = Depends(get_current_user)):
         discord_linked=bool(user.get('discord_id')),
         discord_username=user.get('discord_username'),
         discord_public=bool(user.get('discord_public', False)),
+        region=user.get('region'),
+        org_affiliation=await affiliation.org_affiliation_for(db, user),
     )
 
 
@@ -1900,6 +1922,7 @@ async def get_contracts(category: Optional[str] = None, user = Depends(get_curre
 
     contracts = [redact_private_fields(c, user) for c in contracts]
     await _enrich_posters_discord(contracts)
+    await affiliation.enrich_org_tags(db, contracts)
     return contracts
 
 @api_router.post("/contracts")
@@ -1954,6 +1977,11 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         contract_doc['is_multi_crew'] = True
         contract_doc['status'] = 'mustering'
         contract_doc['payment_amount'] = sum(slot.payout for slot in contract.manifest)
+        if contract.crew_roles:
+            contract_doc['crew_roles'] = [
+                {'name': str(r.get('name') or 'Crew'), 'count': max(1, int(r.get('count') or 1))}
+                for r in contract.crew_roles
+            ]
     else:
         contract_doc['payment_amount'] = contract.payment_amount or contract.payout or 0
         contract_doc['assigned_to'] = None
@@ -2154,6 +2182,7 @@ async def complete_contract(contract_id: str, user = Depends(get_current_user)):
     )
     asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
     asyncio.create_task(dispatch_completion_history(contract))
+    await ratings_queue.create_obligations(db, contract, notify=broadcast_notification)
     return {'message': 'Contract marked complete'}
 
 
@@ -2195,11 +2224,13 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
                 {'$set': {'rating_received': review.rating}}
             )
             await _notify_rating_received(merc_id, review.rating, user.get('rsi_handle'), contract.get('title'))
+        await ratings_queue.settle(db, contract_id, user['id'])
     else:
         await db.contracts.update_one({'id': contract_id}, {'$set': {'merc_review': review_data}})
         # Update client's reputation
         await update_user_reputation(contract['poster_id'])
         await _notify_rating_received(contract['poster_id'], review.rating, user.get('rsi_handle'), contract.get('title'))
+        await ratings_queue.settle(db, contract_id, user['id'])
     
     return {'message': 'Review submitted'}
 
@@ -2260,6 +2291,7 @@ async def rate_poster(contract_id: str, payload: PosterRating, user = Depends(ge
     except Exception:
         pass
     await _notify_rating_received(contract['poster_id'], payload.rating, user.get('rsi_handle'), contract.get('title'))
+    await ratings_queue.settle(db, contract_id, user['id'], contract['poster_id'])
     return {'message': 'Rating recorded'}
 
 
@@ -2326,6 +2358,7 @@ async def rate_participant(contract_id: str, payload: ParticipantRating, user = 
     except Exception as _e:
         pass
     await _notify_rating_received(payload.participant_user_id, payload.rating, user.get('rsi_handle'), contract.get('title'))
+    await ratings_queue.settle(db, contract_id, user['id'], payload.participant_user_id)
     return {'message': 'Rating recorded', 'rated_user_id': payload.participant_user_id}
 
 
@@ -3306,7 +3339,24 @@ async def list_orgs(user = Depends(get_current_user)):
     if not org_tools_enabled():
         return {'coming_soon': True, 'orgs': []}
     orgs = await db.organizations.find({'approval_status': 'approved'}, {'_id': 0}).sort('created_at', -1).to_list(200)
-    return {'coming_soon': False, 'orgs': [_public_org(o) for o in orgs]}
+    counts = await affiliation.displayed_member_counts(db, [o['id'] for o in orgs])
+    out = []
+    for o in orgs:
+        pub = _public_org(o)
+        pub['displayed_member_count'] = counts.get(o['id'], 0)
+        out.append(pub)
+    return {'coming_soon': False, 'orgs': out}
+
+
+@api_router.get("/orgs/approved-options")
+async def list_approved_org_options(user = Depends(get_current_user)):
+    """Minimal approved-org list used by the affiliation picker."""
+    if not org_tools_enabled():
+        return []
+    orgs = await db.organizations.find(
+        {'approval_status': 'approved'}, {'_id': 0, 'id': 1, 'name': 1, 'tag': 1}
+    ).sort('name', 1).to_list(500)
+    return orgs
 
 
 @api_router.get("/orgs/{org_id}")
@@ -3316,7 +3366,56 @@ async def get_org(org_id: str, user = Depends(get_current_user)):
     org = await db.organizations.find_one({'id': org_id})
     if not org:
         raise HTTPException(status_code=404, detail="Org not found")
-    return _public_org(org)
+    pub = _public_org(org)
+    members = await affiliation.displayed_members(db, org_id)
+    pub['displayed_members'] = members
+    pub['displayed_member_count'] = len(members)
+    return pub
+
+
+class OrgAffiliationUpdate(BaseModel):
+    org_id: Optional[str] = None
+
+
+@api_router.get("/user/org-affiliation")
+async def get_my_org_affiliation(user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return {'affiliation': await affiliation.org_affiliation_for(db, user)}
+
+
+@api_router.put("/user/org-affiliation")
+async def set_my_org_affiliation(payload: OrgAffiliationUpdate, user = Depends(get_current_user)):
+    """Self-service: display one approved org next to your handle. No approval needed."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    org_id = (payload.org_id or '').strip() or None
+    if org_id:
+        org = await db.organizations.find_one(
+            {'id': org_id, 'approval_status': 'approved'}, {'_id': 0, 'id': 1}
+        )
+        if not org:
+            raise HTTPException(status_code=400, detail="Only approved orgs can be displayed")
+    await db.users.update_one(
+        {'id': user['id']},
+        {'$set': {'org_affiliation_id': org_id, 'org_affiliation_set_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    fresh = await db.users.find_one({'id': user['id']}, {'_id': 0})
+    return {'affiliation': await affiliation.org_affiliation_for(db, fresh)}
+
+
+class RegionUpdate(BaseModel):
+    region: Optional[str] = None
+
+
+@api_router.put("/user/region")
+async def set_my_region(payload: RegionUpdate, user = Depends(get_current_user)):
+    """Remember the player's server region against their account, not the session."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    region = (payload.region or '').strip() or 'Global'
+    await db.users.update_one({'id': user['id']}, {'$set': {'region': region}})
+    return {'region': region}
 
 
 @api_router.get("/user/org-invites")
@@ -3801,6 +3900,10 @@ async def admin_approve_org(org_id: str, admin = Depends(require_admin)):
         'approved_by': admin['id'],
         'updated_at': datetime.now(timezone.utc).isoformat(),
     }})
+    if org.get('approval_status') != 'approved' and org.get('owner_id'):
+        await broadcast_notification({'type': 'org_approved', 'target_user_id': org['owner_id'],
+            'org_id': org_id, 'title': 'Organization approved',
+            'message': f"{org['name']} [{org['tag']}] has been approved.", 'link': '/orgs'})
     return {'message': 'Approved', 'org_id': org_id}
 
 
@@ -3815,6 +3918,10 @@ async def admin_reject_org(org_id: str, admin = Depends(require_admin)):
         'approved_by': admin['id'],
         'updated_at': datetime.now(timezone.utc).isoformat(),
     }})
+    if org.get('approval_status') != 'rejected' and org.get('owner_id'):
+        await broadcast_notification({'type': 'org_rejected', 'target_user_id': org['owner_id'],
+            'org_id': org_id, 'title': 'Organization application update',
+            'message': f"{org['name']} [{org['tag']}] was not approved.", 'link': '/orgs'})
     return {'message': 'Rejected', 'org_id': org_id}
 
 
@@ -4180,6 +4287,8 @@ async def cleanup_discord_messages_for_contract(contract_id: str) -> None:
 
 @app.on_event("startup")
 async def startup_event():
+    await push_notifications.initialize()
+    app.state.push_worker = asyncio.create_task(push_notifications.run())
     # Create admin account if not exists
     admin = await db.users.find_one({'email': ADMIN_EMAIL})
     if not admin:
@@ -4284,11 +4393,33 @@ async def startup_event():
                 logger.error(f"contract_expiry_loop error: {e}")
             await asyncio.sleep(60)
 
+    async def rating_obligation_loop():
+        """Backfill historical completed jobs once, then expire overdue obligations."""
+        try:
+            created = await ratings_queue.backfill(db)
+            if created:
+                logger.info(f"rating obligations backfilled: {created}")
+        except Exception as e:
+            logger.error(f"rating obligation backfill failed: {e}")
+        while True:
+            try:
+                await ratings_queue.expire_due(db)
+            except Exception as e:
+                logger.error(f"rating obligation expiry error: {e}")
+            await asyncio.sleep(3600)
+
     asyncio.create_task(deceased_cleanup_loop())
     asyncio.create_task(contract_expiry_loop())
+    asyncio.create_task(rating_obligation_loop())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    if getattr(app.state, 'push_worker', None):
+        app.state.push_worker.cancel()
+        try:
+            await app.state.push_worker
+        except asyncio.CancelledError:
+            pass
     client.close()
 
 # ===== Contract Bidding System =====
@@ -4304,6 +4435,12 @@ async def get_contract_bids(contract_id: str, user = Depends(get_current_user)):
     if contract['poster_id'] != user['id']:
         raise HTTPException(status_code=403, detail="Only poster can view bids")
     bids = await db.contract_bids.find({'contract_id': contract_id}, {'_id': 0}).to_list(50)
+    tags = await affiliation.org_tag_map(db, [b.get('bidder_id') for b in bids])
+    for b in bids:
+        t = tags.get(b.get('bidder_id'))
+        if t:
+            b['org_tag'] = t['tag']
+            b['org_id'] = t['org_id']
     return bids
 
 @api_router.post("/contracts/{contract_id}/bid")
@@ -4528,6 +4665,9 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
             {'id': contract_id},
             {'$set': {'status': 'completed', 'completed_at': datetime.now(timezone.utc).isoformat()}}
         )
+        contract['status'] = 'completed'
+        contract['completed_at'] = datetime.now(timezone.utc).isoformat()
+        await ratings_queue.create_obligations(db, contract, notify=broadcast_notification)
         
         # Increment completed contracts for both users
         await db.users.update_one({'id': contract['poster_id']}, {'$inc': {'contracts_completed': 1}})
@@ -4595,7 +4735,6 @@ async def mark_contract_complete(contract_id: str, user = Depends(get_current_us
     
     return {'message': 'Invalid contract state'}
 
-
 @api_router.post("/contracts/{contract_id}/mark-complete-multi")
 async def mark_multi_role_complete(contract_id: str, user = Depends(get_current_user)):
     """Poster-only, one-shot completion for multi-join / multi-crew contracts (which
@@ -4632,8 +4771,10 @@ async def mark_multi_role_complete(contract_id: str, user = Depends(get_current_
             seen.add(ab['id'])
             await db.users.update_one({'id': ab['id']}, {'$inc': {'contracts_completed': 1}})
     contract['status'] = 'completed'
+    contract['completed_at'] = now_iso
     asyncio.create_task(cleanup_discord_messages_for_contract(contract_id))
     asyncio.create_task(dispatch_completion_history(contract))
+    await ratings_queue.create_obligations(db, contract, notify=broadcast_notification)
     return {'message': 'Contract completed', 'status': 'completed', 'show_rating': True, 'multi': True}
 
 
@@ -4724,6 +4865,7 @@ async def get_user_profile(user_id: str):
     user = await db.users.find_one({'id': user_id}, {'_id': 0, 'password_hash': 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    user['org_affiliation'] = await affiliation.org_affiliation_for(db, user)
     return user
 
 @api_router.get("/user/my-contracts")
@@ -4744,7 +4886,28 @@ async def get_user_contracts(user = Depends(get_current_user)):
         {'_id': 0}
     ).sort('created_at', -1).limit(50).to_list(50)
     
+    await affiliation.enrich_org_tags(db, contracts)
+    completed_ids = [c['id'] for c in contracts if c.get('status') == 'completed']
+    withheld = await ratings_queue.withheld_contract_ids(db, user['id'], completed_ids)
+    for c in contracts:
+        if c['id'] in withheld:
+            ratings_queue.redact_withheld(c, user['id'])
     return contracts
+
+
+@api_router.get("/ratings/pending")
+async def get_pending_ratings(user = Depends(get_current_user)):
+    """Every rating this player still owes. Survives logout; expires after 14 days."""
+    if not user:
+        return {'count': 0, 'items': []}
+    items = await ratings_queue.pending_for(db, user['id'])
+    tags = await affiliation.org_tag_map(db, [i.get('ratee_id') for i in items])
+    for i in items:
+        t = tags.get(i.get('ratee_id'))
+        if t:
+            i['ratee_org_tag'] = t['tag']
+            i['ratee_org_id'] = t['org_id']
+    return {'count': len(items), 'items': items, 'window_days': ratings_queue.RATING_WINDOW_DAYS}
 
 @api_router.get("/user/accepted-bids")
 async def get_accepted_bids(user = Depends(get_current_user)):
@@ -4880,6 +5043,10 @@ async def get_contract_details(contract_id: str, user = Depends(get_current_user
     contract.pop("_id", None)
     contract = redact_private_fields(contract, user)
     await _enrich_posters_discord([contract])
+    await affiliation.enrich_org_tags(db, [contract])
+    if user and contract.get('status') == 'completed':
+        if contract_id in await ratings_queue.withheld_contract_ids(db, user['id'], [contract_id]):
+            ratings_queue.redact_withheld(contract, user['id'])
     return contract
 
 
@@ -5305,4 +5472,5 @@ async def close_broadcast(broadcast_id: str, user = Depends(get_current_user)):
 
 
 # Include router AFTER all routes are defined
+api_router.include_router(create_push_router(push_notifications, get_current_user))
 app.include_router(api_router)

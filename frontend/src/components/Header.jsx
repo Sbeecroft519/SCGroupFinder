@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Building2, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Radar, Activity, FileText, Map, User, Settings, LogOut, Search, Users, Building2, ChevronDown, MoreHorizontal, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback } from './ui/avatar';
 import NotificationBell from './NotificationBell';
 import { useAuth } from '../App';
+import { usePendingRatings } from '../hooks/usePendingRatings';
 
 const MAIN_NAV = [
   { id: 'contracts', label: 'JOB BOARD', icon: FileText, path: '/contracts' },
@@ -28,6 +29,7 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const { notificationSettings } = useAuth();
+  const { count: pendingRatings } = usePendingRatings(Boolean(user));
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
   const isOtherToolActive = OTHER_TOOLS.some(t => isActive(t.path));
@@ -61,6 +63,38 @@ export const Header = ({ user, onLogout, userShard, onShardClick }) => {
           );
         })}
         
+        <Link
+          to="/ratings"
+          className={`nav-item ${isActive('/ratings') ? 'active' : ''}`}
+          data-testid="nav-ratings"
+          style={{ position: 'relative' }}
+        >
+          <Star className="nav-icon" size={16} />
+          <span className="nav-label">RATINGS</span>
+          {pendingRatings > 0 && (
+            <span
+              data-testid="nav-ratings-badge"
+              style={{
+                marginLeft: 6,
+                minWidth: 18,
+                height: 18,
+                padding: '0 5px',
+                borderRadius: 9,
+                background: 'var(--nc-gold, #FFD700)',
+                color: '#06131f',
+                fontSize: 10,
+                fontWeight: 700,
+                fontFamily: 'var(--nc-font-mono)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {pendingRatings}
+            </span>
+          )}
+        </Link>
+
         <DropdownMenu open={toolsOpen} onOpenChange={setToolsOpen}>
           <DropdownMenuTrigger asChild>
             <button className={`nav-item tools-trigger ${isOtherToolActive ? 'active' : ''}`} data-testid="nav-other-tools">

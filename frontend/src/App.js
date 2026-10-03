@@ -26,8 +26,12 @@ import TermsOfService from './pages/TermsOfService';
 import LandingPage from './pages/LandingPage';
 import CitizenDirectory from './pages/CitizenDirectory';
 import Organizations from './pages/Organizations';
-import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
+import OrgProfile from './pages/OrgProfile';
+import PendingRatings from './pages/PendingRatings';
+import { useNotifications } from './hooks/useNotifications';
+import { disableWebPush, refreshWebPush } from './utils/webPush';
 import { useContractPolling } from './hooks/useContractPolling';
+import './responsive.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -74,7 +78,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('navcom_token'));
-  const [userShard, setUserShard] = useState(''); // Session-based, not localStorage
+  const [userShard, setUserShard] = useState(() => {
+    const saved = localStorage.getItem('navcom_region');
+    return saved && saved !== 'Global' ? saved : '';
+  });
   const [tickerSettings, setTickerSettings] = useState(() => {
     const saved = localStorage.getItem('navcom_tickers');
     return saved ? JSON.parse(saved) : { threats: true, stability: true, issues: true };
@@ -102,6 +109,12 @@ function App() {
   
   // Contract polling (every 15 seconds when enabled)
   useContractPolling(API, user && notificationSettings?.contract_alerts, null);
+
+  // Region is remembered per account (and locally for guests) — never re-asked on refresh.
+  const applyRegion = useCallback((region) => {
+    localStorage.setItem('navcom_region', region || 'Global');
+    setUserShard(region && region !== 'Global' ? region : '');
+  }, []);
 
   // Configure axios defaults
   useEffect(() => {
@@ -137,6 +150,15 @@ function App() {
         const isDemo = localStorage.getItem('navcom_is_demo') === 'true';
         // Check if first time user (no onboarding completed)
         const onboardingDone = localStorage.getItem('navcom_onboarding_done');
+        const serverRegion = response.data.region;
+        const localRegion = localStorage.getItem('navcom_region');
+        if (serverRegion) {
+          applyRegion(serverRegion);
+        } else if (localRegion) {
+          applyRegion(localRegion);
+          axios.put(`${API}/user/region`, { region: localRegion }).catch(() => {});
+        }
+        const hasRegion = Boolean(serverRegion || localRegion);
         if (isDemo) {
           // Demo users skip onboarding and region prompt
           setShowOnboarding(false);
@@ -144,12 +166,11 @@ function App() {
         } else if (!onboardingDone) {
           setShowOnboarding(true);
         } else {
-          // Always show shard prompt on login (session-based)
-          setShowShardPrompt(true);
+          // Only ask players who have genuinely never chosen a region
+          setShowShardPrompt(!hasRegion);
         }
         
-        // Request notification permission
-        requestNotificationPermission();
+        refreshWebPush(response.data.id).catch(() => {});
         
         // Fetch notification settings
         try {
@@ -169,7 +190,7 @@ function App() {
     };
 
     checkAuth();
-  }, [token]);
+  }, [token, applyRegion]);
 
   const login = async (email, password) => {
     const response = await axios.post(`${API}/auth/login`, { email, password });
@@ -180,14 +201,20 @@ function App() {
     
     // Check if first time user
     const onboardingDone = localStorage.getItem('navcom_onboarding_done');
+    const serverRegion = userData.region;
+    const localRegion = localStorage.getItem('navcom_region');
+    if (serverRegion) {
+      applyRegion(serverRegion);
+    } else if (localRegion) {
+      applyRegion(localRegion);
+      axios.put(`${API}/user/region`, { region: localRegion }).catch(() => {});
+    }
     if (!onboardingDone) {
       setShowOnboarding(true);
     } else {
-      // Always prompt for shard on login
-      setShowShardPrompt(true);
+      setShowShardPrompt(!(serverRegion || localRegion));
     }
     
-    requestNotificationPermission();
     return userData;
   };
 
@@ -210,21 +237,30 @@ function App() {
     return response.data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await disableWebPush().catch(() => {});
     localStorage.removeItem('navcom_token');
     localStorage.removeItem('navcom_is_demo');
     setToken(null);
     setUser(null);
-    setUserShard(''); // Clear session shard
   };
 
   const updateUser = (updates) => {
     setUser(prev => ({ ...prev, ...updates }));
   };
 
-  const setShard = (shard) => {
-    setUserShard(shard);
+  const setShard = async (shard) => {
+    const region = shard || 'Global';
+    applyRegion(region);
     setShowShardPrompt(false);
+    setUser(prev => (prev ? { ...prev, region } : prev));
+    if (localStorage.getItem('navcom_token')) {
+      try {
+        await axios.put(`${API}/user/region`, { region });
+      } catch (e) {
+        console.error('Failed to save region:', e);
+      }
+    }
   };
 
   const completeOnboarding = () => {
@@ -292,7 +328,7 @@ function App() {
                 <div className="mission-modal" style={{ maxWidth: 450 }}>
                   <div className="mission-modal-header">
                     <div>
-                      <div className="mission-type-badge">// SESSION_SETUP</div>
+                      <div className="mission-type-badge">// ACCOUNT_SETUP</div>
                       <h2 className="mission-title">Set Your Server Region</h2>
                     </div>
                   </div>
@@ -356,6 +392,8 @@ function App() {
               <Route path="/search" element={<ProtectedRoute><PlayerSearch /></ProtectedRoute>} />
               <Route path="/directory" element={<ProtectedRoute><CitizenDirectory /></ProtectedRoute>} />
               <Route path="/orgs" element={<ProtectedRoute><Organizations /></ProtectedRoute>} />
+              <Route path="/orgs/:orgId" element={<ProtectedRoute><OrgProfile /></ProtectedRoute>} />
+              <Route path="/ratings" element={<ProtectedRoute><PendingRatings /></ProtectedRoute>} />
             </Routes>
             
             {/* Footer - shown when logged in */}

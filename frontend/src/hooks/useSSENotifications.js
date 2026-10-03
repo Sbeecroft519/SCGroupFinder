@@ -26,6 +26,17 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
 
   useEffect(() => {
     if (!currentUserId) return;
+    let active = true;
+    setNotifications([]);
+    axios.get(`${API}/push/inbox`).then(({data}) => {
+      if (!active) return;
+      setNotifications(prev => {
+        const ids = new Set(prev.map(n => n.eventId || n.id));
+        const existing = new Set(prev.map(n => n.id));
+        return [...data.filter(n => !n.read && !ids.has(n.id) && !existing.has(n.type === 'org_invite' ? `invite-${n.org_id}` : n.id)).map(n => ({...n,
+          eventId: n.id, id: n.type === 'org_invite' ? `invite-${n.org_id}` : n.id})), ...prev].slice(0, 50);
+      });
+    }).catch(() => {});
 
     // Seed persistent org-owner invites so the bell + toast survive refresh/offline.
     (async () => {
@@ -142,6 +153,14 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
             description: data.message,
             duration: 8000,
           });
+        } else if (data.type === 'org_approved' || data.type === 'org_rejected') {
+          playContractSound('Logistics');
+          toast.info(data.title, {
+            description: data.message,
+            duration: 12000,
+            action: {label: 'Open Orgs', onClick: () => window.location.assign('/orgs')},
+          });
+          window.dispatchEvent(new CustomEvent('org-status-changed', {detail: {org_id: data.org_id}}));
         } else if (data.type === 'org_application') {
           playContractSound('Logistics');
           toast.info(data.title || 'New Org Application', {
@@ -159,11 +178,11 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
         }
 
         // Add to notifications list (dedupe invites by stable id)
-        const stableId = data.type === 'org_invite' && data.org_id ? `invite-${data.org_id}` : Date.now();
+        const stableId = data.type === 'org_invite' && data.org_id ? `invite-${data.org_id}` : data.id || Date.now();
         setNotifications(prev => {
-          if (data.type === 'org_invite' && prev.some(n => n.id === stableId)) return prev;
+          if (prev.some(n => n.id === stableId)) return prev;
           return [
-            { ...data, id: stableId, read: false, timestamp: new Date().toISOString() },
+            { ...data, eventId: data.id, id: stableId, read: false, timestamp: data.timestamp || new Date().toISOString() },
             ...prev.slice(0, 49) // Keep last 50
           ];
         });
@@ -186,18 +205,24 @@ export const useSSENotifications = (currentUserId, notificationSettings) => {
     window.addEventListener('org-invite-accepted', onInviteAccepted);
 
     return () => {
+      active = false;
       eventSource.close();
       window.removeEventListener('org-invite-accepted', onInviteAccepted);
     };
   }, [currentUserId]);
 
   const markAsRead = useCallback((notificationId) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (notification?.eventId) {
+      axios.put(`${API}/push/inbox/${notification.eventId}/read`).catch(() => toast.error('Could not save notification read status'));
+    }
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
-  }, []);
+  }, [notifications]);
 
   const clearAll = useCallback(() => {
+    axios.put(`${API}/push/inbox/all/read`).catch(() => toast.error('Could not clear saved notifications'));
     setNotifications([]);
   }, []);
 

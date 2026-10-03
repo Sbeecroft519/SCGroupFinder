@@ -60,7 +60,7 @@ export const useNotifications = (userShard, settings, onAlert) => {
       playAlertSound();
       
       // Show browser notification if permitted and enabled
-      if (Notification.permission === 'granted' && localStorage.getItem('navcom_popups_enabled') !== 'false') {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && localStorage.getItem('navcom_popups_enabled') !== 'false') {
         new Notification(`SC Group Finder Alert: ${alert.type.replace('_', ' ').toUpperCase()}`, {
           body: `${alert.location || alert.system || 'Unknown location'}${alert.shard ? ` - ${alert.shard}` : ''}`,
           icon: '/favicon.ico',
@@ -81,7 +81,7 @@ export const useNotifications = (userShard, settings, onAlert) => {
       
       playAlertSound();
       
-      if (Notification.permission === 'granted' && localStorage.getItem('navcom_popups_enabled') !== 'false') {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && localStorage.getItem('navcom_popups_enabled') !== 'false') {
         new Notification(`New Contract: ${contract.title}`, {
           body: contract.description?.slice(0, 100),
           icon: '/favicon.ico',

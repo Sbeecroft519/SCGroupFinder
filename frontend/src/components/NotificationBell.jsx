@@ -64,7 +64,7 @@ const NotificationBell = ({ currentUserId, notificationSettings }) => {
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span style={{
+          <span data-testid="notification-unread-count" style={{
             position: 'absolute',
             top: 2,
             right: 2,
@@ -86,7 +86,7 @@ const NotificationBell = ({ currentUserId, notificationSettings }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div style={{
+        <div className="notification-dropdown" data-testid="notification-dropdown" style={{
           position: 'absolute',
           top: '100%',
           right: 0,

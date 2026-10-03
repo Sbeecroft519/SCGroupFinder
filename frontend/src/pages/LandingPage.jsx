@@ -49,35 +49,37 @@ const LandingPage = () => {
       {/* Animated background elements */}
       <div className="landing-bg-effects">
         <div className="grid-overlay" />
-        <div className="glow-orb orb-1" />
-        <div className="glow-orb orb-2" />
         <div className="scan-line" />
       </div>
 
       {/* Header */}
-      <header style={{ 
+      <header className="landing-header" data-testid="landing-header" style={{ 
         padding: '20px 40px', 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 16,
         borderBottom: '1px solid var(--nc-border)',
         position: 'relative',
         zIndex: 10
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Radar size={28} style={{ color: 'var(--nc-cyan)' }} />
-          <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 20, color: 'var(--nc-cyan)' }}>SC GROUP FINDER</span>
+          <span data-testid="landing-brand" style={{ fontFamily: 'var(--nc-font-display)', fontSize: 20, color: 'var(--nc-cyan)' }}>SC GROUP FINDER</span>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div className="landing-header-actions" style={{ display: 'flex', gap: 12 }}>
           <button 
             onClick={() => navigate('/login')}
             className="landing-btn-secondary"
+            data-testid="landing-login-button"
           >
             LOGIN
           </button>
           <button 
             onClick={() => navigate('/register')}
             className="landing-btn-primary"
+            data-testid="landing-register-button"
           >
             REGISTER
           </button>

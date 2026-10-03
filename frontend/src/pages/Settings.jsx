@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText, User, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Palette, Bell, Info, ChevronRight, Check, Radio, Skull, Wifi, Bug, Volume2, VolumeX, FileText, User, Shield, Building2 } from 'lucide-react';
 import { useAuth, API } from '../App';
 import axios from 'axios';
 import { isSoundEnabled } from '../utils/sounds';
+import { PushNotificationSettings } from '../components/PushNotificationSettings';
+import { AffiliationRegion } from '../components/settings/AffiliationRegion';
 
 const THEMES = [
   { id: 'default', name: 'MobiGlass', primary: '#00f0ff', description: 'Default MobiGlass theme' },
@@ -38,9 +40,6 @@ export default function Settings() {
   const [selectedTheme, setSelectedTheme] = useState(user?.theme_id || 'default');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar_preset || null);
   const [savingAvatar, setSavingAvatar] = useState(false);
-  const [desktopNotifPermission, setDesktopNotifPermission] = useState(
-    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
-  );
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [popupsEnabled, setPopupsEnabled] = useState(
     localStorage.getItem('navcom_popups_enabled') !== 'false'
@@ -88,22 +87,6 @@ export default function Settings() {
     } catch (e) {
       setRedeemMessage('Failed to redeem code');
       setRedeemSuccess(false);
-    }
-  };
-
-  const requestDesktopPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('Your browser does not support desktop notifications');
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    setDesktopNotifPermission(permission);
-    if (permission === 'granted') {
-      // Send a test notification
-      new Notification('SC Group Finder Notifications Enabled', {
-        body: 'You will now receive desktop alerts for new contracts!',
-        tag: 'scgf-test'
-      });
     }
   };
 
@@ -162,6 +145,15 @@ export default function Settings() {
           >
             <Bell size={18} />
             <span>Push Notifications</span>
+            <ChevronRight size={16} className="nav-arrow" />
+          </button>
+          <button 
+            className={`settings-nav-item ${activeSection === 'affiliation' ? 'active' : ''}`}
+            onClick={() => setActiveSection('affiliation')}
+            data-testid="settings-nav-affiliation"
+          >
+            <Building2 size={18} />
+            <span>Affiliation &amp; Region</span>
             <ChevronRight size={16} className="nav-arrow" />
           </button>
           <button 
@@ -324,6 +316,16 @@ export default function Settings() {
             </div>
           )}
 
+          {activeSection === 'affiliation' && (
+            <div className="settings-section" data-testid="settings-section-affiliation">
+              <h2 className="section-title">Affiliation &amp; Region</h2>
+              <p className="section-description">
+                Show the org you fly with, and set the server region you play on.
+              </p>
+              <AffiliationRegion />
+            </div>
+          )}
+
           {activeSection === 'avatar' && (
             <div className="settings-section">
               <h2 className="section-title">Profile Avatar</h2>
@@ -432,61 +434,16 @@ export default function Settings() {
                 </label>
               </div>
 
-              {/* Desktop Notifications */}
-              <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
-                Desktop Notifications
-              </h3>
-              <div className="desktop-notif-section" style={{ 
-                background: 'var(--nc-bg-secondary)', 
-                border: '1px solid var(--nc-border)', 
-                padding: 16,
-                marginBottom: 16
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <Bell size={16} />
-                      <span style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14 }}>Browser Push Notifications</span>
-                    </div>
-                    <span style={{ fontSize: 12, color: 'var(--nc-text-muted)' }}>
-                      Receive alerts even when SC Group Finder is in the background
-                    </span>
-                  </div>
-                  {desktopNotifPermission === 'granted' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div 
-                        className={`toggle-switch ${popupsEnabled ? 'active' : ''}`}
-                        onClick={() => {
-                          const newVal = !popupsEnabled;
-                          setPopupsEnabled(newVal);
-                          localStorage.setItem('navcom_popups_enabled', newVal ? 'true' : 'false');
-                        }}
-                        data-testid="popup-notif-toggle"
-                      >
-                        <div className="toggle-thumb" />
-                      </div>
-                    </div>
-                  ) : desktopNotifPermission === 'denied' ? (
-                    <div style={{ 
-                      color: 'var(--nc-red)', 
-                      fontFamily: 'var(--nc-font-mono)', 
-                      fontSize: 11 
-                    }}>
-                      BLOCKED (check browser settings)
-                    </div>
-                  ) : (
-                    <button 
-                      className="nc-btn nc-btn-primary" 
-                      onClick={requestDesktopPermission}
-                      style={{ padding: '8px 16px', fontSize: 12 }}
-                      data-testid="enable-desktop-notif"
-                    >
-                      Enable
-                    </button>
-                  )}
-                </div>
-              </div>
-
+              <PushNotificationSettings />
+              <label className="notification-option">
+                <span className="option-info" data-testid="foreground-popup-label">In-app browser popups</span>
+                <button type="button" role="switch" aria-checked={popupsEnabled}
+                  className={`toggle-switch ${popupsEnabled ? 'active' : ''}`}
+                  data-testid="popup-notif-toggle"
+                  onClick={() => { const value = !popupsEnabled; setPopupsEnabled(value); localStorage.setItem('navcom_popups_enabled', String(value)); }}>
+                  <span className="toggle-thumb" />
+                </button>
+              </label>
               {/* Alert Types Section */}
               <h3 style={{ fontFamily: 'var(--nc-font-display)', fontSize: 14, color: 'var(--nc-text-primary)', marginTop: 24, marginBottom: 16 }}>
                 Alert Types

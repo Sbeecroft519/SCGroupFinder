@@ -1,0 +1,219 @@
+
+        .merc-profile-header {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .merc-avatar-large {
+          width: 100px;
+          height: 100px;
+          margin: 0 auto 16px;
+          border-radius: 50%;
+          border: 3px solid var(--nc-cyan);
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--nc-bg-secondary);
+        }
+        .merc-avatar-large img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .merc-handle {
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
+          font-size: 24px;
+          margin: 0;
+        }
+        .merc-stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .merc-stat {
+          text-align: center;
+          padding: 20px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+        }
+        .merc-stat .stat-value {
+          display: block;
+          font-size: 28px;
+          font-weight: bold;
+          color: var(--nc-text);
+          margin: 8px 0 4px;
+        }
+        .merc-stat .stat-label {
+          font-size: 10px;
+          letter-spacing: 2px;
+          color: var(--nc-text-muted);
+        }
+        .accepted-notification-icon {
+          width: 60px;
+          height: 60px;
+          margin: 0 auto 20px;
+          border-radius: 50%;
+          background: rgba(0, 255, 136, 0.2);
+          border: 2px solid var(--nc-green);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 32px;
+          color: var(--nc-green);
+        }
+        .client-handle-box {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 20px;
+          margin-top: 16px;
+        }
+        .client-handle-box .label {
+          display: block;
+          font-size: 10px;
+          letter-spacing: 2px;
+          color: var(--nc-text-muted);
+          margin-bottom: 12px;
+        }
+        .client-handle-box .client-info {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+        }
+        .client-handle-box .client-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 2px solid var(--nc-cyan);
+        }
+        .client-handle-box .handle {
+          font-size: 24px;
+          font-weight: bold;
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
+        }
+        .pilot-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          margin-bottom: 12px;
+        }
+        .pilot-avatar {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          border: 2px solid var(--nc-cyan);
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--nc-bg);
+        }
+        .pilot-avatar.clickable {
+          cursor: pointer;
+        }
+        .pilot-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .pilot-info {
+          flex: 1;
+        }
+        .pilot-info.clickable {
+          cursor: pointer;
+        }
+        .pilot-info h4 {
+          margin: 0 0 4px;
+          color: var(--nc-cyan);
+          font-size: 16px;
+        }
+        .pilot-stats {
+          display: flex;
+          gap: 16px;
+          font-size: 12px;
+          color: var(--nc-text-muted);
+        }
+        .pilot-stats span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .view-profile-hint {
+          font-size: 10px;
+          color: var(--nc-text-muted);
+          opacity: 0.7;
+        }
+        .pilot-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .handshake-icon {
+          font-size: 64px;
+          margin-bottom: 16px;
+        }
+        .handshake-handle {
+          background: var(--nc-bg-secondary);
+          border: 1px solid var(--nc-border);
+          padding: 20px;
+        }
+        .handshake-handle .label {
+          display: block;
+          font-size: 10px;
+          letter-spacing: 2px;
+          color: var(--nc-text-muted);
+          margin-bottom: 8px;
+        }
+        .handshake-handle .handle {
+          display: block;
+          font-size: 28px;
+          font-weight: bold;
+          color: var(--nc-cyan);
+          font-family: var(--nc-font-display);
+        }
+        .rating-stars {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+        }
+        .star-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px;
+          color: rgba(255, 255, 255, 0.3);
+          transition: transform 0.2s;
+        }
+        .star-btn:hover {
+          transform: scale(1.1);
+        }
+        .star-btn.active {
+          color: #FFD700;
+        }
+        .pending-rating-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          background: var(--nc-gold);
+          color: var(--nc-bg);
+          border-radius: 50%;
+          font-size: 12px;
+          font-weight: bold;
+          margin-left: 8px;
+        }
+        .pending-ratings-section {
+          margin-bottom: 24px;
+          padding: 16px;
+          background: rgba(255, 215, 0, 0.05);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .contract-card.pending-rating {
+          border-color: var(--nc-gold);
+        }
+      
