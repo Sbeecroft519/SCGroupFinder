@@ -66,6 +66,19 @@ export const AffiliationRegion = ({ compact = false }) => {
             No approved orgs yet.
           </p>
         )}
+        {user?.org_affiliation && (
+          <p
+            data-testid="affiliation-status"
+            style={{
+              fontFamily: 'var(--nc-font-mono)', fontSize: 11, marginTop: 8,
+              color: user.org_affiliation.verified ? '#00ff88' : 'var(--nc-text-muted)',
+            }}
+          >
+            {user.org_affiliation.verified
+              ? 'CONFIRMED by the org leader'
+              : 'AWAITING CONFIRMATION from the org leader'}
+          </p>
+        )}
       </div>
 
       {!compact && (

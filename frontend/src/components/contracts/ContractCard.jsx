@@ -150,7 +150,7 @@ export const ContractCard = ({
                 <div className="contract-meta-item">
                   <Star size={12} className="text-gold" />
                   {contract.poster?.reputation?.toFixed(1) || '5.0'}
-                  <OrgTag tag={contract.poster?.org_tag} orgId={contract.poster?.org_id} testId={`poster-org-tag-${contract.id}`} />
+                  <OrgTag tag={contract.poster?.org_tag} orgId={contract.poster?.org_id} verified={contract.poster?.org_verified} testId={`poster-org-tag-${contract.id}`} />
                   <DiscordBadge discordLinked={contract.poster?.discord_linked} discordUsername={contract.poster?.discord_username} />
                 </div>
                 {/* Timing badge */}

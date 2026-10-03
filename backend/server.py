@@ -395,12 +395,14 @@ class ReviewCreate(BaseModel):
     contract_id: str
     rating: int  # 1-5 stars
     comment: Optional[str] = None
+    tags: Optional[List[str]] = None
     review_type: str  # 'client_to_merc' or 'merc_to_client'
 
 class ParticipantRating(BaseModel):
     participant_user_id: str
     rating: int  # 1-5 stars
     comment: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 class BadgeAssignRequest(BaseModel):
     action: str = "add"  # "add" or "remove"
@@ -2207,6 +2209,7 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
     review_data = {
         'rating': review.rating,
         'comment': review.comment,
+        'tags': _clean_praise_tags(review.tags),
         'reviewer_handle': user['rsi_handle'],
         'created_at': datetime.now(timezone.utc).isoformat()
     }
@@ -2238,6 +2241,7 @@ async def review_contract(contract_id: str, review: ReviewCreate, user = Depends
 class PosterRating(BaseModel):
     rating: int  # 1-5 stars
     comment: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 @api_router.post("/contracts/{contract_id}/rate-poster")
@@ -2274,6 +2278,7 @@ async def rate_poster(contract_id: str, payload: PosterRating, user = Depends(ge
         'rated_handle': (contract.get('poster') or {}).get('handle'),
         'rating': payload.rating,
         'comment': payload.comment,
+        'tags': _clean_praise_tags(payload.tags),
         'reviewer_id': user['id'],
         'reviewer_handle': user.get('rsi_handle'),
         'created_at': datetime.now(timezone.utc).isoformat(),
@@ -2336,6 +2341,7 @@ async def rate_participant(contract_id: str, payload: ParticipantRating, user = 
         'rated_handle': handle_by_id.get(payload.participant_user_id),
         'rating': payload.rating,
         'comment': payload.comment,
+        'tags': _clean_praise_tags(payload.tags),
         'reviewer_id': user['id'],
         'reviewer_handle': user.get('rsi_handle'),
         'created_at': datetime.now(timezone.utc).isoformat(),
@@ -3373,6 +3379,54 @@ async def get_org(org_id: str, user = Depends(get_current_user)):
     return pub
 
 
+PRAISE_TAGS = [
+    'Good pilot', 'Good gunner', 'Good medic', 'Good engineer', 'Great comms',
+    'On time', 'Fair pay', 'Calm under fire', 'Knows the ropes', 'Would fly again',
+]
+
+
+def _clean_praise_tags(tags):
+    if not tags:
+        return []
+    allowed = {t.lower(): t for t in PRAISE_TAGS}
+    out = []
+    for t in tags[:5]:
+        canon = allowed.get(str(t).strip().lower())
+        if canon and canon not in out:
+            out.append(canon)
+    return out
+
+
+@api_router.get("/ratings/praise-tags")
+async def list_praise_tags():
+    return {'tags': PRAISE_TAGS}
+
+
+@api_router.get("/users/{user_id}/praise")
+async def get_user_praise(user_id: str):
+    """Aggregate per-role praise tags this player has received."""
+    counts: dict = {}
+    cursor = db.contracts.find({'$or': [
+        {'participant_ratings.rated_user_id': user_id},
+        {'poster_ratings.rated_user_id': user_id},
+        {'accepted_by.id': user_id, 'client_review': {'$ne': None}},
+        {'poster_id': user_id, 'merc_review': {'$ne': None}},
+    ]}, {'_id': 0, 'participant_ratings': 1, 'poster_ratings': 1,
+         'client_review': 1, 'merc_review': 1, 'accepted_by': 1, 'poster_id': 1})
+    async for c in cursor:
+        buckets = [r for r in ((c.get('participant_ratings') or []) + (c.get('poster_ratings') or []))
+                   if r.get('rated_user_id') == user_id]
+        if (c.get('accepted_by') or {}).get('id') == user_id and c.get('client_review'):
+            buckets.append(c['client_review'])
+        if c.get('poster_id') == user_id and c.get('merc_review'):
+            buckets.append(c['merc_review'])
+        for r in buckets:
+            for t in (r.get('tags') or []):
+                counts[t] = counts.get(t, 0) + 1
+    praise = sorted(({'tag': k, 'count': v} for k, v in counts.items()), key=lambda x: -x['count'])
+    return {'praise': praise}
+
+
 class OrgAffiliationUpdate(BaseModel):
     org_id: Optional[str] = None
 
@@ -3398,10 +3452,67 @@ async def set_my_org_affiliation(payload: OrgAffiliationUpdate, user = Depends(g
             raise HTTPException(status_code=400, detail="Only approved orgs can be displayed")
     await db.users.update_one(
         {'id': user['id']},
-        {'$set': {'org_affiliation_id': org_id, 'org_affiliation_set_at': datetime.now(timezone.utc).isoformat()}}
+        {'$set': {'org_affiliation_id': org_id,
+                  'org_affiliation_status': 'pending' if org_id else None,
+                  'org_affiliation_set_at': datetime.now(timezone.utc).isoformat()}}
     )
     fresh = await db.users.find_one({'id': user['id']}, {'_id': 0})
     return {'affiliation': await affiliation.org_affiliation_for(db, fresh)}
+
+
+class AffiliationDecision(BaseModel):
+    action: str  # 'verify' | 'reject'
+
+
+async def _require_org_leader(org_id: str, user):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    org = await db.organizations.find_one({'id': org_id}, {'_id': 0, 'id': 1, 'owner_id': 1, 'name': 1})
+    if not org:
+        raise HTTPException(status_code=404, detail="Org not found")
+    if org.get('owner_id') != user['id'] and not user.get('is_admin'):
+        raise HTTPException(status_code=403, detail="Only the org leader can manage affiliations")
+    return org
+
+
+@api_router.get("/orgs/{org_id}/affiliations")
+async def list_org_affiliations(org_id: str, user = Depends(get_current_user)):
+    """Org leader view: everyone displaying this org tag, with their verification state."""
+    await _require_org_leader(org_id, user)
+    rows = await db.users.find(
+        {'org_affiliation_id': org_id},
+        {'_id': 0, 'id': 1, 'rsi_handle': 1, 'reputation': 1,
+         'org_affiliation_status': 1, 'org_affiliation_set_at': 1},
+    ).sort('rsi_handle', 1).to_list(500)
+    for r in rows:
+        r['affiliation_status'] = r.pop('org_affiliation_status', None) or 'pending'
+    return {'members': rows}
+
+
+@api_router.post("/orgs/{org_id}/affiliations/{member_id}")
+async def decide_org_affiliation(org_id: str, member_id: str, payload: AffiliationDecision,
+                                 user = Depends(get_current_user)):
+    """Confirm or reject a member displaying the org tag."""
+    org = await _require_org_leader(org_id, user)
+    action = (payload.action or '').lower()
+    if action not in ('verify', 'reject', 'reset'):
+        raise HTTPException(status_code=400, detail="action must be verify, reject or reset")
+    new_status = {'verify': 'verified', 'reject': 'rejected', 'reset': 'pending'}[action]
+    res = await db.users.update_one(
+        {'id': member_id, 'org_affiliation_id': org_id},
+        {'$set': {'org_affiliation_status': new_status,
+                  'org_affiliation_reviewed_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="That player is not displaying this org")
+    await broadcast_notification({
+        'type': 'affiliation_reviewed',
+        'target_user_id': member_id,
+        'title': 'Org affiliation ' + ('confirmed' if new_status == 'verified' else new_status),
+        'message': f"{org.get('name')} {'confirmed' if new_status == 'verified' else 'rejected'} your displayed affiliation",
+        'sound': 'notification',
+    })
+    return {'member_id': member_id, 'affiliation_status': new_status}
 
 
 class RegionUpdate(BaseModel):
@@ -4441,6 +4552,7 @@ async def get_contract_bids(contract_id: str, user = Depends(get_current_user)):
         if t:
             b['org_tag'] = t['tag']
             b['org_id'] = t['org_id']
+            b['org_verified'] = t.get('verified', False)
     return bids
 
 @api_router.post("/contracts/{contract_id}/bid")
@@ -4907,6 +5019,7 @@ async def get_pending_ratings(user = Depends(get_current_user)):
         if t:
             i['ratee_org_tag'] = t['tag']
             i['ratee_org_id'] = t['org_id']
+            i['ratee_org_verified'] = t.get('verified', False)
     return {'count': len(items), 'items': items, 'window_days': ratings_queue.RATING_WINDOW_DAYS}
 
 @api_router.get("/user/accepted-bids")

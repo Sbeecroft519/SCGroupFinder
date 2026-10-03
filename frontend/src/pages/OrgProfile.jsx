@@ -1,19 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Users, ArrowLeft, Star } from 'lucide-react';
-import { API } from '../App';
+import { Users, ArrowLeft, Star, BadgeCheck, X, Check } from 'lucide-react';
+import { useAuth, API } from '../App';
 
 export default function OrgProfile() {
   const { orgId } = useParams();
+  const { user } = useAuth();
   const [org, setOrg] = useState(null);
   const [error, setError] = useState('');
+  const [roster, setRoster] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     axios.get(`${API}/orgs/${orgId}`)
       .then(res => setOrg(res.data))
       .catch(() => setError('Org not found'));
+    axios.get(`${API}/orgs/${orgId}/affiliations`)
+      .then(res => setRoster(res.data.members || []))
+      .catch(() => setRoster(null));
   }, [orgId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const decide = async (memberId, action) => {
+    try {
+      await axios.post(`${API}/orgs/${orgId}/affiliations/${memberId}`, { action });
+      load();
+    } catch (e) {
+      // keep the current view; the leader can retry
+    }
+  };
+
+  const isLeader = Boolean(roster) && Boolean(user);
 
   if (error) {
     return (
@@ -54,6 +72,49 @@ export default function OrgProfile() {
         </div>
       </div>
 
+      {isLeader && (
+        <div style={{ marginTop: 28, border: '1px solid var(--nc-border)', borderLeft: '3px solid var(--nc-gold, #FFD700)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="org-affiliation-review-panel">
+          <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--nc-text-muted)', marginBottom: 12 }}>
+            AFFILIATION REQUESTS — LEADER ONLY
+          </div>
+          {roster.length === 0 ? (
+            <div style={{ color: 'var(--nc-text-muted)', fontSize: 13 }} data-testid="org-affiliation-review-empty">
+              Nobody is displaying this org yet.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {roster.map(m => (
+                <div key={m.id} data-testid={`affiliation-row-${m.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--nc-border)', paddingBottom: 8 }}>
+                  <span style={{ color: 'var(--nc-text-primary)', fontSize: 14 }}>{m.rsi_handle}</span>
+                  <span
+                    data-testid={`affiliation-status-${m.id}`}
+                    style={{
+                      fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 1, padding: '1px 6px',
+                      color: m.affiliation_status === 'verified' ? '#00ff88' : m.affiliation_status === 'rejected' ? '#ff4d4d' : 'var(--nc-text-muted)',
+                      border: `1px solid ${m.affiliation_status === 'verified' ? 'rgba(0,255,136,0.4)' : m.affiliation_status === 'rejected' ? 'rgba(255,77,77,0.4)' : 'var(--nc-border)'}`,
+                    }}
+                  >
+                    {m.affiliation_status.toUpperCase()}
+                  </span>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                    {m.affiliation_status !== 'verified' && (
+                      <button className="nc-btn nc-btn-primary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => decide(m.id, 'verify')} data-testid={`affiliation-verify-${m.id}`}>
+                        <Check size={12} /> CONFIRM
+                      </button>
+                    )}
+                    {m.affiliation_status !== 'rejected' && (
+                      <button className="nc-btn nc-btn-secondary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => decide(m.id, 'reject')} data-testid={`affiliation-reject-${m.id}`}>
+                        <X size={12} /> REJECT
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <h2 style={{ fontSize: 'var(--nc-h2, 1.125rem)', fontFamily: 'var(--nc-font-display)', color: 'var(--nc-text-primary)', margin: '28px 0 12px' }}>
         Displayed members
       </h2>
@@ -80,7 +141,10 @@ export default function OrgProfile() {
                 transition: 'border-color .2s',
               }}
             >
-              <span style={{ color: 'var(--nc-text-primary)', fontSize: 14 }}>{m.rsi_handle}</span>
+              <span style={{ color: 'var(--nc-text-primary)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
+                {m.rsi_handle}
+                {m.affiliation_status === 'verified' && <BadgeCheck size={13} color="#00ff88" />}
+              </span>
               <span style={{ color: 'var(--nc-gold)', fontSize: 12, fontFamily: 'var(--nc-font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Star size={12} fill="#FFD700" /> {(m.reputation || 5).toFixed(1)}
               </span>

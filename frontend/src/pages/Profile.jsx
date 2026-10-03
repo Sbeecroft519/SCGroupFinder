@@ -27,6 +27,7 @@ export default function Profile() {
   const [copied, setCopied] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [praise, setPraise] = useState([]);
 
   // If viewing another user's profile, fetch their data
   useEffect(() => {
@@ -44,6 +45,14 @@ export default function Profile() {
 
   const user = profileUser || currentUser;
   const isOwnProfile = !userId || userId === currentUser?.id;
+
+  useEffect(() => {
+    const id = userId || currentUser?.id;
+    if (!id) return;
+    axios.get(`${API}/users/${id}/praise`)
+      .then(res => setPraise(res.data?.praise || []))
+      .catch(() => setPraise([]));
+  }, [userId, currentUser?.id]);
 
   if (!user) return null;
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#00f0ff' }}>Loading...</div>;
@@ -86,7 +95,7 @@ export default function Profile() {
             <div className="citizen-name">{user.rsi_handle?.toUpperCase()}</div>
             {user.org_affiliation?.org_tag && (
               <div style={{ marginTop: 4 }}>
-                <OrgTag tag={user.org_affiliation.org_tag} orgId={user.org_affiliation.org_id} testId="profile-org-tag" />
+                <OrgTag tag={user.org_affiliation.org_tag} orgId={user.org_affiliation.org_id} verified={user.org_affiliation.verified} testId="profile-org-tag" />
               </div>
             )}
             <div className="card-label">CITIZEN RECORD</div>
@@ -180,6 +189,29 @@ export default function Profile() {
           </button>
         )}
       </div>
+
+        {praise.length > 0 && (
+          <div style={{ marginTop: 20, border: '1px solid var(--nc-border)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="profile-praise-panel">
+            <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--nc-text-muted)', marginBottom: 12 }}>
+              PRAISE RECEIVED
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {praise.map(p => (
+                <span
+                  key={p.tag}
+                  data-testid={`profile-praise-${p.tag.replace(/\s+/g, '-').toLowerCase()}`}
+                  style={{
+                    fontSize: 11, padding: '3px 9px', fontFamily: 'var(--nc-font-mono)',
+                    color: 'var(--nc-gold, #FFD700)', background: 'rgba(255,215,0,0.08)',
+                    border: '1px solid rgba(255,215,0,0.3)',
+                  }}
+                >
+                  {p.tag} ×{p.count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isOwnProfile && (
           <div style={{ marginTop: 20, border: '1px solid var(--nc-border)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="profile-affiliation-panel">

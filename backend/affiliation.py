@@ -6,6 +6,9 @@ async def org_affiliation_for(db, user: Optional[dict]) -> Optional[dict]:
     oid = (user or {}).get('org_affiliation_id')
     if not oid:
         return None
+    status = (user or {}).get('org_affiliation_status') or 'pending'
+    if status == 'rejected':
+        return None
     org = await db.organizations.find_one(
         {'id': oid, 'approval_status': 'approved'},
         {'_id': 0, 'id': 1, 'name': 1, 'tag': 1, 'logo_url': 1},
@@ -17,17 +20,20 @@ async def org_affiliation_for(db, user: Optional[dict]) -> Optional[dict]:
         'org_name': org.get('name'),
         'org_tag': org.get('tag'),
         'logo_url': org.get('logo_url'),
+        'status': status,
+        'verified': status == 'verified',
     }
 
 
 async def org_tag_map(db, user_ids: Iterable[Optional[str]]) -> dict:
-    """user_id -> {org_id, tag, name} for users displaying an approved org."""
+    """user_id -> {org_id, tag, name, verified} for users displaying an approved org."""
     ids = [i for i in {u for u in user_ids if u}]
     if not ids:
         return {}
     users = await db.users.find(
-        {'id': {'$in': ids}, 'org_affiliation_id': {'$nin': [None, '']}},
-        {'_id': 0, 'id': 1, 'org_affiliation_id': 1},
+        {'id': {'$in': ids}, 'org_affiliation_id': {'$nin': [None, '']},
+         'org_affiliation_status': {'$ne': 'rejected'}},
+        {'_id': 0, 'id': 1, 'org_affiliation_id': 1, 'org_affiliation_status': 1},
     ).to_list(len(ids))
     org_ids = list({u['org_affiliation_id'] for u in users if u.get('org_affiliation_id')})
     if not org_ids:
@@ -41,7 +47,12 @@ async def org_tag_map(db, user_ids: Iterable[Optional[str]]) -> dict:
     for u in users:
         org = by_org.get(u.get('org_affiliation_id'))
         if org:
-            out[u['id']] = {'org_id': org['id'], 'tag': org.get('tag'), 'name': org.get('name')}
+            out[u['id']] = {
+                'org_id': org['id'],
+                'tag': org.get('tag'),
+                'name': org.get('name'),
+                'verified': (u.get('org_affiliation_status') or 'pending') == 'verified',
+            }
     return out
 
 
@@ -78,11 +89,13 @@ async def enrich_org_tags(db, contracts) -> None:
         if target is not None and t:
             target['org_tag'] = t['tag']
             target['org_id'] = t['org_id']
+            target['org_verified'] = t.get('verified', False)
 
     for c in contracts:
         t = tags.get(c.get('poster_id'))
         if t:
-            c['poster'] = {**(c.get('poster') or {}), 'org_tag': t['tag'], 'org_id': t['org_id']}
+            c['poster'] = {**(c.get('poster') or {}), 'org_tag': t['tag'], 'org_id': t['org_id'],
+                           'org_verified': t.get('verified', False)}
         stamp(c.get('accepted_by'), (c.get('accepted_by') or {}).get('id'))
         for p in (c.get('accepted_participants') or []):
             stamp(p, p.get('id'))
@@ -97,7 +110,8 @@ async def displayed_member_counts(db, org_ids: List[str]) -> dict:
     if not org_ids:
         return {}
     rows = await db.users.aggregate([
-        {'$match': {'org_affiliation_id': {'$in': org_ids}}},
+        {'$match': {'org_affiliation_id': {'$in': org_ids},
+                    'org_affiliation_status': {'$ne': 'rejected'}}},
         {'$group': {'_id': '$org_affiliation_id', 'n': {'$sum': 1}}},
     ]).to_list(len(org_ids) + 1)
     return {r['_id']: r['n'] for r in rows}
@@ -105,8 +119,10 @@ async def displayed_member_counts(db, org_ids: List[str]) -> dict:
 
 async def displayed_members(db, org_id: str, limit: int = 200) -> List[dict]:
     rows = await db.users.find(
-        {'org_affiliation_id': org_id},
+        {'org_affiliation_id': org_id, 'org_affiliation_status': {'$ne': 'rejected'}},
         {'_id': 0, 'id': 1, 'rsi_handle': 1, 'reputation': 1, 'avatar_preset': 1,
-         'avatar_url': 1, 'contracts_completed': 1},
+         'avatar_url': 1, 'contracts_completed': 1, 'org_affiliation_status': 1},
     ).sort('rsi_handle', 1).to_list(limit)
+    for r in rows:
+        r['affiliation_status'] = r.pop('org_affiliation_status', None) or 'pending'
     return rows

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BadgeCheck } from 'lucide-react';
 
 const baseStyle = {
   fontFamily: 'var(--nc-font-mono)',
@@ -11,24 +12,41 @@ const baseStyle = {
   textDecoration: 'none',
   lineHeight: 1.6,
   whiteSpace: 'nowrap',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 3,
+};
+
+const verifiedStyle = {
+  ...baseStyle,
+  color: '#00ff88',
+  background: 'rgba(0,255,136,0.08)',
+  border: '1px solid rgba(0,255,136,0.35)',
 };
 
 /** Quiet org affiliation badge — never louder than the handle it sits next to. */
-export const OrgTag = ({ tag, orgId, testId }) => {
+export const OrgTag = ({ tag, orgId, verified = false, testId }) => {
   if (!tag) return null;
-  const label = `[${tag}]`;
+  const style = verified ? verifiedStyle : baseStyle;
+  const body = (
+    <>
+      [{tag}]
+      {verified && <BadgeCheck size={10} />}
+    </>
+  );
+  const title = verified ? 'Affiliation confirmed by the org' : 'Self-declared affiliation (unconfirmed)';
   if (!orgId) {
-    return <span style={baseStyle} data-testid={testId || `org-tag-${tag}`}>{label}</span>;
+    return <span style={style} title={title} data-testid={testId || `org-tag-${tag}`}>{body}</span>;
   }
   return (
     <Link
       to={`/orgs/${orgId}`}
-      style={baseStyle}
+      style={style}
       onClick={(e) => e.stopPropagation()}
-      title="View org profile"
+      title={title}
       data-testid={testId || `org-tag-${tag}`}
     >
-      {label}
+      {body}
     </Link>
   );
 };

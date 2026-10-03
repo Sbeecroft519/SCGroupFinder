@@ -4,6 +4,7 @@ import { Star, Clock } from 'lucide-react';
 import { useAuth, API } from '../App';
 import { usePendingRatings } from '../hooks/usePendingRatings';
 import { OrgTag } from '../components/OrgTag';
+import { PRAISE_TAGS } from '../constants/praise';
 
 const daysLeft = (iso) => {
   if (!iso) return null;
@@ -24,8 +25,15 @@ const closedAgo = (iso) => {
 const RatingRow = ({ item, onDone }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [tags, setTags] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const toggleTag = (t) => {
+    setTags(prev => prev.includes(t)
+      ? prev.filter(x => x !== t)
+      : (prev.length >= 3 ? prev : [...prev, t]));
+  };
 
   const submit = async () => {
     if (!rating) return;
@@ -36,18 +44,18 @@ const RatingRow = ({ item, onDone }) => {
       if (item.kind === 'poster_to_player') {
         if (item.is_multi) {
           await axios.post(`${API}/contracts/${cid}/rate-participant`, {
-            participant_user_id: item.ratee_id, rating, comment: comment || null,
+            participant_user_id: item.ratee_id, rating, comment: comment || null, tags,
           });
         } else {
           await axios.post(`${API}/contracts/${cid}/review`, {
-            contract_id: cid, rating, comment: comment || null, review_type: 'client_to_merc',
+            contract_id: cid, rating, comment: comment || null, tags, review_type: 'client_to_merc',
           });
         }
       } else if (item.is_multi) {
-        await axios.post(`${API}/contracts/${cid}/rate-poster`, { rating, comment: comment || null });
+        await axios.post(`${API}/contracts/${cid}/rate-poster`, { rating, comment: comment || null, tags });
       } else {
         await axios.post(`${API}/contracts/${cid}/review`, {
-          contract_id: cid, rating, comment: comment || null, review_type: 'merc_to_client',
+          contract_id: cid, rating, comment: comment || null, tags, review_type: 'merc_to_client',
         });
       }
       onDone();
@@ -79,7 +87,7 @@ const RatingRow = ({ item, onDone }) => {
             <span>
               Rate <strong style={{ color: 'var(--nc-cyan)' }}>{item.ratee_handle || 'player'}</strong>
             </span>
-            <OrgTag tag={item.ratee_org_tag} orgId={item.ratee_org_id} />
+            <OrgTag tag={item.ratee_org_tag} orgId={item.ratee_org_id} verified={item.ratee_org_verified} />
             {item.slot_role && <span style={{ color: 'var(--nc-text-muted)' }}>· {item.slot_role}</span>}
             <span style={{ color: 'var(--nc-text-muted)' }}>· closed {closedAgo(item.closed_at)}</span>
           </div>
@@ -106,10 +114,42 @@ const RatingRow = ({ item, onDone }) => {
         ))}
       </div>
 
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 1, color: 'var(--nc-text-muted)', marginBottom: 8 }}>
+          PRAISE (PICK UP TO 3)
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {PRAISE_TAGS.map(t => {
+            const on = tags.includes(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggleTag(t)}
+                data-testid={`praise-tag-${item.id}-${t.replace(/\s+/g, '-').toLowerCase()}`}
+                style={{
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  padding: '4px 9px',
+                  fontFamily: 'var(--nc-font-mono)',
+                  color: on ? '#06131f' : 'var(--nc-text-secondary)',
+                  background: on ? 'var(--nc-gold, #FFD700)' : 'rgba(0,240,255,0.05)',
+                  border: `1px solid ${on ? 'var(--nc-gold, #FFD700)' : 'rgba(0,240,255,0.25)'}`,
+                  transition: 'background-color .15s, color .15s, border-color .15s',
+                }}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <textarea
         className="nc-input"
         rows={2}
-        placeholder="Optional note"
+        maxLength={280}
+        placeholder="Short written feedback (optional)"
         value={comment}
         onChange={e => setComment(e.target.value)}
         style={{ marginTop: 12, width: '100%' }}

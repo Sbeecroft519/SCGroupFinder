@@ -36,7 +36,7 @@ export const ApplicantsModal = ({
                         {bid.bidder?.avatar_url ? <img src={bid.bidder.avatar_url} alt="" /> : <Users size={32} />}
                       </div>
                       <div data-testid={`applicants-modal-set-show-merc-profile-2-${bid.id}`} className="pilot-info clickable" onClick={() => setShowMercProfile(bid.bidder)}>
-                        <h4 data-testid={`applicants-modal-h4-${bid.id}`}>{bid.bidder?.handle || 'Unknown'} <OrgTag tag={bid.org_tag} orgId={bid.org_id} testId={`applicant-org-tag-${bid.id}`} /></h4>
+                        <h4 data-testid={`applicants-modal-h4-${bid.id}`}>{bid.bidder?.handle || 'Unknown'} <OrgTag tag={bid.org_tag} orgId={bid.org_id} verified={bid.org_verified} testId={`applicant-org-tag-${bid.id}`} /></h4>
                         <div className="pilot-stats">
                           <span data-testid={`applicants-modal-span-${bid.id}`}><Star size={12} fill="#FFD700" /> {bid.bidder?.reputation?.toFixed(1) || '5.0'}</span>
                           <span data-testid={`applicants-modal-span-2-${bid.id}`}>{bid.bidder?.contracts_completed || 0} contracts</span>

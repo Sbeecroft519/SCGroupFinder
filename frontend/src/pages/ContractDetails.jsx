@@ -451,7 +451,7 @@ const ContractDetails = () => {
                       {slot.status === 'FILLED' && slot.filled_by && (
                         <div style={styles.filledByInfo}>
                           <Shield size={18} />
-                          <span>Assigned: <strong>{slot.filled_by.handle}</strong> <OrgTag tag={slot.filled_by.org_tag} orgId={slot.filled_by.org_id} testId={`crew-org-tag-${index}`} /></span>
+                          <span>Assigned: <strong>{slot.filled_by.handle}</strong> <OrgTag tag={slot.filled_by.org_tag} orgId={slot.filled_by.org_id} verified={slot.filled_by.org_verified} testId={`crew-org-tag-${index}`} /></span>
                         </div>
                       )}
 
@@ -466,7 +466,7 @@ const ContractDetails = () => {
                                 <div key={bidIdx} style={styles.bidItem}>
                                   <div style={styles.bidderInfo}>
                                     <span style={styles.bidderHandle}>{bid.handle}</span>
-                                    <OrgTag tag={bid.org_tag} orgId={bid.org_id} testId={`slot-bid-org-tag-${index}-${bidIdx}`} />
+                                    <OrgTag tag={bid.org_tag} orgId={bid.org_id} verified={bid.org_verified} testId={`slot-bid-org-tag-${index}-${bidIdx}`} />
                                   </div>
                                   <button
                                     style={{ ...styles.button, ...styles.acceptButton }}
