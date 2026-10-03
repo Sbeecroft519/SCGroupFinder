@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 24 verification of org affiliation, pending ratings page, region persistence, and multicrew stepper. Created /app/backend/tests/test_iteration24_features.py with 11 tests - all 11 passing against production preview URL. Frontend verified via Playwright: all documented data-testid elements render correctly on /ratings, /orgs, /orgs/:id, /profile, /settings, and /contracts. Multi-crew stepper (steps 0-3) wires up properly, job cards display '[MTO]' org tag next to reputation and 'X/N SEATS FILLED - OPEN: <roles>' as specified. Backend derives per-seat payout correctly (floor(90000/3)=30000). Region prompt does NOT re-appear for users with region persisted on account (confirmed region='Global' in /auth/me response).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/ratings/pending",
+        "issue": "Returns 200 with {count:0,items:[]} for unauthenticated callers instead of 401/403. No data leak (empty payload) but inconsistent with REST norms. Matches pattern of other optional-auth endpoints in server.py."
+      },
+      {
+        "endpoint": "POST /api/contracts (multi-crew)",
+        "issue": "Backend ignores `crew_roles` alone - requires client to also pre-build the `manifest` list with per-seat payouts. Fine for current frontend (useCreateContract.js does this) but means an API consumer who sends only crew_roles+payment_amount gets a solo contract with empty manifest."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Modal title",
+        "issues": [
+          "When MULTI-CREW toggle is ON, modal heading becomes 'Post Multi-Crew Job' and shows stepper; this is correct behaviour but step 1 fields (title/description/timing/duration/multi-crew toggle) are nearly identical to solo form, which may confuse testers checking 'is stepper active'. Not a bug - just note for future tests."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration24_features.py",
+    "/app/test_reports/pytest/iteration24.xml"
+  ],
+  "action_items": [
+    "(Optional/low-pri) Make /api/ratings/pending return 401 for unauth instead of empty 200 for better REST hygiene.",
+    "(Optional) Consider deriving manifest server-side from crew_roles + payment_amount so API consumers only need to send intent."
+  ],
+  "critical_code_review_comments": [
+    "ratings_queue.create_obligations also writes a 'completed' obligation row when a side has already rated - these never appear in /ratings/pending (filtered by status=pending) but do add DB rows; worth confirming intent (audit trail vs noise).",
+    "affiliation.enrich_org_tags does a single org_tag_map lookup per contracts batch (good); verified /api/contracts response includes `poster.org_tag` and `poster.org_id` when the poster has an affiliation.",
+    "server.py line ~4898 /ratings/pending: `if not user: return {...}` pattern silently masks auth failure - acceptable but worth logging a warning so prod misconfigurations are caught.",
+    "Admin's affiliation was mutated by tests (now set to MTO). Baseline before run was None; cleanup leaves it ON MTO so the UI tests can assert the tag. If a future test needs admin without affiliation, it must reset first."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration24_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 iteration-24 tests)",
+    "frontend": "100% (all documented data-testid elements verified; stepper, nav-ratings badge, org tags, org profile all rendered correctly)"
+  },
+  "test_credentials": "Admin: beecroft519@gmail.com / Nv$C0m_Adm1n_2025!. Demo via POST /api/auth/demo-login. Approved org id b4ea1916-eb87-4c6f-9078-e01602869ffc (MTO).",
+  "seed_data_creation": "Created 2 TEST_iter24_mc_* multi-crew contracts on the live preview DB (both as admin, 3 open seats each, 90000 aUEC split 30000/seat). Admin org_affiliation set to MTO (was previously None). Admin region toggled between Europe/Asia/Global during tests; final state = Global.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All four iteration-24 features working E2E. Admin currently has: region=Global, org_affiliation_id=MTO. The /ratings page lists 10 backfilled obligations for admin (all player_to_poster, Demo_Player side). Two TEST_iter24_mc_* contracts exist on the board - delete via admin if cluttering. Pre-existing failures in tests/test_multicrew_manifest.py / test_bug_fixes.py / test_discord_oauth.py / test_new_features.py::TestAdminLogin remain (not re-run; flagged by main agent as unrelated to this change). Multi-crew contract creation requires sending BOTH is_multi_crew=true AND the pre-split manifest array (not just crew_roles) - note this when writing future API tests.",
+  "rca of the issue": "No blocking issues found. Minor: /api/ratings/pending returning 200 for unauth is a stylistic choice already present across the codebase (/api/user/accepted-bids etc.) - endpoint checks `if not user: return <empty>` instead of relying on get_current_user to raise. Fix would be to make get_current_user require auth by default and have endpoints opt-in to optional auth."
+}

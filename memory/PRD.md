@@ -434,3 +434,50 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - **P2:** Split remaining large Settings.jsx; expand real-device responsive coverage and Safari/Firefox push tests; advanced org dispatch filters/role mentions.
 - Suggested enhancement: opt-in scheduled-event reminder notifications.
 
+
+
+---
+
+## Iteration 24 — Org Affiliation, Ratings Reliability, Region Memory, Multicrew Polish (Oct 3, 2026)
+
+### Implemented
+1. **Self-service org affiliation**
+   - `PUT/GET /api/user/org-affiliation`, `GET /api/orgs/approved-options`. Only `approval_status=approved` orgs selectable; one org per player; clearable.
+   - `org_affiliation` returned on `/auth/me`, login, discord-complete, demo-login and `/users/{id}/profile`.
+   - `GET /api/orgs` returns `displayed_member_count` (live count of players displaying the org); `GET /api/orgs/{id}` returns `displayed_members`.
+   - Backend enrichment (`/app/backend/affiliation.py`) stamps `org_tag`/`org_id` onto posters, accepted_by, accepted_participants, manifest seats, seat bids and contract bids.
+   - Frontend: `components/OrgTag.jsx` quiet badge, shown on job cards, crew manifests, applicant lists, profile. New public org profile page `/orgs/:orgId` (`pages/OrgProfile.jsx`); org tiles are now links.
+   - Settable from BOTH Settings ("Affiliation & Region" section) and Profile (`components/settings/AffiliationRegion.jsx`).
+
+2. **Durable pending ratings** (`/app/backend/ratings_queue.py`, collection `rating_obligations`)
+   - One obligation per direction on completion (`/complete`, `/mark-complete`, `/mark-complete-multi`), idempotent.
+   - `GET /api/ratings/pending`; settled automatically by `/review`, `/rate-poster`, `/rate-participant`.
+   - 14-day window, then `status=expired` ("not rated"); lazy expiry on read + hourly loop.
+   - Mutual hiding: while a viewer still owes a rating, the counterpart's rating is blanked on `GET /api/contracts/{id}` and `/api/user/my-contracts` with `ratings_withheld: true`.
+   - Legacy completed jobs backfilled on startup with the window starting then (18 obligations on first run).
+   - UI: `/ratings` page (`pages/PendingRatings.jsx`), top-nav RATINGS item with count badge + mobile bottom-nav slot, `hooks/usePendingRatings.js`.
+
+3. **Region asked once**
+   - `PUT /api/user/region`, `region` on the user doc and in `/auth/me`. Guests remembered in `localStorage.navcom_region`.
+   - App.js `applyRegion`/`setShard` persist to the account; the prompt only fires when no region has ever been chosen. "Skip (Global)" counts as a choice. Editable in Settings.
+
+4. **Multicrew posting stepper**
+   - `components/contracts/MultiCrewStepper.jsx`: basics -> crew roles & seats -> pay split -> review & post, with back navigation that preserves input.
+   - Crew roles are free-text names with a seat count; `crew_roles` persisted on the contract; manifest derived as roles x count with `payout = floor(total / seats)`.
+   - Job cards show `x/y SEATS FILLED - OPEN: <roles>` (`getCrewSeatSummary`).
+   - Solo <-> multicrew toggle no longer resets the form.
+
+5. **Alert cue de-spam** (follow-up request)
+   - `utils/sounds.js` `claimBurstCue()`: broadcast cues (job categories, threat, issue, stability) play at most once per 5s burst; personal cues (bid, bid accepted, login) are never gated. Socket.IO alert beep in `hooks/useNotifications.js` shares the same gate.
+   - Verified e2e: 4 jobs posted simultaneously -> 1 audio play; a 6th event after the window -> plays again.
+
+### Testing
+- `/app/test_reports/iteration_24.json`: 11/11 new backend tests pass (`/app/backend/tests/test_iteration24_features.py`), all frontend testids verified. No critical or UI bugs.
+- Pre-existing unrelated pytest failures remain: `tests/test_multicrew_manifest.py`, `tests/test_bug_fixes.py`, `tests/test_discord_oauth.py`, `tests/test_new_features.py::TestAdminLogin` (hardcoded fixture credentials).
+
+### Notes / backlog
+- Admin account state after tests: `region=Global`, `org_affiliation=MTO` (changeable in Settings).
+- P2 (optional, from review): `/api/ratings/pending` returns empty 200 for unauth instead of 401; backend could derive the manifest from `crew_roles` + total pay for API consumers.
+- Phase 2 (deferred): org leaders verify/reject displayed affiliations; per-role rating tags and written feedback on public profiles; saved crew templates.
+- Phase 3 (deferred): org-vs-org reputation/leaderboards; recurring scheduled multicrew ops; push reminders for pending ratings.
+- Still open from earlier: refactor `server.py` (>5400 lines) into route modules; migrate auth hashing to bcrypt with lockout; seed-admin password update-on-change.

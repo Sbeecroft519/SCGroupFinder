@@ -15,8 +15,23 @@ const SOUNDS = {
 // Set volumes (40% to avoid startling users)
 Object.values(SOUNDS).forEach(s => s.volume = 0.4);
 
+// Broadcast cues (new jobs / reports) arrive in bursts — one cue per burst is plenty.
+// Personal cues (bids, accepts, login) always play; they're never spammy.
+const BURST_WINDOW_MS = 5000;
+const BURST_GATED = new Set(['combat', 'logistics', 'medical', 'industrial', 'threat', 'issue', 'stability']);
+let lastBurstCueAt = 0;
+
+/** True if a burst cue is allowed right now (and claims the window). */
+export const claimBurstCue = () => {
+  const now = Date.now();
+  if (now - lastBurstCueAt < BURST_WINDOW_MS) return false;
+  lastBurstCueAt = now;
+  return true;
+};
+
 const playSound = (key) => {
   if (localStorage.getItem('navcom_sound_enabled') === 'false') return;
+  if (BURST_GATED.has(key) && !claimBurstCue()) return;
   const sound = SOUNDS[key];
   if (sound) {
     sound.currentTime = 0;

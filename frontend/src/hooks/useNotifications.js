@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { claimBurstCue } from '../utils/sounds';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
@@ -17,7 +18,7 @@ export const useNotifications = (userShard, settings, onAlert) => {
   }, []);
 
   const playAlertSound = useCallback(() => {
-    if (settings?.sound_enabled && audioRef.current) {
+    if (settings?.sound_enabled && audioRef.current && claimBurstCue()) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});
     }
