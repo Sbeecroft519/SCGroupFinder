@@ -2259,17 +2259,7 @@ async def rate_poster(contract_id: str, payload: PosterRating, user = Depends(ge
         raise HTTPException(status_code=400, detail="You cannot rate yourself")
 
     # User must have been an accepted participant of this contract.
-    participant_ids = set()
-    for p in (contract.get('accepted_participants') or []):
-        if p.get('id'):
-            participant_ids.add(p['id'])
-    for slot in (contract.get('manifest') or []):
-        ab = slot.get('accepted_by') or {}
-        if ab.get('id'):
-            participant_ids.add(ab['id'])
-    single = contract.get('accepted_by') or {}
-    if single.get('id'):
-        participant_ids.add(single['id'])
+    participant_ids = set(ratings_queue.participants_of(contract).keys())
     if user['id'] not in participant_ids:
         raise HTTPException(status_code=403, detail="Only participants can rate the poster")
 
@@ -2314,22 +2304,11 @@ async def rate_participant(contract_id: str, payload: ParticipantRating, user = 
     if contract['poster_id'] != user['id']:
         raise HTTPException(status_code=403, detail="Only the poster can rate participants")
 
-    # Build the set of valid participant ids (multi-join + multi-crew).
-    valid_ids = set()
-    handle_by_id = {}
-    for p in (contract.get('accepted_participants') or []):
-        if p.get('id'):
-            valid_ids.add(p['id'])
-            handle_by_id[p['id']] = p.get('rsi_handle') or p.get('handle')
-    for slot in (contract.get('manifest') or []):
-        ab = slot.get('accepted_by') or {}
-        if ab.get('id'):
-            valid_ids.add(ab['id'])
-            handle_by_id[ab['id']] = ab.get('rsi_handle') or ab.get('handle')
-    single = contract.get('accepted_by') or {}
-    if single.get('id'):
-        valid_ids.add(single['id'])
-        handle_by_id[single['id']] = single.get('rsi_handle') or single.get('handle')
+    # Valid participants come from the same resolver the rating queue uses, so an
+    # obligation can never point at someone the endpoint then rejects.
+    people = ratings_queue.participants_of(contract)
+    valid_ids = set(people.keys())
+    handle_by_id = {uid: info.get('handle') for uid, info in people.items()}
 
     if payload.participant_user_id not in valid_ids:
         raise HTTPException(status_code=400, detail="Not a participant of this contract")
@@ -5131,6 +5110,81 @@ async def get_user_contracts(user = Depends(get_current_user)):
         if c['id'] in withheld:
             ratings_queue.redact_withheld(c, user['id'])
     return contracts
+
+
+class ObligationRating(BaseModel):
+    rating: int
+    comment: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+@api_router.post("/ratings/pending/{obligation_id}")
+async def submit_pending_rating(obligation_id: str, payload: ObligationRating,
+                                user = Depends(get_current_user)):
+    """Settle one owed rating. The server routes it to the right place so the
+    client never has to guess which rating endpoint a past job needs."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if payload.rating < 1 or payload.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be 1-5")
+    ob = await db.rating_obligations.find_one(
+        {'id': obligation_id, 'rater_id': user['id']}, {'_id': 0}
+    )
+    if not ob:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    if ob.get('status') != 'pending':
+        raise HTTPException(status_code=400, detail="That rating is no longer pending")
+    contract = await db.contracts.find_one({'id': ob['contract_id']})
+    if not contract:
+        await db.rating_obligations.update_one(
+            {'id': obligation_id}, {'$set': {'status': 'expired'}}
+        )
+        raise HTTPException(status_code=404, detail="That job no longer exists")
+
+    entry = {
+        'rating': payload.rating,
+        'comment': payload.comment,
+        'tags': _clean_praise_tags(payload.tags),
+        'reviewer_id': user['id'],
+        'reviewer_handle': user.get('rsi_handle'),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    is_single = bool((contract.get('accepted_by') or {}).get('id')) \
+        and not contract.get('manifest') and not contract.get('accepted_participants')
+    ratee_id = ob['ratee_id']
+
+    if ob['kind'] == 'poster_to_player':
+        if is_single:
+            await db.contracts.update_one({'id': contract['id']}, {'$set': {'client_review': entry}})
+        else:
+            await db.contracts.update_one(
+                {'id': contract['id']},
+                {'$pull': {'participant_ratings': {'reviewer_id': user['id'], 'rated_user_id': ratee_id}}}
+            )
+            await db.contracts.update_one(
+                {'id': contract['id']},
+                {'$push': {'participant_ratings': {**entry, 'rated_user_id': ratee_id}}}
+            )
+    else:
+        if is_single:
+            await db.contracts.update_one({'id': contract['id']}, {'$set': {'merc_review': entry}})
+        else:
+            await db.contracts.update_one(
+                {'id': contract['id']},
+                {'$pull': {'poster_ratings': {'reviewer_id': user['id']}}}
+            )
+            await db.contracts.update_one(
+                {'id': contract['id']},
+                {'$push': {'poster_ratings': {**entry, 'rated_user_id': ratee_id}}}
+            )
+
+    try:
+        await update_user_reputation(ratee_id)
+    except Exception:
+        pass
+    await _notify_rating_received(ratee_id, payload.rating, user.get('rsi_handle'), contract.get('title'))
+    await ratings_queue.settle(db, contract['id'], user['id'], ratee_id)
+    return {'message': 'Rating recorded', 'rated_user_id': ratee_id}
 
 
 @api_router.get("/ratings/pending")

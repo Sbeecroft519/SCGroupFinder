@@ -59,12 +59,25 @@ export const useContractRatings = ({
           comment: reviewComment || null
         });
       } else {
-        await axios.post(`${API}/contracts/${showReview.id}/review`, {
-          contract_id: showReview.id,
-          rating: reviewRating,
-          comment: reviewComment,
-          review_type: showReview.isClient ? 'client_to_merc' : 'merc_to_client'
-        });
+        try {
+          await axios.post(`${API}/contracts/${showReview.id}/review`, {
+            contract_id: showReview.id,
+            rating: reviewRating,
+            comment: reviewComment,
+            review_type: showReview.isClient ? 'client_to_merc' : 'merc_to_client'
+          });
+        } catch (err) {
+          // Multi-join jobs have no single accepted_by, so /review rejects the
+          // crew member. Fall back to the participant-side endpoint.
+          if (err.response?.status === 403 && !showReview.isClient) {
+            await axios.post(`${API}/contracts/${showReview.id}/rate-poster`, {
+              rating: reviewRating,
+              comment: reviewComment || null
+            });
+          } else {
+            throw err;
+          }
+        }
       }
       setShowReview(null);
       setReviewRating(5);

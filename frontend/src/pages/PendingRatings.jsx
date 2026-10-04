@@ -40,24 +40,11 @@ const RatingRow = ({ item, onDone }) => {
     setBusy(true);
     setError('');
     try {
-      const cid = item.contract_id;
-      if (item.kind === 'poster_to_player') {
-        if (item.is_multi) {
-          await axios.post(`${API}/contracts/${cid}/rate-participant`, {
-            participant_user_id: item.ratee_id, rating, comment: comment || null, tags,
-          });
-        } else {
-          await axios.post(`${API}/contracts/${cid}/review`, {
-            contract_id: cid, rating, comment: comment || null, tags, review_type: 'client_to_merc',
-          });
-        }
-      } else if (item.is_multi) {
-        await axios.post(`${API}/contracts/${cid}/rate-poster`, { rating, comment: comment || null, tags });
-      } else {
-        await axios.post(`${API}/contracts/${cid}/review`, {
-          contract_id: cid, rating, comment: comment || null, tags, review_type: 'merc_to_client',
-        });
-      }
+      await axios.post(`${API}/ratings/pending/${item.id}`, {
+        rating,
+        comment: comment || null,
+        tags,
+      });
       onDone();
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not submit rating');
