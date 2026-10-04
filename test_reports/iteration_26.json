@@ -1,0 +1,37 @@
+{
+  "summary": "Verified the fix for the 'Not a participant of this contract' bug. Logged in as admin (8 pending obligations at start) and submitted EVERY pending obligation via the new POST /api/ratings/pending/{obligation_id} endpoint. All 8 succeeded (0 failures, 0 'Not a participant' errors). All 8 ratings were persisted in the correct bucket (poster_ratings on multi/join contracts) with the expected rating value and reviewer id. /ratings page in the browser now shows 'Nothing owed. You're all square.' with no nav badge. Idempotent replay returns 400 'That rating is no longer pending'. Unknown obligation id returns 404. Rating outside 1-5 returns 400/422. Legacy /rate-poster regression: still rejects the poster rating themselves. UI loads cleanly for the deployed preview.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/ratings/pending/{obligation_id}", "issue": "Invalid praise tags are silently dropped by _clean_praise_tags (e.g. 'reliable' not in PRAISE_TAGS list). This is by design, but there is no 400 or warning returned to the client — a user who hand-rolls a tag will just see empty tags saved. Low priority."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pending_ratings_bugfix.py",
+    "/app/test_reports/pytest/pending_ratings_bugfix.xml"
+  ],
+  "action_items": [
+    "No action required for the reported bug — it is fixed. End-to-end fresh-job tests for brand-new single-contractor and multi-crew flows were NOT exercised in this iteration (would need a second account to apply/accept/complete a brand-new job). The user-reported bug on 'certain past missions' was reproduced against the real 8 past obligations and all submitted cleanly, which is the primary acceptance criterion."
+  ],
+  "critical_code_review_comments": [
+    "submit_pending_rating (server.py ~L5121) correctly routes by is_single + kind. Uses $pull then $push to replace prior row — good for idempotency. Settles via ratings_queue.settle after writing. Looks solid.",
+    "ratings_queue.participants_of unifies accepted_participants / manifest.accepted_by / manifest.filled_by.user_id / accepted_by — this is the exact resolver mismatch that caused the original bug, and /rate-poster + /rate-participant now use it (server.py L2262, L2309). Fix is consistent.",
+    "Minor: _clean_praise_tags silently drops unknown tags with no feedback. Consider returning the cleaned list in the response (or warn) so clients can display what was actually saved.",
+    "server.py is 5770 lines — flagged previously; still exceeds the 700-line guideline. Not in scope for this bug but worth another refactor pass."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pending_ratings_bugfix.py (new)"
+  ],
+  "success_rate": {"backend": "100% (8/8 pending obligations submitted cleanly; replay=400; unknown=404; range-check=400/422; legacy /rate-poster regression passes)", "frontend": "100% (/ratings page loads, shows empty state after all submissions, no error elements)"},
+  "test_credentials": "Admin: beecroft519@gmail.com / Nv$C0m_Adm1n_2025! ; demo: POST /api/auth/demo-login",
+  "seed_data_creation": "No new seed data. Submitted ratings against 8 pre-existing pending obligations on completed contracts owned by the admin. All ratings written with comment prefix 'itr26 verify' for traceability.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The admin had 8 pending obligations at the start of iteration 26; all were submitted and settled via the new endpoint. Future runs of test_pending_ratings_bugfix.py will skip the main submission test unless new obligations are created. To exercise a brand-new end-to-end rating cycle, create a fresh contract, accept a demo bid, mark complete — then the admin and demo will each get one new pending obligation.",
+  "rca of the issue": "The pending-ratings page used to call one of three different endpoints based on an is_multi flag. /rate-participant and /rate-poster validated participation using a narrower rule (accepted_participants[].id, manifest[].accepted_by.id, accepted_by.id) than the obligation creator (ratings_queue.participants_of also recognises manifest[].filled_by.user_id). Result: an obligation could legitimately exist for a user whom the chosen endpoint then rejected with 400 'Not a participant of this contract'. Fix adds a new server-routed endpoint POST /api/ratings/pending/{obligation_id} that looks up the obligation and writes directly to the correct review bucket; the legacy endpoints are also updated to use ratings_queue.participants_of for the participation check. Verified: all 8 real historical obligations now settle successfully."
+}
