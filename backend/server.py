@@ -291,7 +291,7 @@ class UserResponse(BaseModel):
     is_supporter: bool = False
     is_admin: bool = False
     theme_id: str = "default"
-    reputation: float = 5.0
+    reputation: float = 0.0
     contracts_completed: int = 0
     created_at: str
     avatar_url: Optional[str] = None
@@ -672,7 +672,7 @@ async def register(user_data: UserCreate):
         'is_verified': user_data.is_verified or False,
         'is_supporter': False,
         'theme_id': 'default',
-        'reputation': 5.0,
+        'reputation': 0.0,
         'contracts_completed': 0,
         'contact_opt_in': bool(user_data.contact_opt_in),
         'created_at': datetime.now(timezone.utc).isoformat()
@@ -705,7 +705,7 @@ async def login(credentials: UserLogin):
         is_supporter=user.get('is_supporter', False),
         is_admin=user.get('is_admin', False),
         theme_id=user.get('theme_id', 'default'),
-        reputation=user.get('reputation', 5.0),
+        reputation=user.get('reputation', 0.0),
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
@@ -843,7 +843,7 @@ async def discord_login_callback(code: Optional[str] = None, error: Optional[str
             'is_supporter': False,
             'is_admin': False,
             'theme_id': 'default',
-            'reputation': 5.0,
+            'reputation': 0.0,
             'contracts_completed': 0,
             'contact_opt_in': False,
             'created_at': datetime.now(timezone.utc).isoformat(),
@@ -942,7 +942,7 @@ async def discord_complete(req: DiscordCompleteRequest):
         is_supporter=user.get('is_supporter', False),
         is_admin=user.get('is_admin', False),
         theme_id=user.get('theme_id', 'default'),
-        reputation=user.get('reputation', 5.0),
+        reputation=user.get('reputation', 0.0),
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
@@ -1050,7 +1050,7 @@ async def seed_demo_content():
     def poster_summary(doc):
         return {
             'handle': doc['rsi_handle'],
-            'reputation': doc.get('reputation', 5.0),
+            'reputation': doc.get('reputation', 0.0),
             'is_supporter': False,
             'avatar_url': None,
             'avatar_preset': doc.get('avatar_preset'),
@@ -1156,7 +1156,7 @@ async def get_me(user = Depends(get_current_user)):
         is_supporter=user.get('is_supporter', False),
         is_admin=user.get('is_admin', False),
         theme_id=user.get('theme_id', 'default'),
-        reputation=user.get('reputation', 5.0),
+        reputation=user.get('reputation', 0.0),
         contracts_completed=user.get('contracts_completed', 0),
         created_at=user.get('created_at', ''),
         avatar_url=user.get('avatar_url'),
@@ -1953,7 +1953,7 @@ async def create_contract(contract: ContractCreate, user = Depends(get_current_u
         'poster_handle': user['rsi_handle'],
         'poster': {
             'handle': user['rsi_handle'],
-            'reputation': user.get('reputation', 5.0),
+            'reputation': user.get('reputation', 0.0),
             'is_supporter': user.get('is_supporter', False),
             'avatar_url': user.get('avatar_url')
         },
@@ -2114,7 +2114,7 @@ async def accept_contract(contract_id: str, user = Depends(get_current_user)):
                 'accepted_by': {
                     'id': user['id'],
                     'handle': user.get('rsi_handle'),
-                    'reputation': user.get('reputation', 5.0),
+                    'reputation': user.get('reputation', 0.0),
                     'avatar_url': user.get('avatar_url'),
                 }
             }
@@ -2129,7 +2129,7 @@ async def accept_contract(contract_id: str, user = Depends(get_current_user)):
             'accepted_by': {
                 'id': user['id'],
                 'handle': user['rsi_handle'],
-                'reputation': user.get('reputation', 5.0),
+                'reputation': user.get('reputation', 0.0),
                 'avatar_url': user.get('avatar_url')
             }
         }}
@@ -2415,6 +2415,9 @@ async def update_user_reputation(user_id: str):
             {'id': user_id},
             {'$set': {'reputation': round(avg_rating, 1), 'contracts_completed': len(ratings)}}
         )
+    else:
+        # No reviews yet — everyone starts at zero stars and earns them.
+        await db.users.update_one({'id': user_id}, {'$set': {'reputation': 0.0}})
 
 
 # ===== Goals/Roadmap Routes =====
@@ -3025,7 +3028,7 @@ async def admin_repair_multi_join_events(admin = Depends(require_admin)):
             existing_participants = [{
                 'id': accepted_by.get('id'),
                 'handle': accepted_by.get('handle'),
-                'reputation': accepted_by.get('reputation', 5.0),
+                'reputation': accepted_by.get('reputation', 0.0),
                 'avatar_url': accepted_by.get('avatar_url'),
                 'accepted_at': now_iso,
             }] + existing_participants
@@ -3203,7 +3206,7 @@ def participant_summary(user: dict) -> dict:
     return {
         'id': user['id'],
         'handle': user.get('rsi_handle'),
-        'reputation': user.get('reputation', 5.0),
+        'reputation': user.get('reputation', 0.0),
         'avatar_url': user.get('avatar_url'),
         'avatar_id': user.get('avatar_id'),
         'accepted_at': datetime.now(timezone.utc).isoformat(),
@@ -3425,6 +3428,129 @@ async def get_user_praise(user_id: str):
                 counts[t] = counts.get(t, 0) + 1
     praise = sorted(({'tag': k, 'count': v} for k, v in counts.items()), key=lambda x: -x['count'])
     return {'praise': praise}
+
+
+@api_router.get("/users/{user_id}/rating-history")
+async def get_user_rating_history(user_id: str, limit: int = 5):
+    """Most recent ratings received, with their notes — reputation as a story."""
+    out = []
+    cursor = db.contracts.find({'$or': [
+        {'participant_ratings.rated_user_id': user_id},
+        {'poster_ratings.rated_user_id': user_id},
+        {'accepted_by.id': user_id, 'client_review': {'$ne': None}},
+        {'poster_id': user_id, 'merc_review': {'$ne': None}},
+    ]}, {'_id': 0, 'title': 1, 'category': 1, 'participant_ratings': 1, 'poster_ratings': 1,
+         'client_review': 1, 'merc_review': 1, 'accepted_by': 1, 'poster_id': 1})
+    async for c in cursor:
+        entries = [r for r in ((c.get('participant_ratings') or []) + (c.get('poster_ratings') or []))
+                   if r.get('rated_user_id') == user_id]
+        if (c.get('accepted_by') or {}).get('id') == user_id and c.get('client_review'):
+            entries.append(c['client_review'])
+        if c.get('poster_id') == user_id and c.get('merc_review'):
+            entries.append(c['merc_review'])
+        for r in entries:
+            out.append({
+                'rating': r.get('rating'),
+                'comment': r.get('comment'),
+                'tags': r.get('tags') or [],
+                'reviewer_handle': r.get('reviewer_handle'),
+                'created_at': r.get('created_at'),
+                'contract_title': c.get('title'),
+                'category': c.get('category'),
+            })
+    out.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+    return {'ratings': out[:max(1, min(20, limit))]}
+
+
+@api_router.get("/leaderboard/commendations")
+async def commendations_leaderboard(month: Optional[str] = None):
+    """Monthly ranking of the most-commended crew, grouped by commendation."""
+    now = datetime.now(timezone.utc)
+    month = month or now.strftime('%Y-%m')
+    prefix = month
+    tally: dict = {}
+    cursor = db.contracts.find(
+        {'$or': [
+            {'participant_ratings': {'$exists': True, '$ne': []}},
+            {'poster_ratings': {'$exists': True, '$ne': []}},
+            {'client_review': {'$ne': None}},
+            {'merc_review': {'$ne': None}},
+        ]},
+        {'_id': 0, 'participant_ratings': 1, 'poster_ratings': 1, 'client_review': 1,
+         'merc_review': 1, 'accepted_by': 1, 'poster_id': 1}
+    )
+    async for c in cursor:
+        pairs = []
+        for r in ((c.get('participant_ratings') or []) + (c.get('poster_ratings') or [])):
+            pairs.append((r.get('rated_user_id'), r))
+        if c.get('client_review'):
+            pairs.append(((c.get('accepted_by') or {}).get('id'), c['client_review']))
+        if c.get('merc_review'):
+            pairs.append((c.get('poster_id'), c['merc_review']))
+        for uid, r in pairs:
+            if not uid or not (r.get('created_at') or '').startswith(prefix):
+                continue
+            for t in (r.get('tags') or []):
+                tally.setdefault(t, {}).setdefault(uid, 0)
+                tally[t][uid] += 1
+
+    user_ids = list({uid for per in tally.values() for uid in per})
+    handles = {}
+    if user_ids:
+        users = await db.users.find({'id': {'$in': user_ids}}, {'_id': 0, 'id': 1, 'rsi_handle': 1}).to_list(len(user_ids))
+        handles = {u['id']: u.get('rsi_handle') for u in users}
+    tag_map = await affiliation.org_tag_map(db, user_ids)
+
+    boards = []
+    for tag in PRAISE_TAGS:
+        per = tally.get(tag) or {}
+        if not per:
+            continue
+        ranked = sorted(per.items(), key=lambda kv: -kv[1])[:5]
+        boards.append({
+            'tag': tag,
+            'leaders': [{
+                'user_id': uid,
+                'handle': handles.get(uid) or 'Unknown',
+                'count': n,
+                'org_tag': (tag_map.get(uid) or {}).get('tag'),
+                'org_id': (tag_map.get(uid) or {}).get('org_id'),
+                'org_verified': (tag_map.get(uid) or {}).get('verified', False),
+            } for uid, n in ranked],
+        })
+    return {'month': month, 'boards': boards}
+
+
+class OrgMemberInvite(BaseModel):
+    handle: str
+
+
+@api_router.post("/orgs/{org_id}/invite-member")
+async def invite_org_member(org_id: str, payload: OrgMemberInvite, user = Depends(get_current_user)):
+    """Org leader invites a player straight to a confirmed tag."""
+    org = await _require_org_leader(org_id, user)
+    handle = (payload.handle or '').strip()
+    if not handle:
+        raise HTTPException(status_code=400, detail="Handle required")
+    member = await db.users.find_one(
+        {'rsi_handle': {'$regex': f'^{re.escape(handle)}$', '$options': 'i'}},
+        {'_id': 0, 'id': 1, 'rsi_handle': 1}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="No player with that handle")
+    await db.users.update_one(
+        {'id': member['id']},
+        {'$set': {'org_affiliation_id': org_id, 'org_affiliation_status': 'verified',
+                  'org_affiliation_set_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    await broadcast_notification({
+        'type': 'affiliation_reviewed',
+        'target_user_id': member['id'],
+        'title': 'Org tag granted',
+        'message': f"{org.get('name')} added you as a confirmed member — their tag now shows on your handle",
+        'sound': 'notification',
+    })
+    return {'member_id': member['id'], 'handle': member.get('rsi_handle'), 'affiliation_status': 'verified'}
 
 
 class OrgAffiliationUpdate(BaseModel):
@@ -4413,7 +4539,7 @@ async def startup_event():
             'is_admin': True,
             'is_supporter': True,
             'theme_id': 'default',
-            'reputation': 5.0,
+            'reputation': 0.0,
             'contracts_completed': 0,
             'created_at': datetime.now(timezone.utc).isoformat()
         }
@@ -4616,7 +4742,7 @@ async def submit_bid(contract_id: str, user = Depends(get_current_user)):
         'bidder_id': user['id'],
         'bidder': {
             'handle': user['rsi_handle'],
-            'reputation': user.get('reputation', 5.0),
+            'reputation': user.get('reputation', 0.0),
             'avatar_url': user.get('avatar_url'),
             'contracts_completed': user.get('contracts_completed', 0)
         },

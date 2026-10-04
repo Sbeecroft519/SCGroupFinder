@@ -116,7 +116,7 @@ const RatingRow = ({ item, onDone }) => {
 
       <div style={{ marginTop: 14 }}>
         <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 1, color: 'var(--nc-text-muted)', marginBottom: 8 }}>
-          PRAISE (PICK UP TO 3)
+          COMMENDATIONS (PICK UP TO 3)
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {PRAISE_TAGS.map(t => {

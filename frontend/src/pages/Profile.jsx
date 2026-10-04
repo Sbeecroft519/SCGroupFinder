@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import MissionHistory from '../components/MissionHistory';
+import ProfileExtras from '../components/ProfileExtras';
 import BadgeRack from '../components/BadgeRack';
 import { OrgTag } from '../components/OrgTag';
 import { AffiliationRegion } from '../components/settings/AffiliationRegion';
@@ -27,7 +28,6 @@ export default function Profile() {
   const [copied, setCopied] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [praise, setPraise] = useState([]);
 
   // If viewing another user's profile, fetch their data
   useEffect(() => {
@@ -46,19 +46,11 @@ export default function Profile() {
   const user = profileUser || currentUser;
   const isOwnProfile = !userId || userId === currentUser?.id;
 
-  useEffect(() => {
-    const id = userId || currentUser?.id;
-    if (!id) return;
-    axios.get(`${API}/users/${id}/praise`)
-      .then(res => setPraise(res.data?.praise || []))
-      .catch(() => setPraise([]));
-  }, [userId, currentUser?.id]);
-
   if (!user) return null;
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#00f0ff' }}>Loading...</div>;
 
   const userRank = getUserRank(user.contracts_completed || 0);
-  const reputation = user.reputation || 5.0;
+  const reputation = user.reputation || 0;
   const fullStars = Math.floor(reputation);
   const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown';
 
@@ -190,28 +182,6 @@ export default function Profile() {
         )}
       </div>
 
-        {praise.length > 0 && (
-          <div style={{ marginTop: 20, border: '1px solid var(--nc-border)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="profile-praise-panel">
-            <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--nc-text-muted)', marginBottom: 12 }}>
-              PRAISE RECEIVED
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {praise.map(p => (
-                <span
-                  key={p.tag}
-                  data-testid={`profile-praise-${p.tag.replace(/\s+/g, '-').toLowerCase()}`}
-                  style={{
-                    fontSize: 11, padding: '3px 9px', fontFamily: 'var(--nc-font-mono)',
-                    color: 'var(--nc-gold, #FFD700)', background: 'rgba(255,215,0,0.08)',
-                    border: '1px solid rgba(255,215,0,0.3)',
-                  }}
-                >
-                  {p.tag} ×{p.count}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
         {isOwnProfile && (
           <div style={{ marginTop: 20, border: '1px solid var(--nc-border)', background: 'rgba(2,11,20,0.85)', padding: 18 }} data-testid="profile-affiliation-panel">
@@ -227,6 +197,7 @@ export default function Profile() {
         <div className="history-column">
           <BadgeRack supporterTier={user.supporter_tier} badges={user.badges} />
           <MissionHistory userId={user.id} />
+          <ProfileExtras userId={user.id} />
         </div>
       </div>
 

@@ -32,6 +32,21 @@ export default function OrgProfile() {
   };
 
   const isLeader = Boolean(roster) && Boolean(user);
+  const [inviteHandle, setInviteHandle] = useState('');
+  const [inviteMsg, setInviteMsg] = useState('');
+
+  const invite = async () => {
+    if (!inviteHandle.trim()) return;
+    try {
+      const res = await axios.post(`${API}/orgs/${orgId}/invite-member`, { handle: inviteHandle.trim() });
+      setInviteMsg(`${res.data.handle} added as a confirmed member`);
+      setInviteHandle('');
+      load();
+    } catch (e) {
+      setInviteMsg(e.response?.data?.detail || 'Could not add that player');
+    }
+    setTimeout(() => setInviteMsg(''), 4000);
+  };
 
   if (error) {
     return (
@@ -77,6 +92,22 @@ export default function OrgProfile() {
           <div style={{ fontFamily: 'var(--nc-font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--nc-text-muted)', marginBottom: 12 }}>
             AFFILIATION REQUESTS — LEADER ONLY
           </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            <input
+              className="nc-input"
+              placeholder="RSI handle"
+              value={inviteHandle}
+              onChange={e => setInviteHandle(e.target.value)}
+              style={{ flex: '1 1 180px', minWidth: 0 }}
+              data-testid="org-invite-handle"
+            />
+            <button className="nc-btn nc-btn-primary" onClick={invite} data-testid="org-invite-submit">
+              ADD CONFIRMED MEMBER
+            </button>
+          </div>
+          {inviteMsg && (
+            <div style={{ color: 'var(--nc-cyan)', fontSize: 12, marginBottom: 12 }} data-testid="org-invite-msg">{inviteMsg}</div>
+          )}
           {roster.length === 0 ? (
             <div style={{ color: 'var(--nc-text-muted)', fontSize: 13 }} data-testid="org-affiliation-review-empty">
               Nobody is displaying this org yet.
@@ -146,7 +177,7 @@ export default function OrgProfile() {
                 {m.affiliation_status === 'verified' && <BadgeCheck size={13} color="#00ff88" />}
               </span>
               <span style={{ color: 'var(--nc-gold)', fontSize: 12, fontFamily: 'var(--nc-font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Star size={12} fill="#FFD700" /> {(m.reputation || 5).toFixed(1)}
+                <Star size={12} fill="#FFD700" /> {(m.reputation ?? 0).toFixed(1)}
               </span>
             </Link>
           ))}

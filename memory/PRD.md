@@ -486,3 +486,11 @@ Previously branded "NavCom Connect / Mission Advisor." Rebranded and repositione
 - **Rating detail**: `tags` (per-role praise, max 3, server-whitelisted via `PRAISE_TAGS`/`_clean_praise_tags`) added to `/review`, `/rate-poster`, `/rate-participant`; written feedback field relabelled and capped at 280 chars. New `GET /api/ratings/praise-tags` and `GET /api/users/{id}/praise` (aggregated counts). UI: praise chips on each `/ratings` card, "PRAISE RECEIVED" panel on Profile (hidden when empty). Constants: `frontend/src/constants/praise.js`.
 - **Org verified tags**: `users.org_affiliation_status` = pending | verified | rejected (set to `pending` on self-declare). `GET /api/orgs/{id}/affiliations` + `POST /api/orgs/{id}/affiliations/{member_id}` {verify|reject|reset}, org-owner or admin only, notifies the member via SSE (`affiliation_reviewed`). Rejected affiliations are hidden everywhere and excluded from member counts; verified tags render green with a check (`OrgTag verified`). Leader review panel lives on `/orgs/:orgId`; members see their state in Settings/Profile ("AWAITING CONFIRMATION" / "CONFIRMED by the org leader").
 - Verified by curl (verify/reject/bad-action/counts/praise aggregation) and Playwright at 1920 and 390 px. No overflow.
+
+### Iteration 26 — Commendations, Leaderboard, Rating History, Leader Invites, Zero-Star Start (Oct 4, 2026)
+- "Praise" renamed **Commendations**; moved onto the profile as collapsible headings below Mission History (`components/ProfileExtras.jsx`).
+- **Rating History**: `GET /api/users/{id}/rating-history?limit=` — last ratings with stars, note and commendation chips, shown on any public profile.
+- **Commendations Leaderboard**: `GET /api/leaderboard/commendations?month=YYYY-MM` — top 5 per commendation for the month; page `/leaderboard`, linked from OTHER TOOLS.
+- **Leader invites**: `POST /api/orgs/{id}/invite-member` {handle} — org leader/admin adds a player straight to a *verified* tag; UI in the leader panel on `/orgs/:orgId`.
+- **Zero-star start**: all reputation defaults changed 5.0 -> 0.0, `update_user_reputation` writes 0.0 when no reviews exist, and existing unrated users were zeroed by a one-off backfill (9 users). Frontend fallbacks updated.
+- Verified by curl (leaderboard, rating-history, invite happy + unknown handle) and Playwright at 1920/390px — no overflow.

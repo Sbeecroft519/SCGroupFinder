@@ -26,6 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import LandingPage from './pages/LandingPage';
 import CitizenDirectory from './pages/CitizenDirectory';
 import Organizations from './pages/Organizations';
+import Leaderboard from './pages/Leaderboard';
 import OrgProfile from './pages/OrgProfile';
 import PendingRatings from './pages/PendingRatings';
 import { useNotifications } from './hooks/useNotifications';
@@ -394,6 +395,7 @@ function App() {
               <Route path="/orgs" element={<ProtectedRoute><Organizations /></ProtectedRoute>} />
               <Route path="/orgs/:orgId" element={<ProtectedRoute><OrgProfile /></ProtectedRoute>} />
               <Route path="/ratings" element={<ProtectedRoute><PendingRatings /></ProtectedRoute>} />
+              <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             </Routes>
             
             {/* Footer - shown when logged in */}
